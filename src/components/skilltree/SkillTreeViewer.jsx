@@ -2,7 +2,7 @@ import React from 'react';
 import SkillNode from './SkillNode';
 import TreeConnector from './TreeConnector';
 
-export default function SkillTreeViewer({ tree, unlockedNodeIds, onUnlock }) {
+export default function SkillTreeViewer({ tree, unlockedNodeIds, onUnlock, editMode }) {
   const nodes = tree.nodes || [];
 
   // Group nodes by tier
@@ -16,6 +16,7 @@ export default function SkillTreeViewer({ tree, unlockedNodeIds, onUnlock }) {
   const sortedTierKeys = Object.keys(tiers).sort((a, b) => Number(a) - Number(b));
 
   const getNodeStatus = (node) => {
+    if (editMode) return 'available';
     if (unlockedNodeIds.includes(node.id)) return 'unlocked';
     const prereqs = node.prerequisites || [];
     if (prereqs.length === 0) return 'available';

@@ -9,6 +9,16 @@ import { Plus, TreePine, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const categoryLabels = {
   primary: 'Primary',
@@ -25,6 +35,7 @@ const categoryBadge = {
 export default function SkillTrees() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', category: 'primary' });
+  const [deletingId, setDeletingId] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: trees = [], isLoading } = useQuery({
@@ -100,7 +111,7 @@ export default function SkillTrees() {
                   variant="ghost"
                   size="icon"
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                  onClick={() => deleteMutation.mutate(tree.id)}
+                  onClick={() => setDeletingId(tree.id)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -121,6 +132,26 @@ export default function SkillTrees() {
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this skill tree?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the skill tree and all its skills. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { deleteMutation.mutate(deletingId); setDeletingId(null); }}
+            >
+              Delete Tree
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
