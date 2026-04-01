@@ -1,0 +1,54 @@
+{
+  "name": "Character",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Character name"
+    },
+    "total_points": {
+      "type": "number",
+      "default": 20,
+      "description": "Total skill points available"
+    },
+    "spent_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Points already spent"
+    },
+    "base_health": {
+      "type": "number",
+      "default": 100
+    },
+    "base_armor": {
+      "type": "number",
+      "default": 0
+    },
+    "base_speed": {
+      "type": "number",
+      "default": 30
+    },
+    "base_spell_range": {
+      "type": "number",
+      "default": 0
+    },
+    "unlocked_skills": {
+      "type": "array",
+      "description": "Array of objects with tree_id and node_id",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tree_id": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

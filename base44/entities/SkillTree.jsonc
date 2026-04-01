@@ -1,0 +1,80 @@
+{
+  "name": "SkillTree",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the skill tree"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the skill tree"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "tertiary"
+      ],
+      "description": "Action category this tree belongs to"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Icon name from lucide-react"
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Skill nodes in this tree",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "number"
+          },
+          "tier": {
+            "type": "number",
+            "description": "Depth tier 0-4"
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of prerequisite nodes"
+          },
+          "stat_bonuses": {
+            "type": "object",
+            "properties": {
+              "health": {
+                "type": "number"
+              },
+              "armor": {
+                "type": "number"
+              },
+              "speed": {
+                "type": "number"
+              },
+              "spell_range": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ]
+}

@@ -5,7 +5,12 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-// Add page imports here
+import AppLayout from '@/components/AppLayout';
+import Characters from '@/pages/Characters';
+import CharacterSheet from '@/pages/CharacterSheet';
+import SkillTrees from '@/pages/SkillTrees';
+import EditTree from '@/pages/EditTree';
+import SpendPoints from '@/pages/SpendPoints';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -33,7 +38,13 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<Characters />} />
+        <Route path="/character" element={<CharacterSheet />} />
+        <Route path="/skill-trees" element={<SkillTrees />} />
+        <Route path="/edit-tree" element={<EditTree />} />
+        <Route path="/spend-points" element={<SpendPoints />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
