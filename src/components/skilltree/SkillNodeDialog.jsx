@@ -108,6 +108,34 @@ export default function SkillNodeDialog({
               </div>
             </div>
 
+            {/* Action Category */}
+            <div>
+              <Label className="mb-1.5 block">Action Category</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                How this skill is categorized on the character sheet.
+              </p>
+              <div className="flex gap-2">
+                {[
+                  { value: 'primary', label: 'Primary', color: 'border-primary/50 bg-primary/10 text-primary' },
+                  { value: 'secondary', label: 'Secondary', color: 'border-accent/50 bg-accent/10 text-accent' },
+                  { value: 'tertiary', label: 'Tertiary', color: 'border-chart-3/50 bg-chart-3/10 text-chart-3' },
+                ].map(({ value, label, color }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm({ ...form, category: value })}
+                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      form.category === value
+                        ? color
+                        : 'border-border text-muted-foreground hover:border-border hover:text-foreground'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <Separator />
 
             {/* Stat Bonuses */}

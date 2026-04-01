@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, TreePine, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import {
   AlertDialog,
@@ -20,21 +19,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const categoryLabels = {
-  primary: 'Primary',
-  secondary: 'Secondary',
-  tertiary: 'Tertiary',
-};
-
-const categoryBadge = {
-  primary: 'bg-primary/20 text-primary border-primary/30',
-  secondary: 'bg-accent/20 text-accent border-accent/30',
-  tertiary: 'bg-chart-3/20 text-chart-3 border-chart-3/30',
-};
 
 export default function SkillTrees() {
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', category: 'primary' });
+  const [form, setForm] = useState({ name: '', description: '' });
   const [deletingId, setDeletingId] = useState(null);
   const queryClient = useQueryClient();
 
@@ -102,9 +90,6 @@ export default function SkillTrees() {
                   </div>
                   <div>
                     <h3 className="font-heading font-semibold text-foreground">{tree.name}</h3>
-                    <Badge variant="outline" className={`text-xs mt-1 ${categoryBadge[tree.category]}`}>
-                      {categoryLabels[tree.category]}
-                    </Badge>
                   </div>
                 </div>
                 <Button
@@ -170,16 +155,7 @@ export default function SkillTrees() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
-            <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="primary">Primary Actions</SelectItem>
-                <SelectItem value="secondary">Secondary Actions</SelectItem>
-                <SelectItem value="tertiary">Tertiary Actions</SelectItem>
-              </SelectContent>
-            </Select>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
               <Button type="submit" disabled={!form.name.trim()}>Create</Button>

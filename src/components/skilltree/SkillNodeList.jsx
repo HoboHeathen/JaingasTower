@@ -81,16 +81,24 @@ export default function SkillNodeList({ nodes, onEdit, onDelete, onAdd }) {
                       className="group flex items-center justify-between bg-secondary/30 hover:bg-secondary/60 border border-border/30 rounded-lg px-3 py-2.5 transition-all"
                     >
                       <div className="flex-1 min-w-0 mr-2">
-                        <p className="text-sm font-medium text-foreground truncate">{node.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">{node.cost} pt{node.cost !== 1 ? 's' : ''}</span>
-                          {(node.prerequisites || []).length > 0 && (
-                            <span className="flex items-center gap-0.5 text-xs text-accent">
-                              <GitBranch className="w-3 h-3" />
-                              {node.prerequisites.length} req
-                            </span>
-                          )}
-                        </div>
+                      <p className="text-sm font-medium text-foreground truncate">{node.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-muted-foreground">{node.cost} pt{node.cost !== 1 ? 's' : ''}</span>
+                        {node.category && (
+                          <span className={`text-xs font-medium ${
+                            node.category === 'primary' ? 'text-primary' :
+                            node.category === 'secondary' ? 'text-accent' : 'text-chart-3'
+                          }`}>
+                            {node.category}
+                          </span>
+                        )}
+                        {(node.prerequisites || []).length > 0 && (
+                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                            <GitBranch className="w-3 h-3" />
+                            {node.prerequisites.length} req
+                          </span>
+                        )}
+                      </div>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button

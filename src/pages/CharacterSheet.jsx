@@ -65,7 +65,7 @@ export default function CharacterSheet() {
       });
     }
 
-    const cat = tree.category || 'primary';
+    const cat = node.category || tree.category || 'primary';
     if (categorizedSkills[cat]) {
       categorizedSkills[cat].push({
         ...node,

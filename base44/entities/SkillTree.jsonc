@@ -10,15 +10,6 @@
       "type": "string",
       "description": "Description of the skill tree"
     },
-    "category": {
-      "type": "string",
-      "enum": [
-        "primary",
-        "secondary",
-        "tertiary"
-      ],
-      "description": "Action category this tree belongs to"
-    },
     "icon": {
       "type": "string",
       "description": "Icon name from lucide-react"
@@ -43,7 +34,16 @@
           },
           "tier": {
             "type": "number",
-            "description": "Depth tier 0-4"
+            "description": "Depth tier 0-6"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "secondary",
+              "tertiary"
+            ],
+            "description": "Action category for this individual skill"
           },
           "prerequisites": {
             "type": "array",
@@ -74,7 +74,6 @@
     }
   },
   "required": [
-    "name",
-    "category"
+    "name"
   ]
 }

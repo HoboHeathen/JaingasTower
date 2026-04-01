@@ -16,6 +16,7 @@ const emptyNode = {
   description: '',
   cost: 1,
   tier: 0,
+  category: 'primary',
   prerequisites: [],
   stat_bonuses: { health: 0, armor: 0, speed: 0, spell_range: 0 },
 };

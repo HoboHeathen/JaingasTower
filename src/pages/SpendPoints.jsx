@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SkillTreeViewer from '@/components/skilltree/SkillTreeViewer';
 import { toast } from 'sonner';
 
@@ -86,14 +85,6 @@ export default function SpendPoints() {
     toast.success('All skills reset');
   };
 
-  const groupedTrees = {
-    primary: trees.filter((t) => t.category === 'primary'),
-    secondary: trees.filter((t) => t.category === 'secondary'),
-    tertiary: trees.filter((t) => t.category === 'tertiary'),
-  };
-
-  const defaultTab = trees.length > 0 ? trees[0].category : 'primary';
-
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -131,46 +122,25 @@ export default function SpendPoints() {
           </Link>
         </div>
       ) : (
-        <Tabs defaultValue={defaultTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="primary">Primary</TabsTrigger>
-            <TabsTrigger value="secondary">Secondary</TabsTrigger>
-            <TabsTrigger value="tertiary">Tertiary</TabsTrigger>
-          </TabsList>
-
-          {['primary', 'secondary', 'tertiary'].map((cat) => (
-            <TabsContent key={cat} value={cat}>
-              {groupedTrees[cat].length === 0 ? (
-                <div className="text-center py-16 bg-card border border-border/50 rounded-xl">
-                  <p className="text-muted-foreground">No {cat} skill trees yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  {groupedTrees[cat].map((tree) => (
-                    <div
-                      key={tree.id}
-                      className="bg-card border border-border/50 rounded-xl p-6"
-                    >
-                      <h2 className="font-heading text-xl font-semibold text-foreground mb-1">
-                        {tree.name}
-                      </h2>
-                      {tree.description && (
-                        <p className="text-sm text-muted-foreground mb-6">{tree.description}</p>
-                      )}
-                      <div className="flex justify-center overflow-x-auto py-4">
-                        <SkillTreeViewer
-                          tree={tree}
-                          unlockedNodeIds={getUnlockedNodeIds(tree.id)}
-                          onUnlock={(node) => handleUnlock(tree.id, node)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        <div className="space-y-8">
+          {trees.map((tree) => (
+            <div key={tree.id} className="bg-card border border-border/50 rounded-xl p-6">
+              <h2 className="font-heading text-xl font-semibold text-foreground mb-1">
+                {tree.name}
+              </h2>
+              {tree.description && (
+                <p className="text-sm text-muted-foreground mb-6">{tree.description}</p>
               )}
-            </TabsContent>
+              <div className="flex justify-center overflow-x-auto py-4">
+                <SkillTreeViewer
+                  tree={tree}
+                  unlockedNodeIds={getUnlockedNodeIds(tree.id)}
+                  onUnlock={(node) => handleUnlock(tree.id, node)}
+                />
+              </div>
+            </div>
           ))}
-        </Tabs>
+        </div>
       )}
     </div>
   );
