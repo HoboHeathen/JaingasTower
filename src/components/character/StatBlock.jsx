@@ -10,10 +10,10 @@ const statConfig = [
 
 export default function StatBlock({ character, skillBonuses }) {
   const stats = {
-    health: (character?.base_health || 100) + (skillBonuses?.health || 0),
-    armor: (character?.base_armor || 0) + (skillBonuses?.armor || 0),
-    speed: (character?.base_speed || 30) + (skillBonuses?.speed || 0),
-    spell_range: (character?.base_spell_range || 0) + (skillBonuses?.spell_range || 0),
+    health: (character?.base_health ?? 10) + (skillBonuses?.health || 0),
+    armor: (character?.base_armor ?? 10) + (skillBonuses?.armor || 0),
+    speed: (character?.base_speed ?? 15) + (skillBonuses?.speed || 0),
+    spell_range: (character?.base_spell_range ?? 0) + (skillBonuses?.spell_range || 0),
   };
 
   return (

@@ -31,24 +31,30 @@ export default function Characters() {
     if (!name.trim()) return;
     createMutation.mutate({
       name: name.trim(),
-      total_points: 20,
+      total_points: 10,
       spent_points: 0,
-      base_health: 100,
-      base_armor: 0,
-      base_speed: 30,
+      base_health: 10,
+      base_armor: 10,
+      base_speed: 15,
       base_spell_range: 0,
+      crossbow_reload: 'primary',
+      fire_damage: 'none',
+      frost_damage: 'none',
+      lightning_damage: 'none',
+      necrotic_damage: 'none',
+      used_single_use_skills: [],
       unlocked_skills: [],
     });
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">Characters</h1>
           <p className="text-muted-foreground mt-1">Manage your adventurers</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
+        <Button onClick={() => setShowCreate(true)} className="gap-2 w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           New Character
         </Button>

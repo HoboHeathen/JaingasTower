@@ -17,6 +17,18 @@ const emptyNode = {
   cost: 1,
   tier: 0,
   category: 'primary',
+  attack_sub_category: 'light',
+  weapon_required: 'any',
+  is_single_use: false,
+  damage_dice: undefined,
+  damage_override_light: undefined,
+  damage_override_medium: undefined,
+  damage_override_heavy: undefined,
+  reload_modifier: 0,
+  fire_damage_modifier: 0,
+  frost_damage_modifier: 0,
+  lightning_damage_modifier: 0,
+  necrotic_damage_modifier: 0,
   prerequisites: [],
   stat_bonuses: { health: 0, armor: 0, speed: 0, spell_range: 0 },
 };
@@ -84,6 +96,7 @@ export default function EditTree() {
 
   const openEditNode = (node) => {
     setNodeForm({
+      ...emptyNode,
       ...node,
       stat_bonuses: node.stat_bonuses || { health: 0, armor: 0, speed: 0, spell_range: 0 },
       prerequisites: node.prerequisites || [],

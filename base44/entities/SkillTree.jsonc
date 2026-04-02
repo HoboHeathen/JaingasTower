@@ -45,6 +45,59 @@
             ],
             "description": "Action category for this individual skill"
           },
+          "attack_sub_category": {
+            "type": "string",
+            "enum": [
+              "light",
+              "medium",
+              "heavy"
+            ],
+            "description": "Attack weight: light, medium, or heavy"
+          },
+          "weapon_required": {
+            "type": "string",
+            "enum": [
+              "polearm",
+              "axe",
+              "sword",
+              "dagger",
+              "hammer",
+              "shortbow",
+              "longbow",
+              "light_crossbow",
+              "heavy_crossbow",
+              "any"
+            ],
+            "description": "Weapon type required for this skill"
+          },
+          "is_single_use": {
+            "type": "boolean",
+            "description": "If true, skill greys out after use"
+          },
+          "damage_dice": {
+            "type": "string",
+            "enum": [
+              "d4",
+              "d6",
+              "d8",
+              "d10",
+              "d12",
+              "custom"
+            ],
+            "description": "Override damage dice for this skill specifically"
+          },
+          "damage_override_light": {
+            "type": "string",
+            "description": "Dice when this skill is light attack"
+          },
+          "damage_override_medium": {
+            "type": "string",
+            "description": "Dice when this skill is medium attack"
+          },
+          "damage_override_heavy": {
+            "type": "string",
+            "description": "Dice when this skill is heavy attack"
+          },
           "prerequisites": {
             "type": "array",
             "items": {
@@ -68,6 +121,23 @@
                 "type": "number"
               }
             }
+          },
+          "reload_modifier": {
+            "type": "number",
+            "description": "-1 = lower reload cost by one tier, +1 = raise reload cost by one tier"
+          },
+          "fire_damage_modifier": {
+            "type": "number",
+            "description": "How many tiers to raise fire damage (0 = no effect, 1 = light->medium or medium->heavy)"
+          },
+          "frost_damage_modifier": {
+            "type": "number"
+          },
+          "lightning_damage_modifier": {
+            "type": "number"
+          },
+          "necrotic_damage_modifier": {
+            "type": "number"
           }
         }
       }

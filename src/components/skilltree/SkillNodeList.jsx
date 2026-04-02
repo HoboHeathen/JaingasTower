@@ -84,20 +84,28 @@ export default function SkillNodeList({ nodes, onEdit, onDelete, onAdd }) {
                       <p className="text-sm font-medium text-foreground truncate">{node.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs text-muted-foreground">{node.cost} pt{node.cost !== 1 ? 's' : ''}</span>
-                        {node.category && (
-                          <span className={`text-xs font-medium ${
-                            node.category === 'primary' ? 'text-primary' :
-                            node.category === 'secondary' ? 'text-accent' : 'text-chart-3'
-                          }`}>
-                            {node.category}
-                          </span>
-                        )}
-                        {(node.prerequisites || []).length > 0 && (
-                          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                            <GitBranch className="w-3 h-3" />
-                            {node.prerequisites.length} req
-                          </span>
-                        )}
+                          {node.category && (
+                            <span className={`text-xs font-medium ${
+                              node.category === 'primary' ? 'text-primary' :
+                              node.category === 'secondary' ? 'text-accent' : 'text-chart-3'
+                            }`}>
+                              {node.category}
+                            </span>
+                          )}
+                          {node.attack_sub_category && (
+                            <span className={`text-xs font-medium ${
+                              node.attack_sub_category === 'heavy' ? 'text-red-400' :
+                              node.attack_sub_category === 'medium' ? 'text-orange-400' : 'text-yellow-400'
+                            }`}>
+                              {node.attack_sub_category}
+                            </span>
+                          )}
+                          {(node.prerequisites || []).length > 0 && (
+                            <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                              <GitBranch className="w-3 h-3" />
+                              {node.prerequisites.length} req
+                            </span>
+                          )}
                       </div>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

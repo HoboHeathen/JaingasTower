@@ -3,12 +3,48 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Save, GitBranch, ArrowRight } from 'lucide-react';
+import { Save, GitBranch } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+
+const WEAPONS = [
+  { value: 'any', label: 'Any / None' },
+  { value: 'polearm', label: 'Polearm (d8)' },
+  { value: 'axe', label: 'Axe (d10)' },
+  { value: 'sword', label: 'Sword (d6)' },
+  { value: 'dagger', label: 'Dagger (d4)' },
+  { value: 'hammer', label: 'Hammer (d12)' },
+  { value: 'shortbow', label: 'Shortbow (d6)' },
+  { value: 'longbow', label: 'Longbow (d10)' },
+  { value: 'light_crossbow', label: 'Light Crossbow (d8)' },
+  { value: 'heavy_crossbow', label: 'Heavy Crossbow (d12)' },
+];
+
+const DAMAGE_LEVELS = ['none', 'light', 'medium', 'heavy'];
+const DICE_OPTIONS = ['d4', 'd6', 'd8', 'd10', 'd12'];
+
+function ToggleGroup({ options, value, onChange, colorMap }) {
+  return (
+    <div className="flex gap-2 flex-wrap">
+      {options.map(({ value: v, label, color }) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+            value === v
+              ? color || 'bg-primary text-primary-foreground border-primary'
+              : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function SkillNodeDialog({
   open,
@@ -26,18 +62,18 @@ export default function SkillNodeDialog({
 
   const togglePrereq = (nodeId) => {
     const current = form.prerequisites || [];
-    const updated = current.includes(nodeId)
-      ? current.filter((p) => p !== nodeId)
-      : [...current, nodeId];
-    setForm({ ...form, prerequisites: updated });
+    setForm({
+      ...form,
+      prerequisites: current.includes(nodeId)
+        ? current.filter((p) => p !== nodeId)
+        : [...current, nodeId],
+    });
   };
 
-  const selectedPrereqs = prereqCandidates.filter((n) =>
-    (form.prerequisites || []).includes(n.id)
-  );
-  const unselectedPrereqs = prereqCandidates.filter(
-    (n) => !(form.prerequisites || []).includes(n.id)
-  );
+  const selectedPrereqs = prereqCandidates.filter((n) => (form.prerequisites || []).includes(n.id));
+  const unselectedPrereqs = prereqCandidates.filter((n) => !(form.prerequisites || []).includes(n.id));
+
+  const setMod = (field, val) => setForm({ ...form, [field]: val });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,23 +86,22 @@ export default function SkillNodeDialog({
 
         <ScrollArea className="flex-1 overflow-y-auto pr-2">
           <form id="node-form" onSubmit={handleSubmit} className="space-y-5 pb-2">
-            {/* Name + Cost row */}
+
+            {/* Name + Cost */}
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
                 <Label className="mb-1.5 block">Skill Name *</Label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Fireball, Parry, Shadow Step..."
+                  placeholder="e.g. Assassinate, Parry..."
                   autoFocus
                 />
               </div>
               <div>
                 <Label className="mb-1.5 block">Point Cost</Label>
                 <Input
-                  type="number"
-                  min={1}
-                  max={20}
+                  type="number" min={1} max={20}
                   value={form.cost}
                   onChange={(e) => setForm({ ...form, cost: parseInt(e.target.value) || 1 })}
                 />
@@ -77,61 +112,187 @@ export default function SkillNodeDialog({
             <div>
               <Label className="mb-1.5 block">Description</Label>
               <Textarea
-                value={form.description}
+                value={form.description || ''}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="What does this skill do? Describe its effect..."
-                rows={3}
+                placeholder="What does this skill do?"
+                rows={2}
               />
             </div>
 
             {/* Tier */}
             <div>
               <Label className="mb-1.5 block">Tier (Tree Depth)</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Tier 0 = root/starting skills. Higher tiers appear deeper in the tree.
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                {[0, 1, 2, 3, 4, 5, 6].map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setForm({ ...form, tier: t })}
-                    className={`px-4 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-                      form.tier === t
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                    }`}
-                  >
-                    {t === 0 ? 'Root' : `Tier ${t}`}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground mb-2">Tier 0 = root. Higher tiers appear deeper.</p>
+              <ToggleGroup
+                options={[0, 1, 2, 3, 4, 5, 6].map((t) => ({
+                  value: t,
+                  label: t === 0 ? 'Root' : `Tier ${t}`,
+                }))}
+                value={form.tier}
+                onChange={(v) => setForm({ ...form, tier: v })}
+              />
             </div>
 
             {/* Action Category */}
             <div>
               <Label className="mb-1.5 block">Action Category</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                How this skill is categorized on the character sheet.
-              </p>
-              <div className="flex gap-2">
-                {[
+              <ToggleGroup
+                options={[
                   { value: 'primary', label: 'Primary', color: 'border-primary/50 bg-primary/10 text-primary' },
                   { value: 'secondary', label: 'Secondary', color: 'border-accent/50 bg-accent/10 text-accent' },
                   { value: 'tertiary', label: 'Tertiary', color: 'border-chart-3/50 bg-chart-3/10 text-chart-3' },
-                ].map(({ value, label, color }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setForm({ ...form, category: value })}
-                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${
-                      form.category === value
-                        ? color
-                        : 'border-border text-muted-foreground hover:border-border hover:text-foreground'
-                    }`}
-                  >
-                    {label}
-                  </button>
+                ]}
+                value={form.category}
+                onChange={(v) => setForm({ ...form, category: v })}
+              />
+            </div>
+
+            {/* Attack Sub-Category */}
+            <div>
+              <Label className="mb-1.5 block">Attack Weight</Label>
+              <ToggleGroup
+                options={[
+                  { value: 'light', label: 'Light', color: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' },
+                  { value: 'medium', label: 'Medium', color: 'border-orange-500/50 bg-orange-500/10 text-orange-400' },
+                  { value: 'heavy', label: 'Heavy', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
+                ]}
+                value={form.attack_sub_category}
+                onChange={(v) => setForm({ ...form, attack_sub_category: v })}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Weapon Required */}
+            <div>
+              <Label className="mb-1.5 block">Weapon Required</Label>
+              <Select
+                value={form.weapon_required || 'any'}
+                onValueChange={(v) => setForm({ ...form, weapon_required: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEAPONS.map((w) => (
+                    <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Damage Dice */}
+            <div>
+              <Label className="mb-1.5 block">Damage Dice Override</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Leave at "Weapon default" to use the weapon's die. Choose "Custom per attack weight" to set different dice per attack tier.
+              </p>
+              <Select
+                value={form.damage_dice || 'weapon_default'}
+                onValueChange={(v) => setForm({ ...form, damage_dice: v === 'weapon_default' ? undefined : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Weapon default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weapon_default">Weapon default</SelectItem>
+                  {DICE_OPTIONS.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                  <SelectItem value="custom">Custom per attack weight</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {form.damage_dice === 'custom' && (
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  {['light', 'medium', 'heavy'].map((weight) => (
+                    <div key={weight} className="bg-secondary/30 rounded-lg p-2">
+                      <Label className="text-xs mb-1 block capitalize">{weight} attack</Label>
+                      <Select
+                        value={form[`damage_override_${weight}`] || ''}
+                        onValueChange={(v) => setForm({ ...form, [`damage_override_${weight}`]: v })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DICE_OPTIONS.map((d) => (
+                            <SelectItem key={d} value={d}>{d}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Single Use */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, is_single_use: !form.is_single_use })}
+                className={`w-10 h-5 rounded-full border-2 transition-all relative ${
+                  form.is_single_use ? 'bg-primary border-primary' : 'bg-muted border-border'
+                }`}
+              >
+                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+                  form.is_single_use ? 'translate-x-[18px]' : 'translate-x-0.5'
+                }`} />
+              </button>
+              <div>
+                <Label className="cursor-pointer" onClick={() => setForm({ ...form, is_single_use: !form.is_single_use })}>
+                  Single-use skill
+                </Label>
+                <p className="text-xs text-muted-foreground">Greys out on the character sheet after being rolled/used.</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Reload Modifier */}
+            <div>
+              <Label className="mb-1.5 block">Crossbow Reload Modifier</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Shift the reload action cost for crossbows when this skill is unlocked.
+              </p>
+              <ToggleGroup
+                options={[
+                  { value: -1, label: '↓ Faster (−1 tier)', color: 'border-green-500/50 bg-green-500/10 text-green-400' },
+                  { value: 0, label: 'No change', color: 'bg-secondary border-border text-foreground' },
+                  { value: 1, label: '↑ Slower (+1 tier)', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
+                ]}
+                value={form.reload_modifier ?? 0}
+                onChange={(v) => setForm({ ...form, reload_modifier: v })}
+              />
+            </div>
+
+            {/* Elemental Damage Modifiers */}
+            <div>
+              <Label className="mb-1.5 block">Elemental Damage Modifiers</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Raise a character's elemental damage tier when this skill is unlocked.
+                Each +1 advances: none → light → medium → heavy.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'fire_damage_modifier', label: '🔥 Fire', color: 'text-orange-400' },
+                  { key: 'frost_damage_modifier', label: '❄️ Frost', color: 'text-blue-400' },
+                  { key: 'lightning_damage_modifier', label: '⚡ Lightning', color: 'text-yellow-400' },
+                  { key: 'necrotic_damage_modifier', label: '💀 Necrotic', color: 'text-purple-400' },
+                ].map(({ key, label, color }) => (
+                  <div key={key} className="bg-secondary/30 rounded-lg p-3">
+                    <Label className={`text-xs mb-1.5 block ${color}`}>{label}</Label>
+                    <ToggleGroup
+                      options={[
+                        { value: 0, label: '—' },
+                        { value: 1, label: '+1' },
+                        { value: 2, label: '+2' },
+                      ]}
+                      value={form[key] ?? 0}
+                      onChange={(v) => setForm({ ...form, [key]: v })}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -157,10 +318,7 @@ export default function SkillNodeDialog({
                       onChange={(e) =>
                         setForm({
                           ...form,
-                          stat_bonuses: {
-                            ...form.stat_bonuses,
-                            [key]: parseInt(e.target.value) || 0,
-                          },
+                          stat_bonuses: { ...form.stat_bonuses, [key]: parseInt(e.target.value) || 0 },
                         })
                       }
                     />
@@ -178,23 +336,20 @@ export default function SkillNodeDialog({
                 <Label>Prerequisites</Label>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Players must unlock these skills before they can unlock this one. Use this to create branching paths.
+                Players must unlock these skills first.
               </p>
 
               {prereqCandidates.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">No other skills to require yet.</p>
               ) : (
-                <div className="space-y-4">
-                  {/* Selected prerequisites */}
+                <div className="space-y-3">
                   {selectedPrereqs.length > 0 && (
                     <div>
                       <p className="text-xs font-medium text-primary mb-2">Required ({selectedPrereqs.length})</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedPrereqs.map((n) => (
                           <button
-                            key={n.id}
-                            type="button"
-                            onClick={() => togglePrereq(n.id)}
+                            key={n.id} type="button" onClick={() => togglePrereq(n.id)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 border border-primary/30 text-primary rounded-lg text-sm hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
                           >
                             <span>{n.name}</span>
@@ -205,19 +360,13 @@ export default function SkillNodeDialog({
                       </div>
                     </div>
                   )}
-
-                  {/* Available to add */}
                   {unselectedPrereqs.length > 0 && (
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">
-                        Click to require:
-                      </p>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Click to require:</p>
                       <div className="flex flex-wrap gap-2">
                         {unselectedPrereqs.map((n) => (
                           <button
-                            key={n.id}
-                            type="button"
-                            onClick={() => togglePrereq(n.id)}
+                            key={n.id} type="button" onClick={() => togglePrereq(n.id)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-border text-muted-foreground rounded-lg text-sm hover:border-primary/50 hover:text-foreground transition-all"
                           >
                             <span>{n.name}</span>
@@ -238,7 +387,7 @@ export default function SkillNodeDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button form="node-form" type="submit" disabled={!form.name.trim()} className="gap-2">
+          <Button form="node-form" type="submit" disabled={!form.name?.trim()} className="gap-2">
             <Save className="w-4 h-4" />
             {isEditing ? 'Save Changes' : 'Add Skill'}
           </Button>

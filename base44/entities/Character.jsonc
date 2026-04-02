@@ -8,7 +8,7 @@
     },
     "total_points": {
       "type": "number",
-      "default": 20,
+      "default": 10,
       "description": "Total skill points available"
     },
     "spent_points": {
@@ -18,19 +18,76 @@
     },
     "base_health": {
       "type": "number",
-      "default": 100
+      "default": 10
     },
     "base_armor": {
       "type": "number",
-      "default": 0
+      "default": 10
     },
     "base_speed": {
       "type": "number",
-      "default": 30
+      "default": 15
     },
     "base_spell_range": {
       "type": "number",
       "default": 0
+    },
+    "crossbow_reload": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "tertiary"
+      ],
+      "default": "primary",
+      "description": "Current reload action cost for crossbows"
+    },
+    "fire_damage": {
+      "type": "string",
+      "enum": [
+        "none",
+        "light",
+        "medium",
+        "heavy"
+      ],
+      "default": "none"
+    },
+    "frost_damage": {
+      "type": "string",
+      "enum": [
+        "none",
+        "light",
+        "medium",
+        "heavy"
+      ],
+      "default": "none"
+    },
+    "lightning_damage": {
+      "type": "string",
+      "enum": [
+        "none",
+        "light",
+        "medium",
+        "heavy"
+      ],
+      "default": "none"
+    },
+    "necrotic_damage": {
+      "type": "string",
+      "enum": [
+        "none",
+        "light",
+        "medium",
+        "heavy"
+      ],
+      "default": "none"
+    },
+    "used_single_use_skills": {
+      "type": "array",
+      "description": "Node IDs of single-use skills that have been used",
+      "items": {
+        "type": "string"
+      }
     },
     "unlocked_skills": {
       "type": "array",

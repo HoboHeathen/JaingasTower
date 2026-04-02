@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
+import SkillCard from './SkillCard';
 
 const categoryLabels = {
   primary: 'Primary Actions',
@@ -13,35 +13,34 @@ const categoryStyles = {
   tertiary: 'border-chart-3/30 bg-chart-3/5',
 };
 
-const badgeStyles = {
-  primary: 'bg-primary/20 text-primary border-primary/30',
-  secondary: 'bg-accent/20 text-accent border-accent/30',
-  tertiary: 'bg-chart-3/20 text-chart-3 border-chart-3/30',
-};
+const ATTACK_ORDER = { heavy: 0, medium: 1, light: 2 };
 
-export default function SkillList({ category, skills }) {
+export default function SkillList({ category, skills, usedSkills = [], onMarkUsed }) {
+  // Sort: heavy → medium → light, then alphabetical within
+  const sorted = [...skills].sort((a, b) => {
+    const ao = ATTACK_ORDER[a.attack_sub_category] ?? 3;
+    const bo = ATTACK_ORDER[b.attack_sub_category] ?? 3;
+    if (ao !== bo) return ao - bo;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
   return (
-    <div className={`rounded-xl border ${categoryStyles[category]} p-5`}>
-      <h3 className="font-heading text-lg font-semibold text-foreground mb-4">
+    <div className={`rounded-xl border ${categoryStyles[category]} p-4`}>
+      <h3 className="font-heading text-base font-semibold text-foreground mb-3">
         {categoryLabels[category]}
       </h3>
-      {skills.length === 0 ? (
+      {sorted.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">No skills unlocked yet</p>
       ) : (
-        <div className="space-y-2">
-          {skills.map((skill) => (
-            <div
+        <div className="space-y-1.5">
+          {sorted.map((skill) => (
+            <SkillCard
               key={`${skill.treeId}-${skill.id}`}
-              className="flex items-center justify-between bg-background/50 rounded-lg px-4 py-3"
-            >
-              <div>
-                <p className="text-sm font-medium text-foreground">{skill.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{skill.treeName}</p>
-              </div>
-              <Badge variant="outline" className={badgeStyles[category]}>
-                {skill.cost} pts
-              </Badge>
-            </div>
+              skill={skill}
+              category={category}
+              isUsed={usedSkills.includes(skill.id)}
+              onMarkUsed={onMarkUsed}
+            />
           ))}
         </div>
       )}
