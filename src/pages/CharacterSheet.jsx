@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, TreePine, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, TreePine, Plus, Minus, Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatBlock from '@/components/character/StatBlock';
 import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
+import DiceRollerModal from '@/components/dice/DiceRollerModal';
 
 export default function CharacterSheet() {
   const urlParams = new URLSearchParams(window.location.search);
   const characterId = urlParams.get('id');
   const queryClient = useQueryClient();
+  const [showDiceRoller, setShowDiceRoller] = useState(false);
 
   const { data: character, isLoading: loadingChar } = useQuery({
     queryKey: ['character', characterId],
@@ -90,6 +92,17 @@ export default function CharacterSheet() {
     updateMutation.mutate({ total_points: newTotal });
   };
 
+  const handleSaveFavorite = (fav) => {
+    const current = character.dice_favorites || [];
+    updateMutation.mutate({ dice_favorites: [...current, fav] });
+  };
+
+  const handleRemoveFavorite = (idx) => {
+    const current = [...(character.dice_favorites || [])];
+    current.splice(idx, 1);
+    updateMutation.mutate({ dice_favorites: current });
+  };
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -138,6 +151,23 @@ export default function CharacterSheet() {
           ))}
         </div>
       </div>
+      {/* Floating dice roller button */}
+      <button
+        onClick={() => setShowDiceRoller(true)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+        title="Open Dice Roller"
+      >
+        <Dices className="w-6 h-6" />
+      </button>
+
+      {showDiceRoller && (
+        <DiceRollerModal
+          onClose={() => setShowDiceRoller(false)}
+          character={character}
+          onSaveFavorite={handleSaveFavorite}
+          onRemoveFavorite={handleRemoveFavorite}
+        />
+      )}
     </div>
   );
 }

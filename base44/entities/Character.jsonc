@@ -69,8 +69,7 @@
         "secondary",
         "tertiary"
       ],
-      "default": "primary",
-      "description": "Current reload action cost for crossbows"
+      "default": "primary"
     },
     "fire_damage": {
       "type": "string",
@@ -130,6 +129,33 @@
           },
           "node_id": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "dice_favorites": {
+      "type": "array",
+      "description": "Saved dice rolls for this character",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "formula": {
+            "type": "string"
+          },
+          "die": {
+            "type": "number"
+          },
+          "count": {
+            "type": "number"
+          },
+          "modifier": {
+            "type": "number"
           }
         }
       }
