@@ -126,28 +126,33 @@ function SkillCard({ skill, isUsed, onMarkUsed }) {
   );
 }
 
+// Main-chain skills are named like "Polearm I", "Axe III", "Hammer V" etc.
+// They are the basic weapon attacks that get deduplicated (keep highest weight per weapon).
+// Augments (Sweep, Chasedown, Dazed, etc.) always show.
+const WEAPON_TREE_NAMES = ['polearm', 'axe', 'hammer', 'greataxe', 'greatsword', 'greathammer', 'sword', 'dagger', 'shortbow', 'longbow', 'light crossbow', 'heavy crossbow'];
+
+function isMainChainSkill(skill) {
+  const nameLower = skill.name.toLowerCase();
+  return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
+}
+
 export default function SkillList({ category, skills, usedSkills = [], onMarkUsed }) {
-  // Deduplicate: for each weapon+category combo keep only the highest attack weight
   const weightOrder = { heavy: 3, medium: 2, light: 1 };
 
-  const deduped = [];
-  const seen = new Map();
+  const mainChain = skills.filter(isMainChainSkill);
+  const augments = skills.filter((s) => !isMainChainSkill(s));
 
-  skills.forEach((skill) => {
-    if (!skill.attack_sub_category) {
-      deduped.push(skill);
-      return;
-    }
-    const key = `${skill.weapon_required || 'any'}`;
+  // Deduplicate main-chain: keep only highest attack weight per weapon
+  const seen = new Map();
+  mainChain.forEach((skill) => {
+    const key = skill.weapon_required || 'any';
     const existing = seen.get(key);
     const currentWeight = weightOrder[skill.attack_sub_category] || 0;
     const existingWeight = existing ? (weightOrder[existing.attack_sub_category] || 0) : -1;
-    if (!existing || currentWeight > existingWeight) {
-      seen.set(key, skill);
-    }
+    if (!existing || currentWeight > existingWeight) seen.set(key, skill);
   });
 
-  seen.forEach((skill) => deduped.push(skill));
+  const deduped = [...seen.values(), ...augments];
 
   return (
     <div className="bg-card border border-border/50 rounded-xl p-4">
