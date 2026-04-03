@@ -53,6 +53,32 @@ export default function SpendPoints() {
   const getUnlockedNodeIds = (treeId) =>
     unlocked.filter((s) => s.tree_id === treeId).map((s) => s.node_id);
 
+  // Armor progression mutex: detect which progression (if any) has been started
+  const ARMOR_PROGRESSIONS = {
+    light: ['ar_la1', 'ar_la2', 'ar_la3'],
+    medium: ['ar_ma1', 'ar_ma2', 'ar_ma3'],
+    heavy: ['ar_ha1', 'ar_ha2', 'ar_ha3'],
+    unarmored: ['ar_ua1', 'ar_ua2', 'ar_ua3'],
+  };
+
+  const getArmorProgression = () => {
+    const unlockedIds = unlocked.map((s) => s.node_id);
+    for (const [prog, ids] of Object.entries(ARMOR_PROGRESSIONS)) {
+      if (ids.some((id) => unlockedIds.includes(id))) return prog;
+    }
+    return null;
+  };
+
+  const isArmorNodeBlocked = (nodeId) => {
+    const chosenProg = getArmorProgression();
+    if (!chosenProg) return false;
+    // Block nodes that belong to a different armor progression
+    for (const [prog, ids] of Object.entries(ARMOR_PROGRESSIONS)) {
+      if (ids.includes(nodeId) && prog !== chosenProg) return true;
+    }
+    return false;
+  };
+
   const handleUnlock = (treeId, node) => {
     if (remaining < 1) {
       toast.error('Not enough skill points!');
@@ -60,6 +86,11 @@ export default function SpendPoints() {
     }
     const alreadyUnlocked = unlocked.some((s) => s.tree_id === treeId && s.node_id === node.id);
     if (alreadyUnlocked) return;
+
+    if (isArmorNodeBlocked(node.id)) {
+      toast.error("You've already chosen a different armor progression. Reset your armor skills to switch.");
+      return;
+    }
 
     const updates = {
       unlocked_skills: [...unlocked, { tree_id: treeId, node_id: node.id }],
@@ -151,8 +182,22 @@ export default function SpendPoints() {
 
   const isExpanded = (treeId) => collapsed[treeId] === true;
 
+  const chosenArmorProg = getArmorProgression();
+  const blockedArmorNodeIds = chosenArmorProg
+    ? Object.entries(ARMOR_PROGRESSIONS)
+        .filter(([prog]) => prog !== chosenArmorProg)
+        .flatMap(([, ids]) => ids)
+    : [];
+
   return (
     <div>
+      {/* Floating back button */}
+      <Link to={`/character?id=${characterId}`} className="fixed bottom-6 left-6 z-40">
+        <Button variant="secondary" size="icon" className="shadow-lg rounded-full w-11 h-11">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+      </Link>
+
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link to={`/character?id=${characterId}`}>
@@ -241,6 +286,7 @@ export default function SpendPoints() {
                             <SkillTreeViewer
                               tree={tree}
                               unlockedNodeIds={getUnlockedNodeIds(tree.id)}
+                              blockedNodeIds={blockedArmorNodeIds}
                               onUnlock={(node) => handleUnlock(tree.id, node)}
                               onSelect={(node, status) => setSelectedNode({ node, treeId: tree.id, status })}
                             />

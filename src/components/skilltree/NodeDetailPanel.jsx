@@ -22,6 +22,7 @@ export default function NodeDetailPanel({ node, status, remaining, onAcquire, on
 
   const isUnlocked = status === 'unlocked';
   const isLocked = status === 'locked';
+  const isBlocked = status === 'blocked';
   const canAfford = remaining >= node.cost;
 
   return (
@@ -92,6 +93,11 @@ export default function NodeDetailPanel({ node, status, remaining, onAcquire, on
               <>
                 <CheckCircle2 className="w-4 h-4 text-primary" />
                 <span className="text-primary font-medium">Acquired</span>
+              </>
+            ) : isBlocked ? (
+              <>
+                <Lock className="w-4 h-4 text-destructive" />
+                <span className="text-destructive text-xs">You've already chosen a different armor progression</span>
               </>
             ) : isLocked ? (
               <>

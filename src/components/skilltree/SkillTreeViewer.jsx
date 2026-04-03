@@ -14,17 +14,21 @@ const attackColor = {
   heavy: 'text-red-400',
 };
 
-function SkillNode({ node, unlocked, available, onClick }) {
-  const isLocked = !unlocked && !available;
+function SkillNode({ node, status, onClick }) {
+  const unlocked = status === 'unlocked';
+  const available = status === 'available';
+  const blocked = status === 'blocked';
   return (
     <button
-      onClick={() => onClick(node, unlocked ? 'unlocked' : available ? 'available' : 'locked')}
+      onClick={() => onClick(node, status)}
       className={cn(
         'relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg border text-center transition-all w-28',
         unlocked
           ? 'border-primary bg-primary/20 text-primary shadow-md shadow-primary/20'
           : available
           ? `${categoryColor[node.category] || categoryColor.primary} hover:brightness-110 cursor-pointer`
+          : blocked
+          ? 'border-destructive/20 bg-destructive/5 text-muted-foreground opacity-40 cursor-not-allowed'
           : 'border-border/30 bg-secondary/20 text-muted-foreground opacity-50 cursor-not-allowed'
       )}
     >
@@ -42,15 +46,24 @@ function SkillNode({ node, unlocked, available, onClick }) {
   );
 }
 
-export default function SkillTreeViewer({ tree, unlockedNodeIds = [], onUnlock, onSelect, editMode = false }) {
+export default function SkillTreeViewer({ tree, unlockedNodeIds = [], blockedNodeIds = [], onUnlock, onSelect, editMode = false }) {
   const nodes = tree?.nodes || [];
 
   const isUnlocked = (id) => unlockedNodeIds.includes(id);
+  const isBlocked = (id) => blockedNodeIds.includes(id);
 
   const isAvailable = (node) => {
     if (isUnlocked(node.id)) return false;
+    if (isBlocked(node.id)) return false;
     const prereqs = node.prerequisites || [];
     return prereqs.every((pid) => isUnlocked(pid));
+  };
+
+  const getStatus = (node) => {
+    if (isUnlocked(node.id)) return 'unlocked';
+    if (isBlocked(node.id)) return 'blocked';
+    if (isAvailable(node)) return 'available';
+    return 'locked';
   };
 
   const handleClick = (node, status) => {
@@ -106,8 +119,7 @@ export default function SkillTreeViewer({ tree, unlockedNodeIds = [], onUnlock, 
                 <SkillNode
                   key={node.id}
                   node={node}
-                  unlocked={isUnlocked(node.id)}
-                  available={editMode || isAvailable(node)}
+                  status={editMode ? 'available' : getStatus(node)}
                   onClick={handleClick}
                 />
               ))}
@@ -116,8 +128,7 @@ export default function SkillTreeViewer({ tree, unlockedNodeIds = [], onUnlock, 
                 <SkillNode
                   key={node.id}
                   node={node}
-                  unlocked={isUnlocked(node.id)}
-                  available={editMode || isAvailable(node)}
+                  status={editMode ? 'available' : getStatus(node)}
                   onClick={handleClick}
                 />
               ))}
@@ -126,8 +137,7 @@ export default function SkillTreeViewer({ tree, unlockedNodeIds = [], onUnlock, 
                 <SkillNode
                   key={node.id}
                   node={node}
-                  unlocked={isUnlocked(node.id)}
-                  available={editMode || isAvailable(node)}
+                  status={editMode ? 'available' : getStatus(node)}
                   onClick={handleClick}
                 />
               ))}
