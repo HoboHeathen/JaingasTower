@@ -335,19 +335,19 @@ export default function SkillNodeDialog({
               />
             </div>
 
-            {/* Elemental Damage Modifiers */}
+            {/* Magic Dice Modifiers */}
             <div>
-              <Label className="mb-1.5 block">Elemental Damage Modifiers</Label>
+              <Label className="mb-1.5 block">Magic Dice Modifiers</Label>
               <p className="text-xs text-muted-foreground mb-3">
-                Raise a character's elemental damage tier when this skill is unlocked.
-                Each +1 advances: none → light → medium → heavy.
+                Steps up a character's magic damage die when this skill is unlocked.
+                Each +1 advances: d4 → d6 → d8 → d10 → d12.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { key: 'fire_damage_modifier', label: '🔥 Fire', color: 'text-orange-400' },
-                  { key: 'frost_damage_modifier', label: '❄️ Frost', color: 'text-blue-400' },
-                  { key: 'lightning_damage_modifier', label: '⚡ Lightning', color: 'text-yellow-400' },
-                  { key: 'necrotic_damage_modifier', label: '💀 Necrotic', color: 'text-purple-400' },
+                  { key: 'fire_dice_modifier', label: '🔥 Fire', color: 'text-orange-400' },
+                  { key: 'frost_dice_modifier', label: '❄️ Frost', color: 'text-blue-400' },
+                  { key: 'lightning_dice_modifier', label: '⚡ Lightning', color: 'text-yellow-400' },
+                  { key: 'necrotic_dice_modifier', label: '💀 Necrotic', color: 'text-purple-400' },
                 ].map(({ key, label, color }) => (
                   <div key={key} className="bg-secondary/30 rounded-lg p-3">
                     <Label className={`text-xs mb-1.5 block ${color}`}>{label}</Label>

@@ -104,13 +104,11 @@ export default function SpendPoints() {
       updates.crossbow_reload = reloadOrder[next];
     }
 
-    const dmgOrder = ['none', 'light', 'medium', 'heavy'];
     ['fire', 'frost', 'lightning', 'necrotic'].forEach((element) => {
-      const mod = node[`${element}_damage_modifier`];
+      const mod = node[`${element}_dice_modifier`];
       if (mod) {
-        const curIdx = dmgOrder.indexOf(character[`${element}_damage`] || 'none');
-        const nextIdx = Math.max(0, Math.min(3, curIdx + mod));
-        updates[`${element}_damage`] = dmgOrder[nextIdx];
+        const curIdx = character[`${element}_dice_index`] ?? 0;
+        updates[`${element}_dice_index`] = Math.max(0, Math.min(4, curIdx + mod));
       }
     });
 
@@ -120,10 +118,21 @@ export default function SpendPoints() {
 
   const handleRelease = (treeId, node) => {
     const newUnlocked = unlocked.filter((s) => !(s.tree_id === treeId && s.node_id === node.id));
-    updateMutation.mutate({
+    const updates = {
       unlocked_skills: newUnlocked,
       spent_points: Math.max(0, spentPoints - 1),
+    };
+
+    // Undo magic dice modifier
+    ['fire', 'frost', 'lightning', 'necrotic'].forEach((element) => {
+      const mod = node[`${element}_dice_modifier`];
+      if (mod) {
+        const curIdx = character[`${element}_dice_index`] ?? 0;
+        updates[`${element}_dice_index`] = Math.max(0, Math.min(4, curIdx - mod));
+      }
     });
+
+    updateMutation.mutate(updates);
     toast.success(`Released ${node.name}`);
   };
 

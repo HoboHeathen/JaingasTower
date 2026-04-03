@@ -85,7 +85,7 @@ export default function CharacterSheet() {
 
     const cat = isReactionary ? 'reactionary' : (node.category || 'primary');
     if (categorizedSkills[cat] !== undefined) {
-      categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.name });
+      categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
     }
   });
 
@@ -147,26 +147,40 @@ export default function CharacterSheet() {
         <StatBlock character={character} skillBonuses={skillBonuses} />
         <AbilityScores character={character} skillBonuses={skillBonuses} />
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {['primary', 'secondary', 'tertiary'].map((cat) => (
-            <SkillList
-              key={cat}
-              category={cat}
-              skills={categorizedSkills[cat]}
-              usedSkills={usedSingleUseSkills}
-              onMarkUsed={handleMarkUsed}
-            />
-          ))}
-        </div>
+        {(() => {
+          const magicDice = {
+            fire: character.fire_dice_index ?? 0,
+            frost: character.frost_dice_index ?? 0,
+            lightning: character.lightning_dice_index ?? 0,
+            necrotic: character.necrotic_dice_index ?? 0,
+          };
+          return (
+            <>
+              <div className="grid gap-4 md:grid-cols-3">
+                {['primary', 'secondary', 'tertiary'].map((cat) => (
+                  <SkillList
+                    key={cat}
+                    category={cat}
+                    skills={categorizedSkills[cat]}
+                    usedSkills={usedSingleUseSkills}
+                    onMarkUsed={handleMarkUsed}
+                    magicDice={magicDice}
+                  />
+                ))}
+              </div>
 
-        {categorizedSkills.reactionary.length > 0 && (
-          <SkillList
-            category="reactionary"
-            skills={categorizedSkills.reactionary}
-            usedSkills={usedSingleUseSkills}
-            onMarkUsed={handleMarkUsed}
-          />
-        )}
+              {categorizedSkills.reactionary.length > 0 && (
+                <SkillList
+                  category="reactionary"
+                  skills={categorizedSkills.reactionary}
+                  usedSkills={usedSingleUseSkills}
+                  onMarkUsed={handleMarkUsed}
+                  magicDice={magicDice}
+                />
+              )}
+            </>
+          );
+        })()}
       </div>
       {/* Floating dice roller button */}
       <button

@@ -18,6 +18,11 @@ const WEAPON_DICE = {
   any: 'd6',
 };
 
+const MAGIC_DICE_PROGRESSION = ['d4', 'd6', 'd8', 'd10', 'd12'];
+
+// Elements keyed by how they might appear in tree names
+const ELEMENT_KEYS = ['fire', 'frost', 'lightning', 'necrotic'];
+
 const ATTACK_WEIGHT_DICE_COUNT = { light: 1, medium: 2, heavy: 3 };
 
 const categoryLabel = { primary: 'Primary', secondary: 'Secondary', tertiary: 'Tertiary', reactionary: 'Reactionary' };
@@ -28,10 +33,26 @@ const categoryColor = {
   reactionary: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
 };
 
-function getDiceString(node) {
+function getDiceString(node, magicDice = {}) {
   const weight = node.attack_sub_category;
   if (!weight) return null;
   const count = ATTACK_WEIGHT_DICE_COUNT[weight] || 1;
+
+  // Spell trees use magic dice progression per element
+  if (node.treeCategory === 'spells') {
+    // Detect element from tree name
+    const treeName = (node.treeName || '').toLowerCase();
+    for (const element of ELEMENT_KEYS) {
+      if (treeName.includes(element)) {
+        const idx = magicDice[element] ?? 0;
+        const die = MAGIC_DICE_PROGRESSION[Math.min(idx, MAGIC_DICE_PROGRESSION.length - 1)];
+        return `${count}${die}`;
+      }
+    }
+    // Generic spell — use d4 base
+    return `${count}d4`;
+  }
+
   const die = WEAPON_DICE[node.weapon_required] || 'd6';
   return `${count}${die}`;
 }
@@ -50,9 +71,9 @@ function rollDice(diceStr) {
   return { total, rolls, diceStr };
 }
 
-function SkillCard({ skill, isUsed, onMarkUsed }) {
+function SkillCard({ skill, isUsed, onMarkUsed, magicDice }) {
   const [rollResult, setRollResult] = useState(null);
-  const diceStr = getDiceString(skill);
+  const diceStr = getDiceString(skill, magicDice);
 
   const handleRoll = (e) => {
     e.stopPropagation();
@@ -138,7 +159,7 @@ function isMainChainSkill(skill) {
   return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
 }
 
-export default function SkillList({ category, skills, usedSkills = [], onMarkUsed }) {
+export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {} }) {
   const weightOrder = { heavy: 3, medium: 2, light: 1 };
 
   const mainChain = skills.filter(isMainChainSkill);
@@ -171,6 +192,7 @@ export default function SkillList({ category, skills, usedSkills = [], onMarkUse
               skill={skill}
               isUsed={usedSkills.includes(skill.id)}
               onMarkUsed={onMarkUsed}
+              magicDice={magicDice}
             />
           ))}
         </div>
