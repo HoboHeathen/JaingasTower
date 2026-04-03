@@ -60,7 +60,7 @@ export default function CharacterSheet() {
   const treeMap = {};
   trees.forEach((t) => { treeMap[t.id] = t; });
 
-  const skillBonuses = { health: 0, armor: 0, speed: 0, spell_range: 0 };
+  const skillBonuses = { health: 0, armor: 0, speed: 0, spell_range: 0, str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
   const categorizedSkills = { primary: [], secondary: [], tertiary: [] };
 
   unlockedSkills.forEach(({ tree_id, node_id }) => {
@@ -140,7 +140,7 @@ export default function CharacterSheet() {
 
       <div className="space-y-6">
         <StatBlock character={character} skillBonuses={skillBonuses} />
-        <AbilityScores character={character} />
+        <AbilityScores character={character} skillBonuses={skillBonuses} />
 
         <div className="grid gap-4 md:grid-cols-3">
           {['primary', 'secondary', 'tertiary'].map((cat) => (

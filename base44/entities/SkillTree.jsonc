@@ -129,6 +129,24 @@
               },
               "spell_range": {
                 "type": "number"
+              },
+              "str": {
+                "type": "number"
+              },
+              "dex": {
+                "type": "number"
+              },
+              "con": {
+                "type": "number"
+              },
+              "int": {
+                "type": "number"
+              },
+              "wis": {
+                "type": "number"
+              },
+              "cha": {
+                "type": "number"
               }
             }
           },

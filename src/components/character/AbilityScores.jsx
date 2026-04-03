@@ -17,11 +17,11 @@ function fmtMod(mod) {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 }
 
-export default function AbilityScores({ character }) {
+export default function AbilityScores({ character, skillBonuses = {} }) {
   return (
     <div className="grid grid-cols-6 gap-2">
       {ABILITIES.map(({ key, label }) => {
-        const score = character?.[key] ?? 8;
+        const score = (character?.[key] ?? 8) + (skillBonuses[key] || 0);
         const mod = getModifier(score);
         return (
           <div

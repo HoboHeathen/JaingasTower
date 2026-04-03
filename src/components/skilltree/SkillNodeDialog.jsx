@@ -375,6 +375,12 @@ export default function SkillNodeDialog({
                   { key: 'armor', label: 'Armor', color: 'text-blue-400' },
                   { key: 'speed', label: 'Speed', color: 'text-yellow-400' },
                   { key: 'spell_range', label: 'Spell Range', color: 'text-purple-400' },
+                  { key: 'str', label: 'STR', color: 'text-orange-400' },
+                  { key: 'dex', label: 'DEX', color: 'text-green-400' },
+                  { key: 'con', label: 'CON', color: 'text-red-300' },
+                  { key: 'int', label: 'INT', color: 'text-blue-300' },
+                  { key: 'wis', label: 'WIS', color: 'text-teal-400' },
+                  { key: 'cha', label: 'CHA', color: 'text-pink-400' },
                 ].map(({ key, label, color }) => (
                   <div key={key} className="bg-secondary/30 rounded-lg p-3">
                     <Label className={`text-xs mb-1.5 block ${color}`}>{label}</Label>
