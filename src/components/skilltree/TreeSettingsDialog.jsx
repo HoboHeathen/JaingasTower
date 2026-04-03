@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Save } from 'lucide-react';
 
 export default function TreeSettingsDialog({ open, onOpenChange, tree, onSave }) {
-  const [form, setForm] = useState({ name: '', description: '' });
+  const [form, setForm] = useState({ name: '', description: '', tree_category: 'weapons' });
 
   useEffect(() => {
     if (tree) {
