@@ -36,6 +36,16 @@
             "type": "number",
             "description": "Depth tier 0-6"
           },
+          "node_type": {
+            "type": "string",
+            "enum": [
+              "attack",
+              "skill",
+              "stat_increase"
+            ],
+            "default": "attack",
+            "description": "attack = offensive action with dice; skill = non-attack action; stat_increase = passive stat buff, not shown as action"
+          },
           "category": {
             "type": "string",
             "enum": [
@@ -43,7 +53,7 @@
               "secondary",
               "tertiary"
             ],
-            "description": "Action category for this individual skill"
+            "description": "Action category for this individual skill (not used for stat_increase)"
           },
           "attack_sub_category": {
             "type": "string",
@@ -52,7 +62,7 @@
               "medium",
               "heavy"
             ],
-            "description": "Attack weight: light, medium, or heavy"
+            "description": "Attack weight: light, medium, or heavy (attack type only)"
           },
           "weapon_required": {
             "type": "string",
@@ -128,7 +138,7 @@
           },
           "fire_damage_modifier": {
             "type": "number",
-            "description": "How many tiers to raise fire damage (0 = no effect, 1 = light->medium or medium->heavy)"
+            "description": "How many tiers to raise fire damage"
           },
           "frost_damage_modifier": {
             "type": "number"

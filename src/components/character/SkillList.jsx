@@ -132,6 +132,7 @@ function SkillCard({ skill, isUsed, onMarkUsed }) {
 const WEAPON_TREE_NAMES = ['polearm', 'axe', 'hammer', 'greataxe', 'greatsword', 'greathammer', 'sword', 'dagger', 'shortbow', 'longbow', 'light crossbow', 'heavy crossbow'];
 
 function isMainChainSkill(skill) {
+  if (skill.node_type === 'skill') return false;
   const nameLower = skill.name.toLowerCase();
   return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
 }

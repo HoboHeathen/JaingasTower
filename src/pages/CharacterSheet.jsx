@@ -75,6 +75,9 @@ export default function CharacterSheet() {
       });
     }
 
+    // stat_increase nodes don't appear in action lists
+    if (node.node_type === 'stat_increase') return;
+
     const cat = node.category || 'primary';
     if (categorizedSkills[cat]) {
       categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.name });

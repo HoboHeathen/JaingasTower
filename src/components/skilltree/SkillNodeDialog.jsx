@@ -55,6 +55,8 @@ export default function SkillNodeDialog({
   prereqCandidates,
   onSave,
 }) {
+  const nodeType = form.node_type || 'attack';
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(form);
@@ -70,10 +72,27 @@ export default function SkillNodeDialog({
     });
   };
 
+  const setNodeType = (type) => {
+    const updates = { ...form, node_type: type };
+    // Clear attack-specific fields when switching away from attack
+    if (type !== 'attack') {
+      updates.attack_sub_category = undefined;
+      updates.damage_dice = undefined;
+      updates.damage_override_light = undefined;
+      updates.damage_override_medium = undefined;
+      updates.damage_override_heavy = undefined;
+    }
+    // Clear action category when switching to stat_increase
+    if (type === 'stat_increase') {
+      updates.category = undefined;
+    } else if (!updates.category) {
+      updates.category = 'primary';
+    }
+    setForm(updates);
+  };
+
   const selectedPrereqs = prereqCandidates.filter((n) => (form.prerequisites || []).includes(n.id));
   const unselectedPrereqs = prereqCandidates.filter((n) => !(form.prerequisites || []).includes(n.id));
-
-  const setMod = (field, val) => setForm({ ...form, [field]: val });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,6 +138,25 @@ export default function SkillNodeDialog({
               />
             </div>
 
+            {/* Node Type */}
+            <div>
+              <Label className="mb-1.5 block">Skill Type</Label>
+              <ToggleGroup
+                options={[
+                  { value: 'attack', label: '⚔️ Attack', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
+                  { value: 'skill', label: '✨ Skill', color: 'border-primary/50 bg-primary/10 text-primary' },
+                  { value: 'stat_increase', label: '📈 Stat Increase', color: 'border-green-500/50 bg-green-500/10 text-green-400' },
+                ]}
+                value={nodeType}
+                onChange={setNodeType}
+              />
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {nodeType === 'attack' && 'An offensive action that appears in the character\'s action list with attack weight and dice.'}
+                {nodeType === 'skill' && 'A non-attack action (Parry, Dodge, etc.) that appears in the character\'s action list.'}
+                {nodeType === 'stat_increase' && 'Passively improves stats or modifiers — does not appear as an action on the character sheet.'}
+              </p>
+            </div>
+
             {/* Tier */}
             <div>
               <Label className="mb-1.5 block">Tier (Tree Depth)</Label>
@@ -133,120 +171,149 @@ export default function SkillNodeDialog({
               />
             </div>
 
-            {/* Action Category */}
-            <div>
-              <Label className="mb-1.5 block">Action Category</Label>
-              <ToggleGroup
-                options={[
-                  { value: 'primary', label: 'Primary', color: 'border-primary/50 bg-primary/10 text-primary' },
-                  { value: 'secondary', label: 'Secondary', color: 'border-accent/50 bg-accent/10 text-accent' },
-                  { value: 'tertiary', label: 'Tertiary', color: 'border-chart-3/50 bg-chart-3/10 text-chart-3' },
-                ]}
-                value={form.category}
-                onChange={(v) => setForm({ ...form, category: v })}
-              />
-            </div>
-
-            {/* Attack Sub-Category */}
-            <div>
-              <Label className="mb-1.5 block">Attack Weight</Label>
-              <ToggleGroup
-                options={[
-                  { value: 'light', label: 'Light', color: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' },
-                  { value: 'medium', label: 'Medium', color: 'border-orange-500/50 bg-orange-500/10 text-orange-400' },
-                  { value: 'heavy', label: 'Heavy', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
-                ]}
-                value={form.attack_sub_category}
-                onChange={(v) => setForm({ ...form, attack_sub_category: v })}
-              />
-            </div>
-
-            <Separator />
-
-            {/* Weapon Required */}
-            <div>
-              <Label className="mb-1.5 block">Weapon Required</Label>
-              <Select
-                value={form.weapon_required || 'any'}
-                onValueChange={(v) => setForm({ ...form, weapon_required: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {WEAPONS.map((w) => (
-                    <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Damage Dice */}
-            <div>
-              <Label className="mb-1.5 block">Damage Dice Override</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Leave at "Weapon default" to use the weapon's die. Choose "Custom per attack weight" to set different dice per attack tier.
-              </p>
-              <Select
-                value={form.damage_dice || 'weapon_default'}
-                onValueChange={(v) => setForm({ ...form, damage_dice: v === 'weapon_default' ? undefined : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Weapon default" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weapon_default">Weapon default</SelectItem>
-                  {DICE_OPTIONS.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                  <SelectItem value="custom">Custom per attack weight</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {form.damage_dice === 'custom' && (
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  {['light', 'medium', 'heavy'].map((weight) => (
-                    <div key={weight} className="bg-secondary/30 rounded-lg p-2">
-                      <Label className="text-xs mb-1 block capitalize">{weight} attack</Label>
-                      <Select
-                        value={form[`damage_override_${weight}`] || ''}
-                        onValueChange={(v) => setForm({ ...form, [`damage_override_${weight}`]: v })}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="—" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DICE_OPTIONS.map((d) => (
-                            <SelectItem key={d} value={d}>{d}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Single Use */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, is_single_use: !form.is_single_use })}
-                className={`w-10 h-5 rounded-full border-2 transition-all relative ${
-                  form.is_single_use ? 'bg-primary border-primary' : 'bg-muted border-border'
-                }`}
-              >
-                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
-                  form.is_single_use ? 'translate-x-[18px]' : 'translate-x-0.5'
-                }`} />
-              </button>
+            {/* Action Category — shown for attack and skill, not stat_increase */}
+            {nodeType !== 'stat_increase' && (
               <div>
-                <Label className="cursor-pointer" onClick={() => setForm({ ...form, is_single_use: !form.is_single_use })}>
-                  Single-use skill
-                </Label>
-                <p className="text-xs text-muted-foreground">Greys out on the character sheet after being rolled/used.</p>
+                <Label className="mb-1.5 block">Action Category</Label>
+                <ToggleGroup
+                  options={[
+                    { value: 'primary', label: 'Primary', color: 'border-primary/50 bg-primary/10 text-primary' },
+                    { value: 'secondary', label: 'Secondary', color: 'border-accent/50 bg-accent/10 text-accent' },
+                    { value: 'tertiary', label: 'Tertiary', color: 'border-chart-3/50 bg-chart-3/10 text-chart-3' },
+                  ]}
+                  value={form.category}
+                  onChange={(v) => setForm({ ...form, category: v })}
+                />
               </div>
-            </div>
+            )}
+
+            {/* Attack-only fields */}
+            {nodeType === 'attack' && (
+              <>
+                {/* Attack Weight */}
+                <div>
+                  <Label className="mb-1.5 block">Attack Weight</Label>
+                  <ToggleGroup
+                    options={[
+                      { value: 'light', label: 'Light', color: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' },
+                      { value: 'medium', label: 'Medium', color: 'border-orange-500/50 bg-orange-500/10 text-orange-400' },
+                      { value: 'heavy', label: 'Heavy', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
+                    ]}
+                    value={form.attack_sub_category}
+                    onChange={(v) => setForm({ ...form, attack_sub_category: v })}
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Weapon Required */}
+                <div>
+                  <Label className="mb-1.5 block">Weapon Required</Label>
+                  <Select
+                    value={form.weapon_required || 'any'}
+                    onValueChange={(v) => setForm({ ...form, weapon_required: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WEAPONS.map((w) => (
+                        <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Damage Dice */}
+                <div>
+                  <Label className="mb-1.5 block">Damage Dice Override</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Leave at "Weapon default" to use the weapon's die. Choose "Custom per attack weight" to set different dice per attack tier.
+                  </p>
+                  <Select
+                    value={form.damage_dice || 'weapon_default'}
+                    onValueChange={(v) => setForm({ ...form, damage_dice: v === 'weapon_default' ? undefined : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Weapon default" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weapon_default">Weapon default</SelectItem>
+                      {DICE_OPTIONS.map((d) => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                      <SelectItem value="custom">Custom per attack weight</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {form.damage_dice === 'custom' && (
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      {['light', 'medium', 'heavy'].map((weight) => (
+                        <div key={weight} className="bg-secondary/30 rounded-lg p-2">
+                          <Label className="text-xs mb-1 block capitalize">{weight} attack</Label>
+                          <Select
+                            value={form[`damage_override_${weight}`] || ''}
+                            onValueChange={(v) => setForm({ ...form, [`damage_override_${weight}`]: v })}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DICE_OPTIONS.map((d) => (
+                                <SelectItem key={d} value={d}>{d}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Weapon Required for non-attack skills (optional) */}
+            {nodeType === 'skill' && (
+              <div>
+                <Label className="mb-1.5 block">Weapon Required <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Select
+                  value={form.weapon_required || 'any'}
+                  onValueChange={(v) => setForm({ ...form, weapon_required: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WEAPONS.map((w) => (
+                      <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Single Use — shown for attack and skill */}
+            {nodeType !== 'stat_increase' && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, is_single_use: !form.is_single_use })}
+                  className={`w-10 h-5 rounded-full border-2 transition-all relative ${
+                    form.is_single_use ? 'bg-primary border-primary' : 'bg-muted border-border'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+                    form.is_single_use ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  }`} />
+                </button>
+                <div>
+                  <Label className="cursor-pointer" onClick={() => setForm({ ...form, is_single_use: !form.is_single_use })}>
+                    Single-use skill
+                  </Label>
+                  <p className="text-xs text-muted-foreground">Greys out on the character sheet after being rolled/used.</p>
+                </div>
+              </div>
+            )}
 
             <Separator />
 
