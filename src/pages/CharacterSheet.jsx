@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, TreePine, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatBlock from '@/components/character/StatBlock';
+import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
 
 export default function CharacterSheet() {
@@ -123,6 +124,7 @@ export default function CharacterSheet() {
 
       <div className="space-y-6">
         <StatBlock character={character} skillBonuses={skillBonuses} />
+        <AbilityScores character={character} />
 
         <div className="grid gap-4 md:grid-cols-3">
           {['primary', 'secondary', 'tertiary'].map((cat) => (

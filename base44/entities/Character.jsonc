@@ -32,6 +32,36 @@
       "type": "number",
       "default": 0
     },
+    "str": {
+      "type": "number",
+      "default": 8,
+      "description": "Strength score"
+    },
+    "dex": {
+      "type": "number",
+      "default": 8,
+      "description": "Dexterity score"
+    },
+    "con": {
+      "type": "number",
+      "default": 8,
+      "description": "Constitution score"
+    },
+    "int": {
+      "type": "number",
+      "default": 8,
+      "description": "Intelligence score"
+    },
+    "wis": {
+      "type": "number",
+      "default": 8,
+      "description": "Wisdom score"
+    },
+    "cha": {
+      "type": "number",
+      "default": 8,
+      "description": "Charisma score"
+    },
     "crossbow_reload": {
       "type": "string",
       "enum": [
