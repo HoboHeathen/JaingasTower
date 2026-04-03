@@ -35,7 +35,7 @@ export default function Characters() {
       spent_points: 0,
       base_health: 10,
       base_armor: 10,
-      base_speed: 15,
+      base_speed: 30,
       base_spell_range: 0,
       crossbow_reload: 'primary',
       fire_damage: 'none',

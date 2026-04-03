@@ -8,13 +8,11 @@
     },
     "total_points": {
       "type": "number",
-      "default": 10,
-      "description": "Total skill points available"
+      "default": 10
     },
     "spent_points": {
       "type": "number",
-      "default": 0,
-      "description": "Points already spent"
+      "default": 0
     },
     "base_health": {
       "type": "number",
@@ -26,7 +24,7 @@
     },
     "base_speed": {
       "type": "number",
-      "default": 15
+      "default": 30
     },
     "base_spell_range": {
       "type": "number",
@@ -34,33 +32,27 @@
     },
     "str": {
       "type": "number",
-      "default": 8,
-      "description": "Strength score"
+      "default": 8
     },
     "dex": {
       "type": "number",
-      "default": 8,
-      "description": "Dexterity score"
+      "default": 8
     },
     "con": {
       "type": "number",
-      "default": 8,
-      "description": "Constitution score"
+      "default": 8
     },
     "int": {
       "type": "number",
-      "default": 8,
-      "description": "Intelligence score"
+      "default": 8
     },
     "wis": {
       "type": "number",
-      "default": 8,
-      "description": "Wisdom score"
+      "default": 8
     },
     "cha": {
       "type": "number",
-      "default": 8,
-      "description": "Charisma score"
+      "default": 8
     },
     "crossbow_reload": {
       "type": "string",
@@ -113,14 +105,12 @@
     },
     "used_single_use_skills": {
       "type": "array",
-      "description": "Node IDs of single-use skills that have been used",
       "items": {
         "type": "string"
       }
     },
     "unlocked_skills": {
       "type": "array",
-      "description": "Array of objects with tree_id and node_id",
       "items": {
         "type": "object",
         "properties": {
@@ -135,7 +125,6 @@
     },
     "dice_favorites": {
       "type": "array",
-      "description": "Saved dice rolls for this character",
       "items": {
         "type": "object",
         "properties": {
