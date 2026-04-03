@@ -87,6 +87,15 @@ export default function SpendPoints() {
     toast.success(`Unlocked ${node.name}!`);
   };
 
+  const handleRelease = (treeId, node) => {
+    const newUnlocked = unlocked.filter((s) => !(s.tree_id === treeId && s.node_id === node.id));
+    updateMutation.mutate({
+      unlocked_skills: newUnlocked,
+      spent_points: Math.max(0, spentPoints - 1),
+    });
+    toast.success(`Released ${node.name}`);
+  };
+
   const handleReset = () => {
     updateMutation.mutate({ unlocked_skills: [], spent_points: 0 });
     toast.success('All skills reset');
@@ -267,6 +276,7 @@ export default function SpendPoints() {
           status={selectedNode.status}
           remaining={remaining}
           onAcquire={(node) => handleUnlock(selectedNode.treeId, node)}
+          onRelease={(node) => handleRelease(selectedNode.treeId, node)}
           onClose={() => setSelectedNode(null)}
         />
       )}

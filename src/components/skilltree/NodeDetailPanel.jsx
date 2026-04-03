@@ -16,7 +16,7 @@ const categoryColors = {
   tertiary: 'bg-chart-3/10 text-foreground border-chart-3/30',
 };
 
-export default function NodeDetailPanel({ node, status, remaining, onAcquire, onClose }) {
+export default function NodeDetailPanel({ node, status, remaining, onAcquire, onRelease, onClose }) {
   if (!node) return null;
 
   const isUnlocked = status === 'unlocked';
@@ -107,7 +107,7 @@ export default function NodeDetailPanel({ node, status, remaining, onAcquire, on
         </div>
 
         {/* Footer */}
-        <div className="p-4 pt-0">
+        <div className="p-4 pt-0 flex flex-col gap-2">
           {!isUnlocked && !isLocked && (
             <Button
               className="w-full"
@@ -120,11 +120,21 @@ export default function NodeDetailPanel({ node, status, remaining, onAcquire, on
               {canAfford ? `Acquire (${node.cost} pt${node.cost !== 1 ? 's' : ''})` : 'Not enough points'}
             </Button>
           )}
-          {(isUnlocked || isLocked) && (
-            <Button variant="outline" className="w-full" onClick={onClose}>
-              Close
+          {isUnlocked && onRelease && (
+            <Button
+              variant="outline"
+              className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => {
+                onRelease(node);
+                onClose();
+              }}
+            >
+              Unacquire Skill
             </Button>
           )}
+          <Button variant="outline" className="w-full" onClick={onClose}>
+            Close
+          </Button>
         </div>
       </div>
     </div>
