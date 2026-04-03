@@ -14,6 +14,7 @@ const categoryColors = {
   primary: 'bg-primary/10 text-primary border-primary/30',
   secondary: 'bg-accent/10 text-accent-foreground border-accent/30',
   tertiary: 'bg-chart-3/10 text-foreground border-chart-3/30',
+  reactionary: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
 };
 
 export default function NodeDetailPanel({ node, status, remaining, onAcquire, onRelease, onClose }) {

@@ -62,7 +62,8 @@
             "enum": [
               "primary",
               "secondary",
-              "tertiary"
+              "tertiary",
+              "reactionary"
             ],
             "description": "Action category for this individual skill (not used for stat_increase)"
           },

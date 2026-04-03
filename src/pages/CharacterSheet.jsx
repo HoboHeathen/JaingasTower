@@ -61,7 +61,7 @@ export default function CharacterSheet() {
   trees.forEach((t) => { treeMap[t.id] = t; });
 
   const skillBonuses = { health: 0, armor: 0, speed: 0, spell_range: 0, str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
-  const categorizedSkills = { primary: [], secondary: [], tertiary: [] };
+  const categorizedSkills = { primary: [], secondary: [], tertiary: [], reactionary: [] };
 
   unlockedSkills.forEach(({ tree_id, node_id }) => {
     const tree = treeMap[tree_id];
@@ -78,8 +78,13 @@ export default function CharacterSheet() {
     // stat_increase nodes don't appear in action lists
     if (node.node_type === 'stat_increase') return;
 
-    const cat = node.category || 'primary';
-    if (categorizedSkills[cat]) {
+    // Auto-detect reactionary from description if category not explicitly set
+    const isReactionary =
+      node.category === 'reactionary' ||
+      (node.description && /as a reactionary action/i.test(node.description));
+
+    const cat = isReactionary ? 'reactionary' : (node.category || 'primary');
+    if (categorizedSkills[cat] !== undefined) {
       categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.name });
     }
   });
@@ -153,6 +158,15 @@ export default function CharacterSheet() {
             />
           ))}
         </div>
+
+        {categorizedSkills.reactionary.length > 0 && (
+          <SkillList
+            category="reactionary"
+            skills={categorizedSkills.reactionary}
+            usedSkills={usedSingleUseSkills}
+            onMarkUsed={handleMarkUsed}
+          />
+        )}
       </div>
       {/* Floating dice roller button */}
       <button
