@@ -1,109 +1,131 @@
 import React from 'react';
-import { X, Lock, Check, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { X, Lock, CheckCircle2, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const attackBadge = {
-  light: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-  medium: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  heavy: 'bg-red-500/20 text-red-300 border-red-500/30',
+const attackColors = {
+  light: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30',
+  medium: 'bg-orange-400/10 text-orange-400 border-orange-400/30',
+  heavy: 'bg-red-400/10 text-red-400 border-red-400/30',
 };
 
-const categoryColor = {
-  primary: 'text-primary border-primary/30 bg-primary/10',
-  secondary: 'text-accent border-accent/30 bg-accent/10',
-  tertiary: 'text-chart-3 border-chart-3/30 bg-chart-3/10',
+const categoryColors = {
+  primary: 'bg-primary/10 text-primary border-primary/30',
+  secondary: 'bg-accent/10 text-accent-foreground border-accent/30',
+  tertiary: 'bg-chart-3/10 text-foreground border-chart-3/30',
 };
 
-export default function NodeDetailPanel({ node, status, onAcquire, onClose, remaining }) {
+export default function NodeDetailPanel({ node, status, remaining, onAcquire, onClose }) {
   if (!node) return null;
 
-  const canAfford = remaining >= (node.cost || 1);
   const isUnlocked = status === 'unlocked';
   const isLocked = status === 'locked';
+  const canAfford = remaining >= node.cost;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60" onClick={onClose}>
-      <div
-        className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60">
+      <div className="bg-card border border-border rounded-xl w-full max-w-sm shadow-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <h2 className="font-heading text-lg font-bold text-foreground">{node.name}</h2>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
+        <div className="flex items-start justify-between p-4 border-b border-border/50">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-heading font-bold text-foreground text-lg leading-tight">{node.name}</h3>
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {node.category && (
-                <Badge variant="outline" className={`text-xs ${categoryColor[node.category]}`}>
+                <Badge variant="outline" className={cn('text-xs', categoryColors[node.category])}>
                   {node.category}
                 </Badge>
               )}
               {node.attack_sub_category && (
-                <Badge variant="outline" className={`text-xs ${attackBadge[node.attack_sub_category]}`}>
+                <Badge variant="outline" className={cn('text-xs', attackColors[node.attack_sub_category])}>
                   {node.attack_sub_category}
                 </Badge>
               )}
               {node.weapon_required && node.weapon_required !== 'any' && (
-                <Badge variant="outline" className="text-xs text-muted-foreground capitalize">
-                  {node.weapon_required.replace(/_/g, ' ')}
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  {node.weapon_required}
+                </Badge>
+              )}
+              {node.is_single_use && (
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  Single Use
                 </Badge>
               )}
             </div>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5">
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 ml-2" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
         </div>
 
-        {/* Description */}
-        {node.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{node.description}</p>
-        )}
+        {/* Body */}
+        <div className="p-4 space-y-3">
+          {node.description && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{node.description}</p>
+          )}
 
-        {/* Stat bonuses */}
-        {node.stat_bonuses && Object.entries(node.stat_bonuses).filter(([, v]) => v).length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {Object.entries(node.stat_bonuses).filter(([, v]) => v).map(([k, v]) => (
-              <span key={k} className="text-xs bg-accent/10 text-accent rounded-md px-2 py-0.5">
-                +{v} {k.replace(/_/g, ' ')}
-              </span>
-            ))}
+          {/* Stat bonuses */}
+          {node.stat_bonuses && Object.entries(node.stat_bonuses).some(([, v]) => v) && (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(node.stat_bonuses).map(([k, v]) =>
+                v ? (
+                  <span key={k} className="text-xs bg-secondary/60 px-2 py-1 rounded text-foreground capitalize">
+                    +{v} {k.replace('_', ' ')}
+                  </span>
+                ) : null
+              )}
+            </div>
+          )}
+
+          {/* Cost row */}
+          <div className="flex items-center justify-between text-sm pt-1">
+            <span className="text-muted-foreground">Cost</span>
+            <span className={cn('font-semibold', !isUnlocked && !canAfford ? 'text-destructive' : 'text-foreground')}>
+              {node.cost} pt{node.cost !== 1 ? 's' : ''}
+            </span>
           </div>
-        )}
 
-        {/* Cost & status */}
-        <div className="flex items-center justify-between pt-1 border-t border-border/40">
-          <div className="flex items-center gap-1.5 text-sm">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="text-primary font-semibold">{node.cost || 1} pt{(node.cost || 1) !== 1 ? 's' : ''}</span>
-            {!isUnlocked && !isLocked && (
-              <span className="text-muted-foreground text-xs">({remaining} remaining)</span>
+          {/* Status */}
+          <div className="flex items-center gap-2 text-sm">
+            {isUnlocked ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span className="text-primary font-medium">Acquired</span>
+              </>
+            ) : isLocked ? (
+              <>
+                <Lock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Prerequisites not met</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-accent" />
+                <span className="text-accent-foreground">Available — {remaining} pts remaining</span>
+              </>
             )}
           </div>
-          {isLocked && (
-            <div className="flex items-center gap-1 text-xs text-destructive">
-              <Lock className="w-3.5 h-3.5" />
-              Requires prerequisites
-            </div>
-          )}
-          {isUnlocked && (
-            <div className="flex items-center gap-1 text-xs text-primary">
-              <Check className="w-3.5 h-3.5" />
-              Acquired
-            </div>
-          )}
         </div>
 
-        {/* Acquire button */}
-        {!isUnlocked && !isLocked && (
-          <Button
-            className="w-full"
-            disabled={!canAfford}
-            onClick={() => { onAcquire(node); onClose(); }}
-          >
-            {canAfford ? 'Acquire' : 'Not enough points'}
-          </Button>
-        )}
+        {/* Footer */}
+        <div className="p-4 pt-0">
+          {!isUnlocked && !isLocked && (
+            <Button
+              className="w-full"
+              disabled={!canAfford}
+              onClick={() => {
+                onAcquire(node);
+                onClose();
+              }}
+            >
+              {canAfford ? `Acquire (${node.cost} pt${node.cost !== 1 ? 's' : ''})` : 'Not enough points'}
+            </Button>
+          )}
+          {(isUnlocked || isLocked) && (
+            <Button variant="outline" className="w-full" onClick={onClose}>
+              Close
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

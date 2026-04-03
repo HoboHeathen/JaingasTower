@@ -1,0 +1,173 @@
+import React, { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dices } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const WEAPON_DICE = {
+  dagger: 'd4',
+  shortbow: 'd4',
+  sword: 'd6',
+  axe: 'd6',
+  light_crossbow: 'd6',
+  polearm: 'd8',
+  longbow: 'd8',
+  heavy_crossbow: 'd8',
+  hammer: 'd10',
+  greathammer: 'd12',
+  any: 'd6',
+};
+
+const ATTACK_WEIGHT_DICE_COUNT = { light: 1, medium: 2, heavy: 3 };
+
+const categoryLabel = { primary: 'Primary', secondary: 'Secondary', tertiary: 'Tertiary' };
+const categoryColor = {
+  primary: 'bg-primary/10 text-primary border-primary/30',
+  secondary: 'bg-accent/10 text-accent-foreground border-accent/30',
+  tertiary: 'bg-chart-3/10 text-foreground border-chart-3/30',
+};
+
+function getDiceString(node) {
+  const weight = node.attack_sub_category;
+  if (!weight) return null;
+  const count = ATTACK_WEIGHT_DICE_COUNT[weight] || 1;
+  const die = WEAPON_DICE[node.weapon_required] || 'd6';
+  return `${count}${die}`;
+}
+
+function rollDice(diceStr) {
+  const match = diceStr.match(/^(\d+)d(\d+)$/);
+  if (!match) return null;
+  const [, count, sides] = match.map(Number);
+  let total = 0;
+  const rolls = [];
+  for (let i = 0; i < count; i++) {
+    const r = Math.floor(Math.random() * sides) + 1;
+    rolls.push(r);
+    total += r;
+  }
+  return { total, rolls, diceStr };
+}
+
+function SkillCard({ skill, isUsed, onMarkUsed }) {
+  const [rollResult, setRollResult] = useState(null);
+  const diceStr = getDiceString(skill);
+
+  const handleRoll = (e) => {
+    e.stopPropagation();
+    if (!diceStr) return;
+    const result = rollDice(diceStr);
+    setRollResult(result);
+    if (skill.is_single_use && !isUsed) onMarkUsed(skill.id);
+  };
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg border px-3 py-2.5 transition-all',
+        isUsed
+          ? 'opacity-40 border-border/30 bg-secondary/10'
+          : 'border-border/40 bg-secondary/30 hover:bg-secondary/50'
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className={cn('text-sm font-medium', isUsed && 'line-through text-muted-foreground')}>
+            {skill.name}
+          </p>
+          {skill.treeName && (
+            <p className="text-[10px] text-muted-foreground mt-0.5">{skill.treeName}</p>
+          )}
+          <div className="flex flex-wrap gap-1 mt-1">
+            {skill.attack_sub_category && (
+              <Badge variant="outline" className={cn('text-[10px] py-0',
+                skill.attack_sub_category === 'heavy' ? 'text-red-400 border-red-400/40' :
+                skill.attack_sub_category === 'medium' ? 'text-orange-400 border-orange-400/40' :
+                'text-yellow-400 border-yellow-400/40'
+              )}>
+                {skill.attack_sub_category}
+              </Badge>
+            )}
+            {skill.weapon_required && skill.weapon_required !== 'any' && (
+              <Badge variant="outline" className="text-[10px] py-0 text-muted-foreground">
+                {skill.weapon_required}
+              </Badge>
+            )}
+            {skill.is_single_use && (
+              <Badge variant="outline" className="text-[10px] py-0 text-muted-foreground">
+                1×
+              </Badge>
+            )}
+          </div>
+          {skill.description && (
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">
+              {skill.description}
+            </p>
+          )}
+        </div>
+        {diceStr && !isUsed && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 shrink-0"
+            onClick={handleRoll}
+            title={`Roll ${diceStr}`}
+          >
+            <Dices className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+      {rollResult && (
+        <div className="mt-2 text-xs text-primary font-semibold">
+          🎲 {rollResult.diceStr}: [{rollResult.rolls.join(', ')}] = {rollResult.total}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function SkillList({ category, skills, usedSkills = [], onMarkUsed }) {
+  // Deduplicate: for each weapon+category combo keep only the highest attack weight
+  const weightOrder = { heavy: 3, medium: 2, light: 1 };
+
+  const deduped = [];
+  const seen = new Map();
+
+  skills.forEach((skill) => {
+    if (!skill.attack_sub_category) {
+      deduped.push(skill);
+      return;
+    }
+    const key = `${skill.weapon_required || 'any'}`;
+    const existing = seen.get(key);
+    const currentWeight = weightOrder[skill.attack_sub_category] || 0;
+    const existingWeight = existing ? (weightOrder[existing.attack_sub_category] || 0) : -1;
+    if (!existing || currentWeight > existingWeight) {
+      seen.set(key, skill);
+    }
+  });
+
+  seen.forEach((skill) => deduped.push(skill));
+
+  return (
+    <div className="bg-card border border-border/50 rounded-xl p-4">
+      <h3 className={cn('text-sm font-heading font-semibold mb-3', categoryColor[category].split(' ')[1])}>
+        {categoryLabel[category]} Actions
+      </h3>
+      {deduped.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-4">No {category} actions unlocked.</p>
+      ) : (
+        <div className="space-y-2">
+          {deduped.map((skill) => (
+            <SkillCard
+              key={skill.id}
+              skill={skill}
+              isUsed={usedSkills.includes(skill.id)}
+              onMarkUsed={onMarkUsed}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
