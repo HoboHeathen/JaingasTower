@@ -14,6 +14,17 @@
       "type": "string",
       "description": "Icon name from lucide-react"
     },
+    "tree_category": {
+      "type": "string",
+      "enum": [
+        "weapons",
+        "spells",
+        "fighting_styles",
+        "stats"
+      ],
+      "default": "weapons",
+      "description": "Top-level grouping category for the skill tree"
+    },
     "nodes": {
       "type": "array",
       "description": "Skill nodes in this tree",
@@ -97,23 +108,19 @@
             "description": "Override damage dice for this skill specifically"
           },
           "damage_override_light": {
-            "type": "string",
-            "description": "Dice when this skill is light attack"
+            "type": "string"
           },
           "damage_override_medium": {
-            "type": "string",
-            "description": "Dice when this skill is medium attack"
+            "type": "string"
           },
           "damage_override_heavy": {
-            "type": "string",
-            "description": "Dice when this skill is heavy attack"
+            "type": "string"
           },
           "prerequisites": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "IDs of prerequisite nodes"
+            }
           },
           "stat_bonuses": {
             "type": "object",
@@ -151,12 +158,10 @@
             }
           },
           "reload_modifier": {
-            "type": "number",
-            "description": "-1 = lower reload cost by one tier, +1 = raise reload cost by one tier"
+            "type": "number"
           },
           "fire_damage_modifier": {
-            "type": "number",
-            "description": "How many tiers to raise fire damage"
+            "type": "number"
           },
           "frost_damage_modifier": {
             "type": "number"
