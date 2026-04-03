@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RotateCcw, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import SkillTreeViewer from '@/components/skilltree/SkillTreeViewer';
+import SkillTreeViewer from '@/components/skilltree/SkillTreeViewer.jsx';
+import NodeDetailPanel from '@/components/skilltree/NodeDetailPanel';
 import { toast } from 'sonner';
 
 export default function SpendPoints() {
@@ -13,6 +14,7 @@ export default function SpendPoints() {
   const characterId = urlParams.get('id');
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState({});
+  const [selectedNode, setSelectedNode] = useState(null);
 
   const { data: character, isLoading: loadingChar } = useQuery({
     queryKey: ['character', characterId],
@@ -67,13 +69,11 @@ export default function SpendPoints() {
     const alreadyUnlocked = unlocked.some((s) => s.tree_id === treeId && s.node_id === node.id);
     if (alreadyUnlocked) return;
 
-    // Apply any stat modifiers from the node
     const updates = {
       unlocked_skills: [...unlocked, { tree_id: treeId, node_id: node.id }],
       spent_points: spentPoints + node.cost,
     };
 
-    // Handle reload modifier
     if (node.reload_modifier) {
       const reloadOrder = ['primary', 'secondary', 'tertiary'];
       const current = reloadOrder.indexOf(character.crossbow_reload || 'primary');
@@ -81,7 +81,6 @@ export default function SpendPoints() {
       updates.crossbow_reload = reloadOrder[next];
     }
 
-    // Handle elemental damage modifiers
     const dmgOrder = ['none', 'light', 'medium', 'heavy'];
     ['fire', 'frost', 'lightning', 'necrotic'].forEach((element) => {
       const mod = node[`${element}_damage_modifier`];
@@ -97,10 +96,7 @@ export default function SpendPoints() {
   };
 
   const handleReset = () => {
-    updateMutation.mutate({
-      unlocked_skills: [],
-      spent_points: 0,
-    });
+    updateMutation.mutate({ unlocked_skills: [], spent_points: 0 });
     toast.success('All skills reset');
   };
 
@@ -115,51 +111,35 @@ export default function SpendPoints() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div className="flex items-center gap-3">
-          <Link to={`/character?id=${characterId}`}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
-              {character.name} — Skill Points
-            </h1>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-                {remaining} remaining
-              </Badge>
-              <span className="text-xs text-muted-foreground">({spentPoints} / {totalPoints})</span>
-              <div className="flex items-center gap-1 ml-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-5 w-5"
-                  onClick={() => handleAdjustPoints(-1)}
-                  title="Remove a point"
-                >
-                  <Minus className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-5 w-5"
-                  onClick={() => handleAdjustPoints(1)}
-                  title="Add a point"
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <Link to={`/character?id=${characterId}`}>
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
+            {character.name} — Skill Points
+          </h1>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+              {remaining} remaining
+            </Badge>
+            <span className="text-xs text-muted-foreground">({spentPoints} / {totalPoints})</span>
+            <div className="flex items-center gap-1 ml-1">
+              <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => handleAdjustPoints(-1)}>
+                <Minus className="w-3 h-3" />
+              </Button>
+              <Button variant="outline" size="icon" className="h-5 w-5" onClick={() => handleAdjustPoints(1)}>
+                <Plus className="w-3 h-3" />
+              </Button>
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={handleReset} className="gap-2 text-destructive w-full sm:w-auto">
-          <RotateCcw className="w-4 h-4" />
-          Reset All
-        </Button>
       </div>
 
+      {/* Trees */}
       {trees.length === 0 ? (
         <div className="text-center py-20 bg-card border border-border/50 rounded-xl">
           <p className="text-muted-foreground mb-4">No skill trees exist yet.</p>
@@ -173,7 +153,6 @@ export default function SpendPoints() {
             const isCollapsed = collapsed[tree.id];
             return (
               <div key={tree.id} className="bg-card border border-border/50 rounded-xl overflow-hidden">
-                {/* Tree header - click to collapse */}
                 <button
                   className="w-full flex items-center justify-between px-5 py-4 hover:bg-secondary/30 transition-colors text-left"
                   onClick={() => toggleCollapse(tree.id)}
@@ -202,6 +181,7 @@ export default function SpendPoints() {
                       tree={tree}
                       unlockedNodeIds={getUnlockedNodeIds(tree.id)}
                       onUnlock={(node) => handleUnlock(tree.id, node)}
+                      onSelect={(node, status) => setSelectedNode({ node, treeId: tree.id, status })}
                     />
                   </div>
                 )}
@@ -209,6 +189,25 @@ export default function SpendPoints() {
             );
           })}
         </div>
+      )}
+
+      {/* Reset button at bottom */}
+      <div className="mt-8 flex justify-center">
+        <Button variant="outline" onClick={handleReset} className="gap-2 text-destructive">
+          <RotateCcw className="w-4 h-4" />
+          Reset All Skills
+        </Button>
+      </div>
+
+      {/* Node detail panel */}
+      {selectedNode && (
+        <NodeDetailPanel
+          node={selectedNode.node}
+          status={selectedNode.status}
+          remaining={remaining}
+          onAcquire={(node) => handleUnlock(selectedNode.treeId, node)}
+          onClose={() => setSelectedNode(null)}
+        />
       )}
     </div>
   );

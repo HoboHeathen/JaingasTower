@@ -10,7 +10,7 @@ import Characters from '@/pages/Characters';
 import CharacterSheet from '@/pages/CharacterSheet';
 import SkillTrees from '@/pages/SkillTrees';
 import EditTree from '@/pages/EditTree';
-import SpendPoints from '@/pages/SpendPoints';
+import SpendPoints from '@/pages/SpendPoints.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
