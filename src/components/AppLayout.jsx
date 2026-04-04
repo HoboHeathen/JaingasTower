@@ -3,10 +3,10 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { ScrollText, TreePine, User, Swords } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: 'Characters', icon: User },
-  { path: '/skill-trees', label: 'Skill Trees', icon: TreePine },
-  { path: '/races', label: 'Races', icon: Swords },
-];
+{ path: '/', label: 'Characters', icon: User },
+{ path: '/skill-trees', label: 'Skill Trees', icon: TreePine },
+{ path: '/races', label: 'Races', icon: Swords }];
+
 
 export default function AppLayout() {
   const location = useLocation();
@@ -19,8 +19,8 @@ export default function AppLayout() {
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-3">
               <ScrollText className="w-6 h-6 text-primary" />
-              <span className="font-heading text-lg font-semibold text-foreground tracking-wide">
-                Arcanum
+              <span className="font-heading text-lg font-semibold text-foreground tracking-wide">Jainga's 
+
               </span>
             </Link>
             <div className="flex items-center gap-1">
@@ -31,15 +31,15 @@ export default function AppLayout() {
                     key={path}
                     to={path}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                    }`}
-                  >
+                    isActive ?
+                    'bg-primary/10 text-primary' :
+                    'text-muted-foreground hover:text-foreground hover:bg-secondary'}`
+                    }>
+                    
                     <Icon className="w-4 h-4" />
                     <span className="hidden sm:inline">{label}</span>
-                  </Link>
-                );
+                  </Link>);
+
               })}
             </div>
           </div>
@@ -50,6 +50,6 @@ export default function AppLayout() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <Outlet />
       </main>
-    </div>
-  );
+    </div>);
+
 }
