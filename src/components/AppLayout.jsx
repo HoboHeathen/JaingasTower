@@ -19,7 +19,7 @@ export default function AppLayout() {
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-3">
               <ScrollText className="w-6 h-6 text-primary" />
-              <span className="font-heading text-lg font-semibold text-foreground tracking-wide">Jainga's 
+              <span className="font-heading text-lg font-semibold text-foreground tracking-wide">Jainga's Tower
 
               </span>
             </Link>
