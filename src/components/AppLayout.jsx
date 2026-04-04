@@ -1,10 +1,11 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ScrollText, TreePine, User, Plus } from 'lucide-react';
+import { ScrollText, TreePine, User, Swords } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Characters', icon: User },
   { path: '/skill-trees', label: 'Skill Trees', icon: TreePine },
+  { path: '/races', label: 'Races', icon: Swords },
 ];
 
 export default function AppLayout() {

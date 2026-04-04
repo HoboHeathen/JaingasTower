@@ -6,6 +6,14 @@
       "type": "string",
       "description": "Character name"
     },
+    "race_id": {
+      "type": "string",
+      "description": "ID of the chosen Race"
+    },
+    "race_name": {
+      "type": "string",
+      "description": "Display name of the chosen race (denormalised for convenience)"
+    },
     "total_points": {
       "type": "number",
       "default": 10

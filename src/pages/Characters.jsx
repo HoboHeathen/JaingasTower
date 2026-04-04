@@ -3,13 +3,16 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import CharacterCard from '@/components/character/CharacterCard';
+import RaceSelectStep from '@/components/character/RaceSelectStep';
 
 export default function Characters() {
   const [showCreate, setShowCreate] = useState(false);
+  const [step, setStep] = useState(1); // 1 = name, 2 = race
   const [name, setName] = useState('');
+  const [selectedRaceId, setSelectedRaceId] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: characters = [], isLoading } = useQuery({
@@ -17,31 +20,45 @@ export default function Characters() {
     queryFn: () => base44.entities.Character.list('-created_date'),
   });
 
+  const { data: races = [] } = useQuery({
+    queryKey: ['races'],
+    queryFn: () => base44.entities.Race.list(),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Character.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['characters'] });
-      setShowCreate(false);
-      setName('');
+      closeDialog();
     },
   });
 
-  const handleCreate = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
+  const closeDialog = () => {
+    setShowCreate(false);
+    setStep(1);
+    setName('');
+    setSelectedRaceId(null);
+  };
+
+  const handleCreate = () => {
+    const race = races.find((r) => r.id === selectedRaceId);
     createMutation.mutate({
       name: name.trim(),
-      total_points: 10,
+      race_id: selectedRaceId || null,
+      race_name: race?.name || null,
+      total_points: 10 + (race?.bonus_points || 0),
       spent_points: 0,
-      base_health: 10,
-      base_armor: 10,
-      base_speed: 30,
-      base_spell_range: 0,
+      base_health: 10 + (race?.base_health_bonus || 0),
+      base_armor: 10 + (race?.base_armor_bonus || 0),
+      base_speed: 30 + (race?.base_speed_bonus || 0),
+      base_spell_range: 0 + (race?.base_spell_range_bonus || 0),
+      str: 8 + (race?.str_bonus || 0),
+      dex: 8 + (race?.dex_bonus || 0),
+      con: 8 + (race?.con_bonus || 0),
+      int: 8 + (race?.int_bonus || 0),
+      wis: 8 + (race?.wis_bonus || 0),
+      cha: 8 + (race?.cha_bonus || 0),
       crossbow_reload: 'primary',
-      fire_damage: 'none',
-      frost_damage: 'none',
-      lightning_damage: 'none',
-      necrotic_damage: 'none',
       used_single_use_skills: [],
       unlocked_skills: [],
     });
@@ -80,27 +97,52 @@ export default function Characters() {
         </div>
       )}
 
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
+      <Dialog open={showCreate} onOpenChange={(v) => { if (!v) closeDialog(); else setShowCreate(true); }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-heading">Create Character</DialogTitle>
+            <DialogTitle className="font-heading">
+              {step === 1 ? 'Name Your Character' : 'Choose a Race'}
+            </DialogTitle>
+            {races.length > 0 && (
+              <p className="text-xs text-muted-foreground">Step {step} of 2</p>
+            )}
           </DialogHeader>
-          <form onSubmit={handleCreate} className="space-y-4">
-            <Input
-              placeholder="Character name..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!name.trim()}>
-                Create
-              </Button>
-            </DialogFooter>
-          </form>
+
+          {step === 1 ? (
+            <div className="space-y-4">
+              <Input
+                placeholder="Character name..."
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && name.trim()) { if (races.length > 0) setStep(2); else handleCreate(); } }}
+                autoFocus
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeDialog}>Cancel</Button>
+                {races.length > 0 ? (
+                  <Button disabled={!name.trim()} onClick={() => setStep(2)}>
+                    Next <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button disabled={!name.trim() || createMutation.isPending} onClick={handleCreate}>
+                    Create
+                  </Button>
+                )}
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <RaceSelectStep races={races} selectedRaceId={selectedRaceId} onSelect={setSelectedRaceId} />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                </Button>
+                <Button disabled={!selectedRaceId || createMutation.isPending} onClick={handleCreate}>
+                  Create Character
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

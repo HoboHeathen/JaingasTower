@@ -122,7 +122,7 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice }) {
             )}
           </div>
           {skill.description && (
-            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
               {skill.description}
             </p>
           )}

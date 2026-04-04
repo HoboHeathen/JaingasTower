@@ -1,0 +1,70 @@
+{
+  "name": "Race",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Race name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Flavour text / lore description"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji or icon identifier"
+    },
+    "bonus_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Extra skill points granted at character creation (can be negative)"
+    },
+    "base_health_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "base_armor_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "base_speed_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "base_spell_range_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "str_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "dex_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "con_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "int_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "wis_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "cha_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "special_traits": {
+      "type": "string",
+      "description": "Free-text description of any special racial traits"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
