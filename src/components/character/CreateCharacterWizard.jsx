@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import RaceSelectStep from './RaceSelectStep';
 import RacialTreeSelectStep from './RacialTreeSelectStep';
+import BeginningSelectStep, { BEGINNINGS } from './BeginningSelectStep';
 
-const STEPS = ['Name', 'Race 1', 'Tree 1', 'Race 2', 'Tree 2'];
+const STEPS = ['Name', 'Beginning', 'Race 1', 'Tree 1', 'Race 2', 'Tree 2'];
 
 export default function CreateCharacterWizard({ onClose, onCreated }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
+  const [beginningId, setBeginningId] = useState(null);
   const [race1Id, setRace1Id] = useState(null);
   const [tree1Id, setTree1Id] = useState(null);
   const [race2Id, setRace2Id] = useState(null);
@@ -40,10 +42,11 @@ export default function CreateCharacterWizard({ onClose, onCreated }) {
 
   const canNext = () => {
     if (step === 0) return name.trim().length > 0;
-    if (step === 1) return !!race1Id;
-    if (step === 2) return !!tree1Id;
-    if (step === 3) return !!race2Id;
-    if (step === 4) return !!tree2Id;
+    if (step === 1) return !!beginningId;
+    if (step === 2) return !!race1Id;
+    if (step === 3) return !!tree1Id;
+    if (step === 4) return !!race2Id;
+    if (step === 5) return !!tree2Id;
     return false;
   };
 
@@ -53,6 +56,7 @@ export default function CreateCharacterWizard({ onClose, onCreated }) {
     const race2 = races.find((r) => r.id === race2Id);
     const t1 = allRacialTrees.find((t) => t.id === tree1Id);
     const t2 = allRacialTrees.find((t) => t.id === tree2Id);
+    const beginning = BEGINNINGS.find((b) => b.id === beginningId);
 
     // Sum bonuses from both races
     const bonusPoints = (race1?.bonus_points || 0) + (race2?.bonus_points || 0);
@@ -66,18 +70,24 @@ export default function CreateCharacterWizard({ onClose, onCreated }) {
       ],
       total_points: 10 + bonusPoints,
       spent_points: 0,
+      str: beginning?.str ?? 8,
+      dex: beginning?.dex ?? 8,
+      con: beginning?.con ?? 8,
+      int: beginning?.int ?? 8,
+      wis: beginning?.wis ?? 8,
+      cha: beginning?.cha ?? 8,
     });
     setSaving(false);
     onCreated();
   };
 
   const handleNext = () => {
-    if (step === 4) {
+    if (step === 5) {
       handleCreate();
     } else {
       // Reset tree selection when race changes
-      if (step === 1) setTree1Id(null);
-      if (step === 3) setTree2Id(null);
+      if (step === 2) setTree1Id(null);
+      if (step === 4) setTree2Id(null);
       setStep((s) => s + 1);
     }
   };
@@ -121,15 +131,18 @@ export default function CreateCharacterWizard({ onClose, onCreated }) {
             </div>
           )}
           {step === 1 && (
-            <RaceSelectStep races={races} selectedRaceId={race1Id} onSelect={setRace1Id} />
+            <BeginningSelectStep selectedId={beginningId} onSelect={setBeginningId} />
           )}
           {step === 2 && (
-            <RacialTreeSelectStep trees={trees1} selectedTreeId={tree1Id} onSelect={setTree1Id} raceNumber={1} />
+            <RaceSelectStep races={races} selectedRaceId={race1Id} onSelect={setRace1Id} />
           )}
           {step === 3 && (
-            <RaceSelectStep races={races} selectedRaceId={race2Id} onSelect={setRace2Id} />
+            <RacialTreeSelectStep trees={trees1} selectedTreeId={tree1Id} onSelect={setTree1Id} raceNumber={1} />
           )}
           {step === 4 && (
+            <RaceSelectStep races={races} selectedRaceId={race2Id} onSelect={setRace2Id} />
+          )}
+          {step === 5 && (
             <RacialTreeSelectStep trees={trees2} selectedTreeId={tree2Id} onSelect={setTree2Id} raceNumber={2} />
           )}
         </div>
@@ -145,7 +158,7 @@ export default function CreateCharacterWizard({ onClose, onCreated }) {
             <ChevronLeft className="w-4 h-4" /> Back
           </Button>
           <Button onClick={handleNext} disabled={!canNext() || saving} className="gap-1">
-            {step === 4 ? (saving ? 'Creating...' : 'Create') : 'Next'}
+            {step === 5 ? (saving ? 'Creating...' : 'Create') : 'Next'}
             {step < 4 && <ChevronRight className="w-4 h-4" />}
           </Button>
         </div>
