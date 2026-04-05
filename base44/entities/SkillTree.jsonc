@@ -59,8 +59,7 @@
               "skill",
               "stat_increase"
             ],
-            "default": "attack",
-            "description": "attack = offensive action with dice; skill = non-attack action; stat_increase = passive stat buff, not shown as action"
+            "default": "attack"
           },
           "category": {
             "type": "string",
@@ -69,8 +68,7 @@
               "secondary",
               "tertiary",
               "reactionary"
-            ],
-            "description": "Action category for this individual skill (not used for stat_increase)"
+            ]
           },
           "attack_sub_category": {
             "type": "string",
@@ -78,8 +76,7 @@
               "light",
               "medium",
               "heavy"
-            ],
-            "description": "Attack weight: light, medium, or heavy (attack type only)"
+            ]
           },
           "weapon_required": {
             "type": "string",
@@ -94,12 +91,10 @@
               "light_crossbow",
               "heavy_crossbow",
               "any"
-            ],
-            "description": "Weapon type required for this skill"
+            ]
           },
           "is_single_use": {
-            "type": "boolean",
-            "description": "If true, skill greys out after use"
+            "type": "boolean"
           },
           "damage_dice": {
             "type": "string",
@@ -110,8 +105,7 @@
               "d10",
               "d12",
               "custom"
-            ],
-            "description": "Override damage dice for this skill specifically"
+            ]
           },
           "damage_override_light": {
             "type": "string"
@@ -167,24 +161,23 @@
             "type": "number"
           },
           "fire_dice_modifier": {
-            "type": "number",
-            "description": "Steps up fire magic die by this many (d4\u2192d6\u2192d8\u2192d10\u2192d12)"
+            "type": "number"
           },
           "frost_dice_modifier": {
-            "type": "number",
-            "description": "Steps up frost magic die by this many"
+            "type": "number"
           },
           "lightning_dice_modifier": {
-            "type": "number",
-            "description": "Steps up lightning magic die by this many"
+            "type": "number"
           },
           "necrotic_dice_modifier": {
-            "type": "number",
-            "description": "Steps up necrotic magic die by this many"
+            "type": "number"
           },
           "healing_dice_modifier": {
+            "type": "number"
+          },
+          "charge_pool_limit_modifier": {
             "type": "number",
-            "description": "Steps up healing die by this many (d4\u2192d6\u2192d8\u2192d10\u2192d12)"
+            "description": "Increases the character's charged dice pool limit by this many"
           }
         }
       }

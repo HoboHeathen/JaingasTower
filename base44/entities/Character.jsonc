@@ -73,28 +73,33 @@
     },
     "fire_dice_index": {
       "type": "number",
-      "default": 0,
-      "description": "Index into [d4, d6, d8, d10, d12] for fire magic damage"
+      "default": 0
     },
     "frost_dice_index": {
       "type": "number",
-      "default": 0,
-      "description": "Index into [d4, d6, d8, d10, d12] for frost magic damage"
+      "default": 0
     },
     "lightning_dice_index": {
       "type": "number",
-      "default": 0,
-      "description": "Index into [d4, d6, d8, d10, d12] for lightning magic damage"
+      "default": 0
     },
     "necrotic_dice_index": {
       "type": "number",
-      "default": 0,
-      "description": "Index into [d4, d6, d8, d10, d12] for necrotic magic damage"
+      "default": 0
     },
     "healing_dice_index": {
       "type": "number",
+      "default": 0
+    },
+    "charge_pool_current": {
+      "type": "number",
       "default": 0,
-      "description": "Index into [d4, d6, d8, d10, d12] for healing spells"
+      "description": "Current number of dice loaded into the charge pool"
+    },
+    "charge_pool_limit": {
+      "type": "number",
+      "default": 0,
+      "description": "Maximum dice the charge pool can hold (increased by Charge Pool skill)"
     },
     "used_single_use_skills": {
       "type": "array",
