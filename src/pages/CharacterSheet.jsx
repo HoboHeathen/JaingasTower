@@ -9,7 +9,6 @@ import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
 import DiceRollerModal from '@/components/dice/DiceRollerModal';
 import ChargeDicePool from '@/components/character/ChargeDicePool';
-import RacialSkillList from '@/components/character/RacialSkillList';
 
 export default function CharacterSheet() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -67,6 +66,9 @@ export default function CharacterSheet() {
   const treeMap = {};
   trees.forEach((t) => { treeMap[t.id] = t; });
 
+  const racialTreeMap = {};
+  racialTrees.forEach((t) => { racialTreeMap[t.id] = t; });
+
   const skillBonuses = { health: 0, armor: 0, speed: 0, spell_range: 0, str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
   const categorizedSkills = { primary: [], secondary: [], tertiary: [], reactionary: [] };
 
@@ -82,10 +84,8 @@ export default function CharacterSheet() {
       });
     }
 
-    // stat_increase nodes don't appear in action lists
     if (node.node_type === 'stat_increase') return;
 
-    // Auto-detect reactionary from description if category not explicitly set
     const isReactionary =
       node.category === 'reactionary' ||
       (node.description && /as a reactionary action/i.test(node.description));
@@ -94,6 +94,21 @@ export default function CharacterSheet() {
     if (categorizedSkills[cat] !== undefined) {
       categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
     }
+  });
+
+  // Inject all racial skill nodes from selected trees into action buckets (no toggle needed)
+  const seenRacialNodes = new Set();
+  (character.race_selections || []).forEach(({ racial_tree_id }) => {
+    const tree = racialTreeMap[racial_tree_id];
+    if (!tree) return;
+    (tree.nodes || []).forEach((node) => {
+      const key = `${tree.id}:${node.id}`;
+      if (seenRacialNodes.has(key)) return;
+      seenRacialNodes.add(key);
+      const cat = node.category;
+      if (cat === 'passive' || !categorizedSkills[cat]) return;
+      categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
+    });
   });
 
   const handleCharge = () => {
@@ -168,11 +183,6 @@ export default function CharacterSheet() {
       <div className="space-y-6">
         <StatBlock character={character} skillBonuses={skillBonuses} />
         <AbilityScores character={character} skillBonuses={skillBonuses} />
-        <RacialSkillList
-          character={character}
-          racialTrees={racialTrees}
-          onUpdateCharacter={handleUpdateCharacter}
-        />
 
         {(() => {
           const magicDice = {

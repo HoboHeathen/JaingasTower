@@ -20,12 +20,15 @@ export default function RacialTreeSelectStep({ trees, selectedTreeId, onSelect, 
     );
   }
 
+  // Deduplicate by tree_name
+  const uniqueTrees = trees.filter((tree, idx, arr) => arr.findIndex((t) => t.tree_name === tree.tree_name) === idx);
+
   return (
     <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
       <p className="text-xs text-muted-foreground">
         Choose one skill tree for race {raceNumber}:
       </p>
-      {trees.map((tree) => {
+      {uniqueTrees.map((tree) => {
         const isSelected = selectedTreeId === tree.id;
         return (
           <button
