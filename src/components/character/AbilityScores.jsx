@@ -25,8 +25,11 @@ function AbilityCard({ label, score }) {
 
   const handleRoll = () => {
     if (rolling) return;
+    if (result !== null) {
+      setResult(null);
+      return;
+    }
     setRolling(true);
-    setResult(null);
     setTimeout(() => {
       const d20 = Math.floor(Math.random() * 20) + 1;
       setResult(d20 + mod);
