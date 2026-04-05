@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Swords } from 'lucide-react';
@@ -9,10 +9,16 @@ import CreateCharacterWizard from '@/components/character/CreateCharacterWizard'
 export default function Characters() {
   const [showWizard, setShowWizard] = useState(false);
   const queryClient = useQueryClient();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   const { data: characters = [], isLoading } = useQuery({
-    queryKey: ['characters'],
-    queryFn: () => base44.entities.Character.list('-created_date'),
+    queryKey: ['characters', currentUser?.email],
+    queryFn: () => base44.entities.Character.filter({ created_by: currentUser.email }, '-created_date'),
+    enabled: !!currentUser,
   });
 
   const deleteMutation = useMutation({
