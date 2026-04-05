@@ -53,10 +53,16 @@ function AbilityCard({ label, score }) {
       </span>
       <Dices className={`w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors ${rolling ? 'animate-spin' : ''}`} />
       {result !== null && !rolling && (
-        <div className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center">
-          <Star className="absolute w-6 h-6 fill-primary text-primary shadow-md drop-shadow-lg" />
-          <span className="absolute text-[10px] font-bold text-primary-foreground z-10">{result}</span>
-        </div>
+        isCritical ? (
+          <div className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center">
+            <Star className="absolute w-6 h-6 fill-primary text-primary shadow-md drop-shadow-lg" />
+            <span className="absolute text-[10px] font-bold text-primary-foreground z-10">{result}</span>
+          </div>
+        ) : (
+          <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+            {result}
+          </span>
+        )
       )}
     </div>
   );
