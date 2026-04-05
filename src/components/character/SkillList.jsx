@@ -90,6 +90,7 @@ const isCharge = (skill) => /^charge (i|ii|iii)$/i.test(skill.name);
 
 function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, chargeLimit = 0, onCharge, onDeplete }) {
   const [rollResult, setRollResult] = useState(null);
+  const [isRolling, setIsRolling] = useState(false);
   const baseDiceStr = getDiceString(skill, magicDice);
   const isPA = isPowerAttack(skill);
   const isCh = isCharge(skill);
@@ -115,15 +116,20 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, charg
 
   const handleRoll = (e) => {
     e.stopPropagation();
-    if (!diceStr) return;
+    if (!diceStr || isRolling) return;
     if (isPA && chargePool <= 0) {
       toast.warning('Charge pool is empty! Use Charge I/II/III first.');
       return;
     }
-    const result = rollDice(diceStr);
-    setRollResult(result);
-    if (isPA && onDeplete) onDeplete();
-    if (skill.is_single_use && !isUsed) onMarkUsed(skill.id);
+    setIsRolling(true);
+    setRollResult(null);
+    setTimeout(() => {
+      const result = rollDice(diceStr);
+      setRollResult(result);
+      setIsRolling(false);
+      if (isPA && onDeplete) onDeplete();
+      if (skill.is_single_use && !isUsed) onMarkUsed(skill.id);
+    }, 500);
   };
 
   return (
@@ -194,9 +200,10 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, charg
             <Button
               size="icon"
               variant="ghost"
-              className={cn('h-7 w-7', isPA && chargePool > 0 && 'text-primary')}
+              className={cn('h-7 w-7', isPA && chargePool > 0 && 'text-primary', isRolling && 'animate-spin')}
               onClick={handleRoll}
               title={`Roll ${diceStr}`}
+              disabled={isRolling}
             >
               <Dices className="w-4 h-4" />
             </Button>
