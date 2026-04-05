@@ -99,12 +99,12 @@ export default function SkillTrees() {
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="trees" direction="horizontal">
+          <Droppable droppableId="trees" direction="vertical">
             {(provided) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                className="flex flex-col gap-0"
               >
                 {orderedTrees.map((tree, index) => (
                   <Draggable key={tree.id} draggableId={tree.id} index={index}>
@@ -112,45 +112,58 @@ export default function SkillTrees() {
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`bg-card border rounded-xl p-5 transition-all group ${snapshot.isDragging ? 'border-primary/60 shadow-lg shadow-primary/10 rotate-1' : 'border-border/50 hover:border-primary/30'}`}
+                        className="py-1"
                       >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div
-                              {...provided.dragHandleProps}
-                              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
-                              title="Drag to reorder"
-                            >
-                              <GripVertical className="w-4 h-4" />
-                            </div>
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <TreePine className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-heading font-semibold text-foreground">{tree.name}</h3>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                            onClick={() => setDeletingId(tree.id)}
+                        <div
+                          className={`bg-card border rounded-xl p-4 transition-all group flex items-center gap-4 ${
+                            snapshot.isDragging
+                              ? 'border-primary shadow-lg shadow-primary/20 opacity-90 scale-[1.01]'
+                              : 'border-border/50 hover:border-primary/30'
+                          }`}
+                        >
+                          {/* Drag handle */}
+                          <div
+                            {...provided.dragHandleProps}
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                            title="Drag to reorder"
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                            <GripVertical className="w-5 h-5" />
+                          </div>
+
+                          {/* Icon */}
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <TreePine className="w-4 h-4 text-primary" />
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-heading font-semibold text-foreground leading-tight">{tree.name}</h3>
+                            {tree.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tree.description}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {(tree.nodes || []).length} skill{(tree.nodes || []).length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Link to={`/edit-tree?id=${tree.id}`}>
+                              <Button variant="outline" size="sm" className="gap-1.5">
+                                <Pencil className="w-3 h-3" />
+                                Edit
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive h-8 w-8"
+                              onClick={() => setDeletingId(tree.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        {tree.description && (
-                          <p className="text-sm text-muted-foreground mb-3">{tree.description}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mb-3">
-                          {(tree.nodes || []).length} skill{(tree.nodes || []).length !== 1 ? 's' : ''}
-                        </p>
-                        <Link to={`/edit-tree?id=${tree.id}`}>
-                          <Button variant="outline" size="sm" className="w-full gap-2">
-                            <Pencil className="w-3 h-3" />
-                            Edit Skills
-                          </Button>
-                        </Link>
                       </div>
                     )}
                   </Draggable>
