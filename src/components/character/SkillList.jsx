@@ -9,7 +9,7 @@ const WEAPON_DICE = {
   dagger: 'd4',
   shortbow: 'd4',
   sword: 'd6',
-  axe: 'd6',
+  axe: 'd8',
   light_crossbow: 'd6',
   polearm: 'd8',
   longbow: 'd8',
@@ -17,6 +17,14 @@ const WEAPON_DICE = {
   hammer: 'd10',
   greathammer: 'd12',
   any: 'd6',
+};
+
+// Some weapon_required values are shared between regular and great weapons.
+// Use the tree name to override the die for great weapon trees.
+const GREAT_WEAPON_TREE_DICE = {
+  greatsword: 'd12',
+  greathammer: 'd12',
+  greataxe: 'd12',
 };
 
 const MAGIC_DICE_PROGRESSION = ['d4', 'd6', 'd8', 'd10', 'd12'];
@@ -54,6 +62,11 @@ function getDiceString(node, magicDice = {}) {
     return `${count}d4`;
   }
 
+  // Check if this node comes from a great weapon tree (override the die)
+  const treeNameLower = (node.treeName || '').toLowerCase();
+  for (const [treeName, die] of Object.entries(GREAT_WEAPON_TREE_DICE)) {
+    if (treeNameLower.includes(treeName)) return `${count}${die}`;
+  }
   const die = WEAPON_DICE[node.weapon_required] || 'd6';
   return `${count}${die}`;
 }
