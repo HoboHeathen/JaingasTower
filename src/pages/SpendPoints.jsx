@@ -104,7 +104,7 @@ export default function SpendPoints() {
       updates.crossbow_reload = reloadOrder[next];
     }
 
-    ['fire', 'frost', 'lightning', 'necrotic'].forEach((element) => {
+    ['fire', 'frost', 'lightning', 'necrotic', 'healing'].forEach((element) => {
       const mod = node[`${element}_dice_modifier`];
       if (mod) {
         const curIdx = character[`${element}_dice_index`] ?? 0;
@@ -124,7 +124,7 @@ export default function SpendPoints() {
     };
 
     // Undo magic dice modifier
-    ['fire', 'frost', 'lightning', 'necrotic'].forEach((element) => {
+    ['fire', 'frost', 'lightning', 'necrotic', 'healing'].forEach((element) => {
       const mod = node[`${element}_dice_modifier`];
       if (mod) {
         const curIdx = character[`${element}_dice_index`] ?? 0;

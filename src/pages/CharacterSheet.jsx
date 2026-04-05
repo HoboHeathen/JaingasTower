@@ -153,6 +153,7 @@ export default function CharacterSheet() {
             frost: character.frost_dice_index ?? 0,
             lightning: character.lightning_dice_index ?? 0,
             necrotic: character.necrotic_dice_index ?? 0,
+            healing: character.healing_dice_index ?? 0,
           };
           return (
             <>

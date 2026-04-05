@@ -21,7 +21,7 @@ const WEAPON_DICE = {
 const MAGIC_DICE_PROGRESSION = ['d4', 'd6', 'd8', 'd10', 'd12'];
 
 // Elements keyed by how they might appear in tree names
-const ELEMENT_KEYS = ['fire', 'frost', 'lightning', 'necrotic'];
+const ELEMENT_KEYS = ['fire', 'frost', 'lightning', 'necrotic', 'healing'];
 
 const ATTACK_WEIGHT_DICE_COUNT = { light: 1, medium: 2, heavy: 3 };
 
