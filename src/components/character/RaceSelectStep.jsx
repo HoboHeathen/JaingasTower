@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import RaceIcon from './RaceIcon';
 
 function statBonusEntries(race) {
   const fields = [
@@ -20,7 +21,15 @@ function statBonusEntries(race) {
 }
 
 export default function RaceSelectStep({ races, selectedRaceId, onSelect }) {
-  if (races.length === 0) {
+  // Deduplicate by name, keeping the first occurrence
+  const seen = new Set();
+  const uniqueRaces = races.filter((r) => {
+    if (seen.has(r.name)) return false;
+    seen.add(r.name);
+    return true;
+  });
+
+  if (uniqueRaces.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-6">
         No races have been created yet. Ask your game master to add races in the admin panel.
@@ -30,7 +39,7 @@ export default function RaceSelectStep({ races, selectedRaceId, onSelect }) {
 
   return (
     <div className="grid gap-3 max-h-[60vh] overflow-y-auto pr-1">
-      {races.map((race) => {
+      {uniqueRaces.map((race) => {
         const bonuses = statBonusEntries(race);
         const isSelected = selectedRaceId === race.id;
         return (
@@ -46,9 +55,7 @@ export default function RaceSelectStep({ races, selectedRaceId, onSelect }) {
             )}
           >
             <div className="flex items-start gap-3">
-              {race.icon && (
-                <span className="text-2xl mt-0.5 shrink-0">{race.icon}</span>
-              )}
+              <RaceIcon raceName={race.name} size={40} />
               <div className="flex-1 min-w-0">
                 <p className="font-heading font-semibold text-foreground">{race.name}</p>
                 {race.description && (

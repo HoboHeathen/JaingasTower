@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import RaceIcon from '@/components/character/RaceIcon';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
@@ -123,7 +124,7 @@ export default function Races() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      {race.icon && <span className="text-2xl">{race.icon}</span>}
+                      <RaceIcon raceName={race.name} size={36} />
                       <h3 className="font-heading font-semibold text-foreground">{race.name}</h3>
                     </div>
                     <div className="flex gap-1 shrink-0">
@@ -182,15 +183,9 @@ export default function Races() {
             <DialogTitle className="font-heading">{editing ? 'Edit Race' : 'New Race'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-[1fr_80px] gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Name *</label>
-                <Input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Elf" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Icon (emoji)</label>
-                <Input value={form.icon} onChange={(e) => setField('icon', e.target.value)} placeholder="🧝" className="text-center" />
-              </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Name *</label>
+              <Input value={form.name} onChange={(e) => setField('name', e.target.value)} placeholder="e.g. Elf" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Description</label>
