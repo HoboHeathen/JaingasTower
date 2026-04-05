@@ -37,6 +37,11 @@ export default function SpendPoints() {
     queryFn: () => base44.entities.SkillTree.list('sort_order'),
   });
 
+  const { data: allRacialTrees = [] } = useQuery({
+    queryKey: ['racial-trees'],
+    queryFn: () => base44.entities.RacialTree.list(),
+  });
+
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Character.update(characterId, data),
     onSuccess: () => {
@@ -46,6 +51,7 @@ export default function SpendPoints() {
   });
 
   const unlocked = character?.unlocked_skills || [];
+  const unlockedRacial = character?.unlocked_racial_skills || [];
   const spentPoints = character?.spent_points || 0;
   const totalPoints = character?.total_points || 10;
   const remaining = totalPoints - spentPoints;
@@ -144,10 +150,38 @@ export default function SpendPoints() {
     toast.success(`Released ${node.name}`);
   };
 
+  const handleUnlockRacial = (treeId, node) => {
+    if (remaining < 1) { toast.error('Not enough skill points!'); return; }
+    const already = unlockedRacial.some((s) => s.racial_tree_id === treeId && s.node_id === node.id);
+    if (already) return;
+    updateMutation.mutate({
+      unlocked_racial_skills: [...unlockedRacial, { racial_tree_id: treeId, node_id: node.id }],
+      spent_points: spentPoints + 1,
+    });
+    toast.success(`Unlocked ${node.name}!`);
+  };
+
+  const handleReleaseRacial = (treeId, node) => {
+    updateMutation.mutate({
+      unlocked_racial_skills: unlockedRacial.filter((s) => !(s.racial_tree_id === treeId && s.node_id === node.id)),
+      spent_points: Math.max(0, spentPoints - 1),
+    });
+    toast.success(`Released ${node.name}`);
+  };
+
   const handleReset = () => {
-    updateMutation.mutate({ unlocked_skills: [], spent_points: 0 });
+    updateMutation.mutate({ unlocked_skills: [], unlocked_racial_skills: [], spent_points: 0 });
     toast.success('All skills reset');
   };
+
+  // Get the racial trees the character actually chose (deduplicated by tree id)
+  const characterRacialTrees = useMemo(() => {
+    const selections = character?.race_selections || [];
+    const seen = new Set();
+    return selections
+      .map((sel) => allRacialTrees.find((t) => t.id === sel.racial_tree_id))
+      .filter((t) => t && !seen.has(t.id) && seen.add(t.id));
+  }, [character, allRacialTrees]);
 
   const handleAdjustPoints = (delta) => {
     const newTotal = Math.max(0, totalPoints + delta);
@@ -322,6 +356,56 @@ export default function SpendPoints() {
               No skill trees match your search.
             </div>
           )}
+
+          {/* Racial Trees */}
+          {characterRacialTrees.length > 0 && !search.trim() && (
+            <div>
+              <h2 className="font-heading text-base font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-1">
+                Racial
+              </h2>
+              <div className="space-y-2">
+                {characterRacialTrees.map((tree) => {
+                  const unlockedIds = unlockedRacial.filter((s) => s.racial_tree_id === tree.id).map((s) => s.node_id);
+                  const open = isExpanded(tree.id);
+                  // Shape the racial tree to match what SkillTreeViewer expects
+                  const treeForViewer = { ...tree, name: tree.tree_name, nodes: (tree.nodes || []).map((n) => ({ ...n, cost: n.cost ?? 1 })) };
+                  return (
+                    <div key={tree.id} className="bg-card border border-border/50 rounded-xl overflow-hidden">
+                      <button
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-secondary/30 transition-colors text-left"
+                        onClick={() => toggleCollapse(tree.id)}
+                      >
+                        <div>
+                          <h3 className="font-heading text-base font-semibold text-foreground">{tree.tree_name}</h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">{tree.race_name}</p>
+                          {tree.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1">{tree.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-4">
+                          <span className="text-xs text-muted-foreground">
+                            {unlockedIds.length}/{(tree.nodes || []).length}
+                          </span>
+                          {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                        </div>
+                      </button>
+                      {open && (
+                        <div className="px-5 pb-5 overflow-x-auto">
+                          <SkillTreeViewer
+                            tree={treeForViewer}
+                            unlockedNodeIds={unlockedIds}
+                            blockedNodeIds={[]}
+                            onUnlock={(node) => handleUnlockRacial(tree.id, node)}
+                            onSelect={(node, status) => setSelectedNode({ node, treeId: tree.id, status, isRacial: true })}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -338,8 +422,8 @@ export default function SpendPoints() {
           node={selectedNode.node}
           status={selectedNode.status}
           remaining={remaining}
-          onAcquire={(node) => handleUnlock(selectedNode.treeId, node)}
-          onRelease={(node) => handleRelease(selectedNode.treeId, node)}
+          onAcquire={(node) => selectedNode.isRacial ? handleUnlockRacial(selectedNode.treeId, node) : handleUnlock(selectedNode.treeId, node)}
+          onRelease={(node) => selectedNode.isRacial ? handleReleaseRacial(selectedNode.treeId, node) : handleRelease(selectedNode.treeId, node)}
           onClose={() => setSelectedNode(null)}
         />
       )}

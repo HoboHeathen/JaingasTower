@@ -96,19 +96,16 @@ export default function CharacterSheet() {
     }
   });
 
-  // Inject all racial skill nodes from selected trees into action buckets (no toggle needed)
-  const seenRacialNodes = new Set();
-  (character.race_selections || []).forEach(({ racial_tree_id }) => {
+  // Inject unlocked (invested) racial skills into action buckets
+  const unlockedRacialSkills = character.unlocked_racial_skills || [];
+  unlockedRacialSkills.forEach(({ racial_tree_id, node_id }) => {
     const tree = racialTreeMap[racial_tree_id];
     if (!tree) return;
-    (tree.nodes || []).forEach((node) => {
-      const key = `${tree.id}:${node.id}`;
-      if (seenRacialNodes.has(key)) return;
-      seenRacialNodes.add(key);
-      const cat = node.category;
-      if (cat === 'passive' || !categorizedSkills[cat]) return;
-      categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
-    });
+    const node = (tree.nodes || []).find((n) => n.id === node_id);
+    if (!node) return;
+    const cat = node.category;
+    if (cat === 'passive' || !categorizedSkills[cat]) return;
+    categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
   });
 
   const handleCharge = () => {
