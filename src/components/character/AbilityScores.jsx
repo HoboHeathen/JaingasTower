@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dices } from 'lucide-react';
+import { Dices, Star } from 'lucide-react';
 
 const ABILITIES = [
   { key: 'str', label: 'STR' },
@@ -21,18 +21,21 @@ function fmtMod(mod) {
 function AbilityCard({ label, score }) {
   const mod = getModifier(score);
   const [result, setResult] = useState(null);
+  const [isCritical, setIsCritical] = useState(false);
   const [rolling, setRolling] = useState(false);
 
   const handleRoll = () => {
     if (rolling) return;
     if (result !== null) {
       setResult(null);
+      setIsCritical(false);
       return;
     }
     setRolling(true);
     setTimeout(() => {
       const d20 = Math.floor(Math.random() * 20) + 1;
       setResult(d20 + mod);
+      setIsCritical(d20 === 20);
       setRolling(false);
     }, 400);
   };
@@ -50,9 +53,13 @@ function AbilityCard({ label, score }) {
       </span>
       <Dices className={`w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors ${rolling ? 'animate-spin' : ''}`} />
       {result !== null && !rolling && (
-        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-          {result}
-        </span>
+        isCritical ? (
+          <Star className="absolute -top-2 -right-2 w-6 h-6 fill-primary text-primary shadow-md drop-shadow-lg" />
+        ) : (
+          <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+            {result}
+          </span>
+        )
       )}
     </div>
   );
