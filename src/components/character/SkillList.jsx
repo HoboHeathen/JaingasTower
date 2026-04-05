@@ -73,6 +73,7 @@ function rollDice(diceStr) {
 }
 
 const isPowerAttack = (skill) => /^power attack/i.test(skill.name);
+const isCharge = (skill) => /^charge (i|ii|iii)$/i.test(skill.name);
 
 function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, onDeplete }) {
   const [rollResult, setRollResult] = useState(null);
