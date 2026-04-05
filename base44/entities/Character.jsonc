@@ -8,11 +8,47 @@
     },
     "race_id": {
       "type": "string",
-      "description": "ID of the chosen Race"
+      "description": "ID of the chosen Race (legacy single-race field)"
     },
     "race_name": {
       "type": "string",
       "description": "Display name of the chosen race (denormalised for convenience)"
+    },
+    "race_selections": {
+      "type": "array",
+      "description": "Up to two race+tree selections",
+      "items": {
+        "type": "object",
+        "properties": {
+          "race_id": {
+            "type": "string"
+          },
+          "race_name": {
+            "type": "string"
+          },
+          "racial_tree_id": {
+            "type": "string"
+          },
+          "racial_tree_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unlocked_racial_skills": {
+      "type": "array",
+      "description": "Racial skill nodes that have been unlocked",
+      "items": {
+        "type": "object",
+        "properties": {
+          "racial_tree_id": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          }
+        }
+      }
     },
     "total_points": {
       "type": "number",
@@ -99,7 +135,7 @@
     "charge_pool_limit": {
       "type": "number",
       "default": 0,
-      "description": "Maximum dice the charge pool can hold (increased by Charge Pool skill)"
+      "description": "Maximum dice the charge pool can hold"
     },
     "used_single_use_skills": {
       "type": "array",

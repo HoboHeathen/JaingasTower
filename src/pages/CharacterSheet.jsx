@@ -9,6 +9,7 @@ import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
 import DiceRollerModal from '@/components/dice/DiceRollerModal';
 import ChargeDicePool from '@/components/character/ChargeDicePool';
+import RacialSkillList from '@/components/character/RacialSkillList';
 
 export default function CharacterSheet() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -26,6 +27,11 @@ export default function CharacterSheet() {
   const { data: trees = [], isLoading: loadingTrees } = useQuery({
     queryKey: ['skill-trees'],
     queryFn: () => base44.entities.SkillTree.list(),
+  });
+
+  const { data: racialTrees = [] } = useQuery({
+    queryKey: ['racial-trees'],
+    queryFn: () => base44.entities.RacialTree.list(),
   });
 
   const updateMutation = useMutation({
@@ -112,6 +118,10 @@ export default function CharacterSheet() {
     updateMutation.mutate({ total_points: newTotal });
   };
 
+  const handleUpdateCharacter = (data) => {
+    updateMutation.mutate(data);
+  };
+
   const handleSaveFavorite = (fav) => {
     const current = character.dice_favorites || [];
     updateMutation.mutate({ dice_favorites: [...current, fav] });
@@ -158,6 +168,11 @@ export default function CharacterSheet() {
       <div className="space-y-6">
         <StatBlock character={character} skillBonuses={skillBonuses} />
         <AbilityScores character={character} skillBonuses={skillBonuses} />
+        <RacialSkillList
+          character={character}
+          racialTrees={racialTrees}
+          onUpdateCharacter={handleUpdateCharacter}
+        />
 
         {(() => {
           const magicDice = {

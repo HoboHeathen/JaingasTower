@@ -1,0 +1,58 @@
+{
+  "name": "RacialTree",
+  "type": "object",
+  "properties": {
+    "race_name": {
+      "type": "string",
+      "description": "The race this tree belongs to"
+    },
+    "tree_name": {
+      "type": "string",
+      "description": "Name of this racial skill tree"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the tree's theme"
+    },
+    "is_standalone_skill": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this is a single passive ability rather than a progression tree"
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Skills in this tree",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "secondary",
+              "tertiary",
+              "reactionary",
+              "passive"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "race_name",
+    "tree_name"
+  ]
+}
