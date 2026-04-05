@@ -34,7 +34,7 @@ export default function SpendPoints() {
 
   const { data: trees = [], isLoading: loadingTrees } = useQuery({
     queryKey: ['skill-trees'],
-    queryFn: () => base44.entities.SkillTree.list(),
+    queryFn: () => base44.entities.SkillTree.list('sort_order'),
   });
 
   const updateMutation = useMutation({

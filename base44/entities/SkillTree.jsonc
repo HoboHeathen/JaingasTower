@@ -25,6 +25,11 @@
       "default": "weapons",
       "description": "Top-level grouping category for the skill tree"
     },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order within its category"
+    },
     "nodes": {
       "type": "array",
       "description": "Skill nodes in this tree",
