@@ -75,10 +75,11 @@ function rollDice(diceStr) {
 const isPowerAttack = (skill) => /^power attack/i.test(skill.name);
 const isCharge = (skill) => /^charge (i|ii|iii)$/i.test(skill.name);
 
-function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, onDeplete }) {
+function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, chargeLimit = 0, onCharge, onDeplete }) {
   const [rollResult, setRollResult] = useState(null);
   const baseDiceStr = getDiceString(skill, magicDice);
   const isPA = isPowerAttack(skill);
+  const isCh = isCharge(skill);
 
   // For Power Attacks, build an extended dice string including pool dice
   const getDiceStringWithPool = () => {
@@ -89,6 +90,15 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, onDep
   };
 
   const diceStr = getDiceStringWithPool();
+
+  const handleCharge = (e) => {
+    e.stopPropagation();
+    if (chargePool >= chargeLimit) {
+      toast.warning('Charge pool is already full!');
+      return;
+    }
+    if (onCharge) onCharge();
+  };
 
   const handleRoll = (e) => {
     e.stopPropagation();
@@ -156,7 +166,18 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, onDep
               <Zap className="w-2.5 h-2.5" />{chargePool}
             </span>
           )}
-          {diceStr && !isUsed && (
+          {isCh && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-[11px] gap-1 border-primary/40 text-primary hover:bg-primary/10"
+              onClick={handleCharge}
+              title="Add a die to the charge pool"
+            >
+              <Zap className="w-3 h-3" /> Charge
+            </Button>
+          )}
+          {!isCh && diceStr && !isUsed && (
             <Button
               size="icon"
               variant="ghost"
@@ -189,7 +210,7 @@ function isMainChainSkill(skill) {
   return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
 }
 
-export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, onDeplete }) {
+export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, chargeLimit = 0, onCharge, onDeplete }) {
   const weightOrder = { heavy: 3, medium: 2, light: 1 };
 
   const mainChain = skills.filter(isMainChainSkill);
@@ -224,6 +245,8 @@ export default function SkillList({ category, skills, usedSkills = [], onMarkUse
               onMarkUsed={onMarkUsed}
               magicDice={magicDice}
               chargePool={chargePool}
+              chargeLimit={chargeLimit}
+              onCharge={onCharge}
               onDeplete={onDeplete}
             />
           ))}

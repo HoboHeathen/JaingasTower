@@ -186,6 +186,8 @@ export default function CharacterSheet() {
                     onMarkUsed={handleMarkUsed}
                     magicDice={magicDice}
                     chargePool={character.charge_pool_current ?? 0}
+                    chargeLimit={character.charge_pool_limit ?? 0}
+                    onCharge={handleCharge}
                     onDeplete={handleDeplete}
                   />
                 ))}
@@ -199,6 +201,8 @@ export default function CharacterSheet() {
                   onMarkUsed={handleMarkUsed}
                   magicDice={magicDice}
                   chargePool={character.charge_pool_current ?? 0}
+                  chargeLimit={character.charge_pool_limit ?? 0}
+                  onCharge={handleCharge}
                   onDeplete={handleDeplete}
                 />
               )}
