@@ -91,6 +91,11 @@
       "default": 0,
       "description": "Index into [d4, d6, d8, d10, d12] for necrotic magic damage"
     },
+    "healing_dice_index": {
+      "type": "number",
+      "default": 0,
+      "description": "Index into [d4, d6, d8, d10, d12] for healing spells"
+    },
     "used_single_use_skills": {
       "type": "array",
       "items": {
