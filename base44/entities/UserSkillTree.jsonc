@@ -1,0 +1,47 @@
+{
+  "name": "UserSkillTree",
+  "type": "object",
+  "properties": {
+    "owner_email": {
+      "type": "string",
+      "description": "Email of the user who owns this copy"
+    },
+    "source_tree_id": {
+      "type": "string",
+      "description": "ID of the default SkillTree this was forked from"
+    },
+    "name": {
+      "type": "string",
+      "description": "Tree name (copied from default, may be overridden)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tree_category": {
+      "type": "string",
+      "enum": [
+        "weapons",
+        "spells",
+        "fighting_styles",
+        "stats"
+      ],
+      "default": "weapons"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0
+    },
+    "nodes": {
+      "type": "array",
+      "description": "User's custom nodes for this tree",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "required": [
+    "owner_email",
+    "source_tree_id",
+    "name"
+  ]
+}

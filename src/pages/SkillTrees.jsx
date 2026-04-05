@@ -4,8 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, TreePine, Pencil, Trash2, GripVertical } from 'lucide-react';
+import { Plus, TreePine, Pencil, Trash2, GripVertical, RotateCcw, Copy } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Link } from 'react-router-dom';
 import {
@@ -19,9 +18,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-
+import { useAuth } from '@/lib/AuthContext';
+import { useEffectiveTrees } from '@/hooks/useEffectiveTrees';
+import { toast } from 'sonner';
 
 export default function SkillTrees() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  if (isAdmin) return <AdminSkillTrees />;
+  return <UserSkillTrees />;
+}
+
+// ─── Admin view ──────────────────────────────────────────────────────────────
+
+function AdminSkillTrees() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
   const [deletingId, setDeletingId] = useState(null);
@@ -46,7 +57,7 @@ export default function SkillTrees() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['skill-trees'] });
       setShowCreate(false);
-      setForm({ name: '', description: '', category: 'primary' });
+      setForm({ name: '', description: '' });
     },
   });
 
@@ -77,7 +88,7 @@ export default function SkillTrees() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-heading text-3xl font-bold text-foreground">Skill Trees</h1>
-          <p className="text-muted-foreground mt-1">Define your game's skill progression</p>
+          <p className="text-muted-foreground mt-1">Default skill trees (admin)</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-2">
           <Plus className="w-4 h-4" />
@@ -101,41 +112,22 @@ export default function SkillTrees() {
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="trees" direction="vertical">
             {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="flex flex-col gap-0"
-              >
+              <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-col gap-0">
                 {orderedTrees.map((tree, index) => (
                   <Draggable key={tree.id} draggableId={tree.id} index={index}>
                     {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className="py-1"
-                      >
-                        <div
-                          className={`bg-card border rounded-xl p-4 transition-all group flex items-center gap-4 ${
-                            snapshot.isDragging
-                              ? 'border-primary shadow-lg shadow-primary/20 opacity-90 scale-[1.01]'
-                              : 'border-border/50 hover:border-primary/30'
-                          }`}
-                        >
-                          {/* Drag handle */}
-                          <div
-                            {...provided.dragHandleProps}
-                            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                            title="Drag to reorder"
-                          >
+                      <div ref={provided.innerRef} {...provided.draggableProps} className="py-1">
+                        <div className={`bg-card border rounded-xl p-4 transition-all group flex items-center gap-4 ${
+                          snapshot.isDragging
+                            ? 'border-primary shadow-lg shadow-primary/20 opacity-90 scale-[1.01]'
+                            : 'border-border/50 hover:border-primary/30'
+                        }`}>
+                          <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0">
                             <GripVertical className="w-5 h-5" />
                           </div>
-
-                          {/* Icon */}
                           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                             <TreePine className="w-4 h-4 text-primary" />
                           </div>
-
-                          {/* Info */}
                           <div className="flex-1 min-w-0">
                             <h3 className="font-heading font-semibold text-foreground leading-tight">{tree.name}</h3>
                             {tree.description && (
@@ -145,8 +137,6 @@ export default function SkillTrees() {
                               {(tree.nodes || []).length} skill{(tree.nodes || []).length !== 1 ? 's' : ''}
                             </p>
                           </div>
-
-                          {/* Actions */}
                           <div className="flex items-center gap-2 shrink-0">
                             <Link to={`/edit-tree?id=${tree.id}`}>
                               <Button variant="outline" size="sm" className="gap-1.5">
@@ -180,7 +170,7 @@ export default function SkillTrees() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this skill tree?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the skill tree and all its skills. This cannot be undone.
+              This will permanently delete the default skill tree and all its skills. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -212,7 +202,6 @@ export default function SkillTrees() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
-
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
               <Button type="submit" disabled={!form.name.trim()}>Create</Button>
@@ -220,6 +209,123 @@ export default function SkillTrees() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── User view ────────────────────────────────────────────────────────────────
+
+function UserSkillTrees() {
+  const { effectiveTrees, isLoading, resetMutation, ensureUserCopy } = useEffectiveTrees();
+  const [resettingId, setResettingId] = useState(null); // source_tree_id pending reset confirmation
+
+  const handleEdit = async (tree) => {
+    // Ensure user has a copy before navigating to edit
+    const defaultTree = tree._isUserCopy ? tree._defaultTree : tree;
+    const copy = await ensureUserCopy(defaultTree);
+    window.location.href = `/edit-my-tree?id=${copy.id}`;
+  };
+
+  const handleReset = async () => {
+    const tree = effectiveTrees.find((t) => (t.source_tree_id || t.id) === resettingId);
+    if (!tree || !tree._isUserCopy) { setResettingId(null); return; }
+    await resetMutation.mutateAsync({ userTreeId: tree.id, defaultTree: tree._defaultTree });
+    toast.success('Tree reset to default');
+    setResettingId(null);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="font-heading text-3xl font-bold text-foreground">Skill Trees</h1>
+        <p className="text-muted-foreground mt-1">Your personal skill tree customizations</p>
+      </div>
+
+      {effectiveTrees.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-muted-foreground">No skill trees available yet.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {effectiveTrees.map((tree) => {
+            const sourceId = tree.source_tree_id || tree.id;
+            return (
+              <div key={tree.id} className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-4 group hover:border-primary/30 transition-all">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <TreePine className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-heading font-semibold text-foreground leading-tight">{tree.name}</h3>
+                    {tree._isUserCopy && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground border border-accent/30">
+                        customized
+                      </span>
+                    )}
+                  </div>
+                  {tree.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tree.description}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {(tree.nodes || []).length} skill{(tree.nodes || []).length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {tree._isUserCopy && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setResettingId(sourceId)}
+                      title="Reset to default"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reset
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => handleEdit(tree)}
+                  >
+                    {tree._isUserCopy ? <Pencil className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {tree._isUserCopy ? 'Edit' : 'Customize'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <AlertDialog open={!!resettingId} onOpenChange={(open) => !open && setResettingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to default?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will discard all your customizations for this tree and restore the default nodes and settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleReset}
+            >
+              Reset to Default
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

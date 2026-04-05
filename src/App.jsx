@@ -12,6 +12,7 @@ import SkillTrees from '@/pages/SkillTrees';
 import EditTree from '@/pages/EditTree';
 import SpendPoints from '@/pages/SpendPoints.jsx';
 import Races from '@/pages/Races.jsx';
+import EditMyTree from '@/pages/EditMyTree.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -46,6 +47,7 @@ const AuthenticatedApp = () => {
         <Route path="/edit-tree" element={<EditTree />} />
         <Route path="/spend-points" element={<SpendPoints />} />
         <Route path="/races" element={<Races />} />
+        <Route path="/edit-my-tree" element={<EditMyTree />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

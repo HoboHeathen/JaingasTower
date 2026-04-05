@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import SkillTreeViewer from '@/components/skilltree/SkillTreeViewer.jsx';
 import NodeDetailPanel from '@/components/skilltree/NodeDetailPanel';
 import { toast } from 'sonner';
+import { useEffectiveTrees } from '@/hooks/useEffectiveTrees';
 
 const CATEGORIES = [
   { key: 'weapons', label: 'Weapons' },
@@ -32,10 +33,7 @@ export default function SpendPoints() {
     enabled: !!characterId,
   });
 
-  const { data: trees = [], isLoading: loadingTrees } = useQuery({
-    queryKey: ['skill-trees'],
-    queryFn: () => base44.entities.SkillTree.list('sort_order'),
-  });
+  const { effectiveTrees: trees, isLoading: loadingTrees } = useEffectiveTrees();
 
   const { data: allRacialTrees = [] } = useQuery({
     queryKey: ['racial-trees'],
