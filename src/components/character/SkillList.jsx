@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dices } from 'lucide-react';
+import { Dices, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const WEAPON_DICE = {
   dagger: 'd4',
@@ -71,15 +72,33 @@ function rollDice(diceStr) {
   return { total, rolls, diceStr };
 }
 
-function SkillCard({ skill, isUsed, onMarkUsed, magicDice }) {
+const isPowerAttack = (skill) => /^power attack/i.test(skill.name);
+
+function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, onDeplete }) {
   const [rollResult, setRollResult] = useState(null);
-  const diceStr = getDiceString(skill, magicDice);
+  const baseDiceStr = getDiceString(skill, magicDice);
+  const isPA = isPowerAttack(skill);
+
+  // For Power Attacks, build an extended dice string including pool dice
+  const getDiceStringWithPool = () => {
+    if (!isPA || chargePool <= 0 || !baseDiceStr) return baseDiceStr;
+    const match = baseDiceStr.match(/^(\d+)(d\d+)$/);
+    if (!match) return baseDiceStr;
+    return `${parseInt(match[1]) + chargePool}${match[2]}`;
+  };
+
+  const diceStr = getDiceStringWithPool();
 
   const handleRoll = (e) => {
     e.stopPropagation();
     if (!diceStr) return;
+    if (isPA && chargePool <= 0) {
+      toast.warning('Charge pool is empty! Use Charge I/II/III first.');
+      return;
+    }
     const result = rollDice(diceStr);
     setRollResult(result);
+    if (isPA && onDeplete) onDeplete();
     if (skill.is_single_use && !isUsed) onMarkUsed(skill.id);
   };
 
@@ -127,17 +146,27 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice }) {
             </p>
           )}
         </div>
-        {diceStr && !isUsed && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 shrink-0"
-            onClick={handleRoll}
-            title={`Roll ${diceStr}`}
-          >
-            <Dices className="w-4 h-4" />
-          </Button>
-        )}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          {isPA && (
+            <span className={cn(
+              'text-[10px] font-semibold flex items-center gap-0.5',
+              chargePool > 0 ? 'text-primary' : 'text-muted-foreground/50'
+            )}>
+              <Zap className="w-2.5 h-2.5" />{chargePool}
+            </span>
+          )}
+          {diceStr && !isUsed && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className={cn('h-7 w-7', isPA && chargePool > 0 && 'text-primary')}
+              onClick={handleRoll}
+              title={`Roll ${diceStr}`}
+            >
+              <Dices className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </div>
       {rollResult && (
         <div className="mt-2 text-xs text-primary font-semibold">
@@ -159,7 +188,7 @@ function isMainChainSkill(skill) {
   return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
 }
 
-export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {} }) {
+export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, onDeplete }) {
   const weightOrder = { heavy: 3, medium: 2, light: 1 };
 
   const mainChain = skills.filter(isMainChainSkill);
@@ -193,6 +222,8 @@ export default function SkillList({ category, skills, usedSkills = [], onMarkUse
               isUsed={usedSkills.includes(skill.id)}
               onMarkUsed={onMarkUsed}
               magicDice={magicDice}
+              chargePool={chargePool}
+              onDeplete={onDeplete}
             />
           ))}
         </div>

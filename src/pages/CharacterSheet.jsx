@@ -8,6 +8,7 @@ import StatBlock from '@/components/character/StatBlock';
 import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
 import DiceRollerModal from '@/components/dice/DiceRollerModal';
+import ChargeDicePool from '@/components/character/ChargeDicePool';
 
 export default function CharacterSheet() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -89,6 +90,17 @@ export default function CharacterSheet() {
     }
   });
 
+  const handleCharge = () => {
+    const current = character.charge_pool_current ?? 0;
+    const limit = character.charge_pool_limit ?? 0;
+    if (current >= limit) return;
+    updateMutation.mutate({ charge_pool_current: current + 1 });
+  };
+
+  const handleDeplete = () => {
+    updateMutation.mutate({ charge_pool_current: 0 });
+  };
+
   const handleMarkUsed = (nodeId) => {
     const updated = [...usedSingleUseSkills];
     if (!updated.includes(nodeId)) updated.push(nodeId);
@@ -157,6 +169,13 @@ export default function CharacterSheet() {
           };
           return (
             <>
+              <ChargeDicePool
+                current={character.charge_pool_current ?? 0}
+                limit={character.charge_pool_limit ?? 0}
+                onCharge={handleCharge}
+                onDeplete={handleDeplete}
+              />
+
               <div className="grid gap-4 md:grid-cols-3">
                 {['primary', 'secondary', 'tertiary'].map((cat) => (
                   <SkillList
@@ -166,6 +185,8 @@ export default function CharacterSheet() {
                     usedSkills={usedSingleUseSkills}
                     onMarkUsed={handleMarkUsed}
                     magicDice={magicDice}
+                    chargePool={character.charge_pool_current ?? 0}
+                    onDeplete={handleDeplete}
                   />
                 ))}
               </div>
@@ -177,6 +198,8 @@ export default function CharacterSheet() {
                   usedSkills={usedSingleUseSkills}
                   onMarkUsed={handleMarkUsed}
                   magicDice={magicDice}
+                  chargePool={character.charge_pool_current ?? 0}
+                  onDeplete={handleDeplete}
                 />
               )}
             </>

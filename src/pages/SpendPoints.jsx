@@ -112,6 +112,10 @@ export default function SpendPoints() {
       }
     });
 
+    if (node.charge_pool_limit_modifier) {
+      updates.charge_pool_limit = (character.charge_pool_limit ?? 0) + node.charge_pool_limit_modifier;
+    }
+
     updateMutation.mutate(updates);
     toast.success(`Unlocked ${node.name}!`);
   };
@@ -131,6 +135,10 @@ export default function SpendPoints() {
         updates[`${element}_dice_index`] = Math.max(0, Math.min(4, curIdx - mod));
       }
     });
+
+    if (node.charge_pool_limit_modifier) {
+      updates.charge_pool_limit = Math.max(0, (character.charge_pool_limit ?? 0) - node.charge_pool_limit_modifier);
+    }
 
     updateMutation.mutate(updates);
     toast.success(`Released ${node.name}`);
