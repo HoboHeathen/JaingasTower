@@ -1,7 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import RaceIcon from './RaceIcon';
 
 function statBonusEntries(race) {
   const fields = [
@@ -55,7 +54,6 @@ export default function RaceSelectStep({ races, selectedRaceId, onSelect }) {
             )}
           >
             <div className="flex items-start gap-3">
-              <RaceIcon raceName={race.name} size={40} />
               <div className="flex-1 min-w-0">
                 <p className="font-heading font-semibold text-foreground">{race.name}</p>
                 {race.description && (
