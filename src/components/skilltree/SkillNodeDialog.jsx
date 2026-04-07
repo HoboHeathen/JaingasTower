@@ -162,7 +162,7 @@ export default function SkillNodeDialog({
               <Label className="mb-1.5 block">Tier (Tree Depth)</Label>
               <p className="text-xs text-muted-foreground mb-2">Tier 0 = root. Higher tiers appear deeper.</p>
               <ToggleGroup
-                options={[0, 1, 2, 3, 4, 5, 6].map((t) => ({
+                options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => ({
                   value: t,
                   label: t === 0 ? 'Root' : `Tier ${t}`,
                 }))}
