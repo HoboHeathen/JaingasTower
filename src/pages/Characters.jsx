@@ -18,20 +18,20 @@ export default function Characters() {
   const { data: characters = [], isLoading } = useQuery({
     queryKey: ['characters', currentUser?.email],
     queryFn: () => base44.entities.Character.filter({ created_by: currentUser.email }, '-created_date'),
-    enabled: !!currentUser,
+    enabled: !!currentUser
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Character.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['characters'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['characters'] })
   });
 
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -41,38 +41,38 @@ export default function Characters() {
           <Swords className="w-7 h-7 text-primary" />
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">Characters</h1>
         </div>
-        <Button onClick={() => setShowWizard(true)} className="gap-2">
+        <Button onClick={() => setShowWizard(true)} className="bg-primary text-primary-foreground mx-1 px-4 py-2 text-sm font-medium rounded-xl inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow hover:bg-primary/90 h-9 gap-2">
           <Plus className="w-4 h-4" />
           New Character
         </Button>
       </div>
 
-      {characters.length === 0 ? (
-        <div className="text-center py-20 bg-card border border-border/50 rounded-xl">
+      {characters.length === 0 ?
+      <div className="text-center py-20 bg-card border border-border/50 rounded-xl">
           <Swords className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
           <p className="text-muted-foreground mb-4">No characters yet. Create your first one!</p>
           <Button onClick={() => setShowWizard(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             Create Character
           </Button>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {characters.map((char) => (
-            <CharacterCard key={char.id} character={char} onDelete={() => deleteMutation.mutate(char.id)} />
-          ))}
-        </div>
-      )}
+        </div> :
 
-      {showWizard && (
-        <CreateCharacterWizard
-          onClose={() => setShowWizard(false)}
-          onCreated={() => {
-            queryClient.invalidateQueries({ queryKey: ['characters'] });
-            setShowWizard(false);
-          }}
-        />
-      )}
-    </div>
-  );
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {characters.map((char) =>
+        <CharacterCard key={char.id} character={char} onDelete={() => deleteMutation.mutate(char.id)} />
+        )}
+        </div>
+      }
+
+      {showWizard &&
+      <CreateCharacterWizard
+        onClose={() => setShowWizard(false)}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['characters'] });
+          setShowWizard(false);
+        }} />
+
+      }
+    </div>);
+
 }
