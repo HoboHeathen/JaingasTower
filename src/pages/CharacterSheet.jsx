@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, TreePine, Plus, Minus, Dices } from 'lucide-react';
+import { ArrowLeft, TreePine, Plus, Minus, Dices, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatBlock from '@/components/character/StatBlock';
 import AbilityScores from '@/components/character/AbilityScores';
@@ -184,12 +184,20 @@ export default function CharacterSheet() {
             </div>
           </div>
         </div>
-        <Link to={`/spend-points?id=${character.id}`}>
-          <Button className="gap-2 w-full sm:w-auto">
-            <TreePine className="w-4 h-4" />
-            Spend Points
-          </Button>
-        </Link>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Link to={`/inventory?id=${character.id}`}>
+            <Button variant="outline" className="gap-2 w-full sm:w-auto">
+              <Package className="w-4 h-4" />
+              Inventory
+            </Button>
+          </Link>
+          <Link to={`/spend-points?id=${character.id}`}>
+            <Button className="gap-2 w-full sm:w-auto">
+              <TreePine className="w-4 h-4" />
+              Spend Points
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-6">

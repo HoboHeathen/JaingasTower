@@ -15,6 +15,8 @@ import Races from '@/pages/Races.jsx';
 import EditMyTree from '@/pages/EditMyTree.jsx';
 import Rules from '@/pages/Rules.jsx';
 import Group from '@/pages/Group.jsx';
+import Inventory from '@/pages/Inventory.jsx';
+import LootTable from '@/pages/LootTable.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -52,6 +54,8 @@ const AuthenticatedApp = () => {
         <Route path="/edit-my-tree" element={<EditMyTree />} />
         <Route path="/rules" element={<Rules />} />
         <Route path="/group" element={<Group />} />
+        <Route path="/inventory" element={<Inventory />} />
+        <Route path="/loot-table" element={<LootTable />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ScrollText, TreePine, User, Swords, BookOpen, Users } from 'lucide-react';
+import { ScrollText, TreePine, User, Swords, BookOpen, Users, Dices } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
 const ALL_NAV_ITEMS = [
@@ -9,8 +9,8 @@ const ALL_NAV_ITEMS = [
   { path: '/races', label: 'Races', icon: Swords },
   { path: '/rules', label: 'Rules', icon: BookOpen },
   { path: '/group', label: 'Group', icon: Users },
+  { path: '/loot-table', label: 'Loot Table', icon: Dices },
 ];
-
 
 export default function AppLayout() {
   const location = useLocation();
@@ -54,6 +54,6 @@ export default function AppLayout() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <Outlet />
       </main>
-    </div>);
-
+    </div>
+  );
 }
