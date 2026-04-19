@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus, Swords, Heart, Shield, ChevronUp, ChevronDown,
-  Dices, Trash2, Play, StopCircle, RotateCcw, User, Skull
+  Dices, Trash2, Play, StopCircle, RotateCcw, User, Skull, Pencil, Check, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,9 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [hpInputs, setHpInputs] = useState({});
+  const [selectedEncounterId, setSelectedEncounterId] = useState(null);
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const floorWave = activeGroup?.floor_wave_number || 1;
   const dieType = activeGroup?.die_type || 'd6';
@@ -34,7 +37,10 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
     refetchInterval: 5000,
   });
 
-  const activeEncounter = encounters.find((e) => e.is_active) || null;
+  // Use selected encounter, or fall back to the first active one, or first overall
+  const activeEncounter = encounters.find((e) => e.id === selectedEncounterId)
+    || encounters.find((e) => e.is_active)
+    || null;
 
   const { data: participants = [] } = useQuery({
     queryKey: ['encounter-participants', activeEncounter?.id],
@@ -46,10 +52,33 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
   const sortedParticipants = [...participants].sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
 
   const startEncounterMutation = useMutation({
-    mutationFn: () => base44.entities.Encounter.create({ group_id: activeGroup.id, is_active: true, round: 1 }),
+    mutationFn: () => base44.entities.Encounter.create({ group_id: activeGroup.id, is_active: true, round: 1, name: `Encounter ${encounters.length + 1}` }),
+    onSuccess: (newEnc) => {
+      queryClient.invalidateQueries({ queryKey: ['encounters'] });
+      setSelectedEncounterId(newEnc.id);
+      toast.success('Encounter started!');
+    },
+  });
+
+  const renameEncounterMutation = useMutation({
+    mutationFn: ({ id, name }) => base44.entities.Encounter.update(id, { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['encounters'] });
-      toast.success('Encounter started!');
+      setRenamingId(null);
+    },
+  });
+
+  const deleteEncounterMutation = useMutation({
+    mutationFn: async (encId) => {
+      const parts = await base44.entities.EncounterParticipant.filter({ encounter_id: encId });
+      for (const p of parts) await base44.entities.EncounterParticipant.delete(p.id);
+      await base44.entities.Encounter.delete(encId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['encounters'] });
+      queryClient.invalidateQueries({ queryKey: ['encounter-participants'] });
+      setSelectedEncounterId(null);
+      toast.success('Encounter deleted.');
     },
   });
 
@@ -130,20 +159,64 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
     toast(`${participant.name} — ${action.name}: Hit ${hitRoll} | Damage: ${damageRoll}`, { duration: 6000 });
   };
 
+  // Encounter list / selector always shown at top
+  const encounterSelector = (
+    <div className="space-y-2 mb-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Encounters</span>
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => startEncounterMutation.mutate()} disabled={startEncounterMutation.isPending}>
+          <Plus className="w-3 h-3" /> New
+        </Button>
+      </div>
+      {encounters.length === 0 && (
+        <p className="text-sm text-muted-foreground py-2">No encounters yet.</p>
+      )}
+      {encounters.map((enc) => (
+        <div key={enc.id} className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-pointer',
+          enc.id === activeEncounter?.id ? 'bg-primary/10 border-primary/40' : 'bg-card border-border/40 hover:bg-secondary/30'
+        )} onClick={() => setSelectedEncounterId(enc.id)}>
+          {renamingId === enc.id ? (
+            <>
+              <Input autoFocus className="h-6 text-xs flex-1" value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') renameEncounterMutation.mutate({ id: enc.id, name: renameValue }); if (e.key === 'Escape') setRenamingId(null); }}
+              />
+              <button onClick={(e) => { e.stopPropagation(); renameEncounterMutation.mutate({ id: enc.id, name: renameValue }); }} className="text-green-400 hover:opacity-70"><Check className="w-3.5 h-3.5" /></button>
+              <button onClick={(e) => { e.stopPropagation(); setRenamingId(null); }} className="text-muted-foreground hover:opacity-70"><X className="w-3.5 h-3.5" /></button>
+            </>
+          ) : (
+            <>
+              <span className="flex-1 text-sm font-medium truncate">{enc.name || `Encounter`}</span>
+              <Badge variant="outline" className="text-[10px] shrink-0">R{enc.round || 1}</Badge>
+              {enc.is_active && <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30 shrink-0">Active</Badge>}
+              {isGM && (
+                <button onClick={(e) => { e.stopPropagation(); setRenamingId(enc.id); setRenameValue(enc.name || ''); }} className="text-muted-foreground hover:text-foreground shrink-0"><Pencil className="w-3 h-3" /></button>
+              )}
+              {isGM && (
+                <button onClick={(e) => { e.stopPropagation(); deleteEncounterMutation.mutate(enc.id); }} className="text-destructive hover:opacity-70 shrink-0"><Trash2 className="w-3 h-3" /></button>
+              )}
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
   if (!activeEncounter) {
     return (
-      <div className="text-center py-16 space-y-4">
-        <Swords className="w-12 h-12 text-muted-foreground mx-auto" />
-        <p className="text-muted-foreground">No active encounter.</p>
-        <Button onClick={() => startEncounterMutation.mutate()} disabled={startEncounterMutation.isPending} className="gap-2">
-          <Play className="w-4 h-4" /> Start Encounter
-        </Button>
+      <div>
+        {encounterSelector}
+        <div className="text-center py-10 space-y-3">
+          <Swords className="w-10 h-10 text-muted-foreground mx-auto" />
+          <p className="text-muted-foreground text-sm">Select or create an encounter above.</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {encounterSelector}
       {/* Encounter Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -221,11 +294,17 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
                           style={{ width: `${hpPct}%` }}
                         />
                       </div>
-                      {snap.defense && (
-                        <span className="flex items-center gap-1 text-xs text-blue-400 shrink-0">
-                          <Shield className="w-3 h-3" />{snap.defense}
-                        </span>
-                      )}
+                      {/* Defense: monsters use snapshot, players use character data */}
+                      {(() => {
+                        const defense = isMonster
+                          ? snap.defense
+                          : groupCharacters.find((c) => c.id === p.character_id)?.base_armor;
+                        return defense != null ? (
+                          <span className="flex items-center gap-1 text-xs text-blue-400 shrink-0">
+                            <Shield className="w-3 h-3" />{defense}
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
 

@@ -122,7 +122,10 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   };
 
   const handleNextTurn = () => {
-    setActiveIndex((prev) => (prev + 1) % initiativeOrder.length);
+    setActiveIndex((prev) => {
+      const next = (prev + 1) % initiativeOrder.length;
+      return next;
+    });
   };
 
   const activeTokenId = initiativeStarted && initiativeOrder.length > 0

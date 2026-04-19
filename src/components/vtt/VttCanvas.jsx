@@ -97,6 +97,8 @@ export default function VttCanvas({
   const [localTokens, setLocalTokens] = useState(map.tokens || []);
   const [trails, setTrails] = useState({});
   const [moveInfo, setMoveInfo] = useState(null);
+  // Track cumulative movement distance per active token turn
+  const turnMoveOrigin = useRef(null); // {col, row} — position at start of turn drag
 
   // Fog of war
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
@@ -120,6 +122,13 @@ export default function VttCanvas({
   useEffect(() => { setLocalTokens(map.tokens || []); }, [map.tokens]);
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
   useEffect(() => { setWalls(map.walls || []); }, [map.walls]);
+
+  // Clear movement bubble and origin when the active turn changes
+  useEffect(() => {
+    setMoveInfo(null);
+    turnMoveOrigin.current = null;
+    setTrails({});
+  }, [activeTokenId]);
 
   // Resize observer
   useEffect(() => {
@@ -242,7 +251,7 @@ export default function VttCanvas({
         ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
       }
 
-      // HP bar
+      // HP bar + defense
       if (token.max_hp && token.max_hp > 0) {
         const barW = Math.max(radius * 2, 20);
         const barX = tx - barW / 2;
@@ -252,6 +261,22 @@ export default function VttCanvas({
         const pct = Math.max(0, Math.min(1, (token.current_hp ?? token.max_hp) / token.max_hp));
         ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
         ctx.fillRect(barX, barY, barW * pct, 4);
+
+        // Defense from linked character
+        const linkedChar = groupCharacters?.find((c) => c.id === token.character_id);
+        const defense = linkedChar?.base_armor;
+        if (defense != null) {
+          ctx.fillStyle = 'rgba(0,0,0,0.65)';
+          ctx.beginPath();
+          ctx.roundRect(tx + barW / 2 + 5, barY - 2, 22, 10, 3);
+          ctx.fill();
+          ctx.fillStyle = '#60a5fa';
+          ctx.font = `bold ${Math.max(7, gs * 0.12)}px Inter, sans-serif`;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`🛡${defense}`, tx + barW / 2 + 7, barY + 3);
+          ctx.textAlign = 'center';
+        }
       }
 
       ctx.shadowBlur = 0;
@@ -419,7 +444,9 @@ export default function VttCanvas({
     if (draggingId) {
       const world = getWorldPos(e);
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
-      const dist = cellDist(dragStart.current.col, dragStart.current.row, col, row);
+      // Cumulative distance from start of this turn (not just this drag)
+      const origin = turnMoveOrigin.current || dragStart.current;
+      const dist = cellDist(origin.col, origin.row, col, row);
       const feet = dist * FEET_PER_CELL;
       setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: col, y: row } : t));
       setMoveInfo({ feet, col, row });
@@ -439,11 +466,18 @@ export default function VttCanvas({
             const existing = prev[draggingId] || [{ col: sc, row: sr }];
             return { ...prev, [draggingId]: [...existing, { col: movedToken.x, row: movedToken.y }] };
           });
+          // Update turn move origin so next drag accumulates from here
+          if (initiativeStarted && draggingId === activeTokenId) {
+            if (!turnMoveOrigin.current) {
+              turnMoveOrigin.current = { col: sc, row: sr };
+            }
+            // keep turnMoveOrigin at the original start of turn
+          }
         }
       }
       onUpdateTokens(localTokens);
       setDraggingId(null);
-      setMoveInfo(null);
+      // Keep moveInfo visible (shows cumulative distance) — cleared when turn changes
       dragStart.current = null;
     }
     setIsPanning(false);
@@ -513,18 +547,65 @@ export default function VttCanvas({
 
   const clearTrails = () => setTrails({});
 
+  // ── Touch handling ────────────────────────────────────────────────────────
+  const touchStartRef = useRef(null);
+  const longPressTimer = useRef(null);
+
   const onTouchStart = (e) => {
-    if (e.touches.length === 1) {
-      const t = e.touches[0];
-      onMouseDown({ button: 0, clientX: t.clientX, clientY: t.clientY });
-    }
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+
+    // Long press → context menu (after 500ms)
+    longPressTimer.current = setTimeout(() => {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const world = { x: t.clientX - rect.left - pan.x, y: t.clientY - rect.top - pan.y };
+      const token = findTokenAt(world);
+      if (token) {
+        setContextMenu({ token, screenX: t.clientX, screenY: t.clientY });
+      }
+      longPressTimer.current = null;
+    }, 500);
+
+    onMouseDown({ button: 0, clientX: t.clientX, clientY: t.clientY });
   };
+
   const onTouchMove = (e) => {
     e.preventDefault();
-    if (e.touches.length === 1) {
-      const t = e.touches[0];
-      onMouseMove({ clientX: t.clientX, clientY: t.clientY });
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    // Cancel long press if moved more than 10px
+    if (touchStartRef.current) {
+      const dx = Math.abs(t.clientX - touchStartRef.current.x);
+      const dy = Math.abs(t.clientY - touchStartRef.current.y);
+      if ((dx > 10 || dy > 10) && longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
     }
+    onMouseMove({ clientX: t.clientX, clientY: t.clientY });
+  };
+
+  const onTouchEnd = (e) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+      // Short tap → open HP modal
+      if (touchStartRef.current) {
+        const elapsed = Date.now() - touchStartRef.current.time;
+        if (elapsed < 500) {
+          const t = touchStartRef.current;
+          const rect = canvasRef.current?.getBoundingClientRect();
+          if (rect) {
+            const world = { x: t.x - rect.left - pan.x, y: t.y - rect.top - pan.y };
+            const token = findTokenAt(world);
+            if (token) setEditHpToken(token);
+          }
+        }
+      }
+    }
+    touchStartRef.current = null;
+    onMouseUp(e);
   };
 
   const getCursor = () => {
@@ -557,7 +638,7 @@ export default function VttCanvas({
         }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
-        onTouchEnd={onMouseUp}
+        onTouchEnd={onTouchEnd}
       />
 
 
