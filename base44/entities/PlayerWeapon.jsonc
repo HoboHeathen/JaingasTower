@@ -13,6 +13,18 @@
     "notes": {
       "type": "string",
       "description": "Optional notes about the weapon"
+    },
+    "upgrade_slot_1": {
+      "type": "string",
+      "description": "Inventory ID of upgrade equipped in slot 1"
+    },
+    "upgrade_slot_2": {
+      "type": "string",
+      "description": "Inventory ID of upgrade equipped in slot 2"
+    },
+    "upgrade_slot_3": {
+      "type": "string",
+      "description": "Inventory ID of upgrade equipped in slot 3"
     }
   },
   "required": [

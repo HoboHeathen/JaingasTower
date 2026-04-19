@@ -3,9 +3,55 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Pencil, Check, X, Sword } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, Pencil, Check, X, Sword, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+
+function UpgradeSlot({ slotNum, weaponId, slotValue, upgrades, onAssign }) {
+  const [open, setOpen] = useState(false);
+  const equipped = upgrades.find((u) => u.id === slotValue);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border transition-all w-full text-left ${
+          equipped
+            ? 'border-primary/50 bg-primary/10 text-primary'
+            : 'border-dashed border-border/50 bg-secondary/20 text-muted-foreground hover:border-border'
+        }`}
+      >
+        <span className="text-[10px] font-bold text-muted-foreground shrink-0">S{slotNum}</span>
+        <span className="truncate flex-1">{equipped ? equipped.item_name : 'Empty'}</span>
+        <ChevronDown className="w-3 h-3 shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute z-20 top-full left-0 mt-1 bg-card border border-border rounded-xl shadow-xl min-w-[180px] max-h-48 overflow-y-auto">
+          <button
+            className="w-full text-left px-3 py-2 text-xs text-muted-foreground hover:bg-secondary/40 transition-colors"
+            onClick={() => { onAssign(null); setOpen(false); }}
+          >
+            — Clear slot
+          </button>
+          {upgrades.length === 0 && (
+            <p className="px-3 py-2 text-xs text-muted-foreground">No upgrades in inventory</p>
+          )}
+          {upgrades.map((u) => (
+            <button
+              key={u.id}
+              className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-secondary/40 ${
+                u.id === slotValue ? 'text-primary bg-primary/10' : 'text-foreground'
+              }`}
+              onClick={() => { onAssign(u.id); setOpen(false); }}
+            >
+              <span className="block truncate">{u.item_name}</span>
+              {u.upgrade_tier && <span className="text-[10px] text-muted-foreground">Tier {u.upgrade_tier}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PlayerWeaponsPanel({ characterId }) {
   const queryClient = useQueryClient();
@@ -20,6 +66,15 @@ export default function PlayerWeaponsPanel({ characterId }) {
     queryFn: () => base44.entities.PlayerWeapon.filter({ character_id: characterId }),
     enabled: !!characterId,
   });
+
+  const { data: inventory = [] } = useQuery({
+    queryKey: ['inventory', characterId],
+    queryFn: () => base44.entities.CharacterInventory.filter({ character_id: characterId }),
+    enabled: !!characterId,
+  });
+
+  // Only upgrades available for slots
+  const upgradeItems = inventory.filter((i) => i.item_type === 'upgrade');
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.PlayerWeapon.create({ ...data, character_id: characterId }),
@@ -62,6 +117,10 @@ export default function PlayerWeaponsPanel({ characterId }) {
   const handleSaveEdit = (id) => {
     if (!editName.trim()) return;
     updateMutation.mutate({ id, data: { name: editName.trim(), notes: editNotes.trim() } });
+  };
+
+  const handleAssignSlot = (weaponId, slot, inventoryId) => {
+    updateMutation.mutate({ id: weaponId, data: { [`upgrade_slot_${slot}`]: inventoryId || null } });
   };
 
   if (isLoading) {
@@ -136,13 +195,19 @@ export default function PlayerWeaponsPanel({ characterId }) {
                     </div>
                   </div>
                   {weapon.notes && <p className="text-xs text-muted-foreground mb-2">{weapon.notes}</p>}
+
                   {/* 3 upgrade slots */}
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Upgrade Slots:</span>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Upgrade Slots</p>
                     {[1, 2, 3].map((slot) => (
-                      <div key={slot} className="w-5 h-5 rounded border border-dashed border-border/60 bg-secondary/20 flex items-center justify-center">
-                        <span className="text-[9px] text-muted-foreground">{slot}</span>
-                      </div>
+                      <UpgradeSlot
+                        key={slot}
+                        slotNum={slot}
+                        weaponId={weapon.id}
+                        slotValue={weapon[`upgrade_slot_${slot}`] || null}
+                        upgrades={upgradeItems}
+                        onAssign={(invId) => handleAssignSlot(weapon.id, slot, invId)}
+                      />
                     ))}
                   </div>
                 </>

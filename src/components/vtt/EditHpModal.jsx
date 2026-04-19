@@ -23,33 +23,33 @@ export default function EditHpModal({ token, onSave, onClose }) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-xs">
+      <DialogContent className="w-[280px] max-w-[calc(100vw-2rem)]">
         <DialogHeader>
           <DialogTitle className="font-heading text-sm">HP — {token.name}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Current HP display */}
           <div className="text-center">
             <p className="text-4xl font-heading font-bold text-primary">{currentHp}</p>
             <p className="text-xs text-muted-foreground">/ {newMax} HP</p>
           </div>
 
-          {/* Delta input with heal/damage buttons */}
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              value={delta}
-              onChange={(e) => setDelta(e.target.value)}
-              placeholder="Amount"
-              className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              autoFocus
-              min="0"
-            />
-          </div>
+          {/* Delta input */}
+          <input
+            type="number"
+            value={delta}
+            onChange={(e) => setDelta(e.target.value)}
+            placeholder="Amount"
+            className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            autoFocus
+            min="0"
+          />
+
+          {/* Heal / Damage buttons */}
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
-              className="border-green-500/40 text-green-400 hover:bg-green-500/10"
+              className="border-green-500/40 text-green-400 hover:bg-green-500/10 text-sm"
               onClick={() => applyDelta(deltaVal)}
               disabled={deltaVal <= 0}
             >
@@ -57,7 +57,7 @@ export default function EditHpModal({ token, onSave, onClose }) {
             </Button>
             <Button
               variant="outline"
-              className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+              className="border-red-500/40 text-red-400 hover:bg-red-500/10 text-sm"
               onClick={() => applyDelta(-deltaVal)}
               disabled={deltaVal <= 0}
             >
@@ -73,9 +73,9 @@ export default function EditHpModal({ token, onSave, onClose }) {
                 type="number"
                 value={newMax}
                 onChange={(e) => setNewMax(e.target.value)}
-                className="flex-1 h-8 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="w-full h-8 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
-              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleFullHeal}>
+              <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={handleFullHeal}>
                 Full Heal
               </Button>
             </div>

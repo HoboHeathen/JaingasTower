@@ -3,6 +3,7 @@ import TokenContextMenu from '@/components/vtt/TokenContextMenu';
 import EditHpModal from '@/components/vtt/EditHpModal';
 import RenameTokenModal from '@/components/vtt/RenameTokenModal';
 import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
+import VttToolbar from '@/components/vtt/VttToolbar';
 
 const TOKEN_COLORS = {
   player: '#4ade80',
@@ -85,6 +86,12 @@ export default function VttCanvas({
   activeTokenId,
   initiativeStarted,
   activeTool,
+  onToolChange,
+  onNextTurn,
+  fogCellCount,
+  wallCount,
+  onClearFog,
+  onClearWalls,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -705,6 +712,7 @@ export default function VttCanvas({
   };
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFsToolbar, setShowFsToolbar] = useState(false);
 
   const toggleFullscreen = () => {
     const el = containerRef.current;
@@ -715,6 +723,13 @@ export default function VttCanvas({
     }
     setIsFullscreen((v) => !v);
   };
+
+  // Sync fullscreen state with browser events
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
 
   // Clear measure when tool changes away
   useEffect(() => {
@@ -758,12 +773,43 @@ export default function VttCanvas({
             Clear Trails
           </button>
         )}
+        {/* Next Turn button for GM in fullscreen */}
+        {isFullscreen && isGM && initiativeStarted && onNextTurn && (
+          <button onClick={onNextTurn} className="bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded hover:bg-yellow-400 transition-colors">
+            ▶ Next Turn
+          </button>
+        )}
         {/* Zoom controls */}
         <div className="flex items-center bg-black/60 rounded-lg overflow-hidden">
           <button onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))} className="text-white text-sm px-2 py-1 hover:bg-black/80">−</button>
           <span className="text-white text-xs px-1 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
           <button onClick={() => setZoom((z) => Math.min(4, z + 0.1))} className="text-white text-sm px-2 py-1 hover:bg-black/80">+</button>
         </div>
+        {/* Hamburger toolbar menu (always visible, shows tools in fullscreen) */}
+        {isGM && onToolChange && (
+          <div className="relative">
+            <button
+              onClick={() => setShowFsToolbar((v) => !v)}
+              className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors"
+            >
+              ☰
+            </button>
+            {showFsToolbar && (
+              <div className="absolute top-full right-0 mt-1 z-50 bg-black/90 rounded-xl p-2 min-w-[180px] shadow-xl">
+                <VttToolbar
+                  activeTool={activeTool}
+                  onToolChange={(t) => { onToolChange(t); setShowFsToolbar(false); }}
+                  isGM={isGM}
+                  fogCellCount={fogCellCount || 0}
+                  wallCount={wallCount || 0}
+                  onClearFog={() => { onClearFog?.(); setShowFsToolbar(false); }}
+                  onClearWalls={() => { onClearWalls?.(); setShowFsToolbar(false); }}
+                  compact
+                />
+              </div>
+            )}
+          </div>
+        )}
         {/* Fullscreen toggle */}
         <button onClick={toggleFullscreen} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
           {isFullscreen ? '⤡' : '⤢'}

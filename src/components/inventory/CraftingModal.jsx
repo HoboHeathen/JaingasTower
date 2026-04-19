@@ -76,9 +76,19 @@ export default function CraftingModal({ characterId, inventory, onClose, onCraft
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [selectedEffect, setSelectedEffect] = useState(null);
 
-  const typeComponents = inventory.filter((i) => i.item_type === 'crafting_component' && i.component_category === 'type');
-  const targetComponents = inventory.filter((i) => i.item_type === 'crafting_component' && i.component_category === 'target');
-  const effectComponents = inventory.filter((i) => i.item_type === 'crafting_component' && i.component_category === 'effect');
+  // Detect category — prefer stored field, fall back to name-based detection
+  const detectCategory = (item) => {
+    if (item.component_category) return item.component_category;
+    const n = item.item_name || '';
+    if (n.includes('Effect Component')) return 'effect';
+    if (n.includes('Target Component')) return 'target';
+    if (n.includes('Type Component')) return 'type';
+    return null;
+  };
+
+  const typeComponents = inventory.filter((i) => i.item_type === 'crafting_component' && detectCategory(i) === 'type');
+  const targetComponents = inventory.filter((i) => i.item_type === 'crafting_component' && detectCategory(i) === 'target');
+  const effectComponents = inventory.filter((i) => i.item_type === 'crafting_component' && detectCategory(i) === 'effect');
 
   const preview = useMemo(() => {
     if (!selectedType || !selectedTarget || !selectedEffect) return null;

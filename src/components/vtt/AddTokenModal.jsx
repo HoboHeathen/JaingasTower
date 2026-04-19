@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BESTIARY } from '@/lib/bestiaryData';
+import { BESTIARY, getDiceCount, getDieFaces } from '@/lib/bestiaryData';
 
 const TOKEN_TYPES = ['player', 'enemy', 'friendly', 'neutral'];
 const TOKEN_SIZES = ['tiny', 'small', 'medium', 'large', 'huge'];
 const TOKEN_COLORS = { player: '#4ade80', enemy: '#f87171', friendly: '#60a5fa', neutral: '#facc15' };
 
-export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onClose }) {
+export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onClose, activeGroup }) {
   const [mode, setMode] = useState('character'); // 'character' | 'monster' | 'custom'
   const [search, setSearch] = useState('');
   const [tokenType, setTokenType] = useState('player');
@@ -38,12 +38,28 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
         type: 'player',
       };
     } else if (mode === 'monster' && selectedMonster) {
+      // Roll HP using the same formula as the encounter system
+      const floorWave = activeGroup?.floor_wave_number || 1;
+      const dieType = activeGroup?.die_type || 'd6';
+      const hpAveraged = activeGroup?.hp_averaged || false;
+      const diceCount = getDiceCount(selectedMonster.hp_type || 'standard', floorWave);
+      const dieFaces = getDieFaces(dieType);
+      let maxHp;
+      if (hpAveraged) {
+        maxHp = diceCount * Math.floor(dieFaces / 2);
+      } else {
+        let total = 0;
+        for (let i = 0; i < diceCount; i++) total += Math.floor(Math.random() * dieFaces) + 1;
+        maxHp = total;
+      }
       token = {
         ...token,
         name: selectedMonster.name,
         monster_id: selectedMonster.id,
         color: TOKEN_COLORS.enemy,
         type: 'enemy',
+        max_hp: maxHp,
+        current_hp: maxHp,
       };
     } else if (mode === 'custom') {
       if (!customName.trim()) return;

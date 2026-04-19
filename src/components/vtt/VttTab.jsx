@@ -270,6 +270,12 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         activeTokenId={activeTokenId}
         initiativeStarted={initiativeStarted}
         activeTool={activeTool}
+        onToolChange={setActiveTool}
+        onNextTurn={handleNextTurn}
+        fogCellCount={activeMap?.fog_cells?.length || 0}
+        wallCount={activeMap?.walls?.length || 0}
+        onClearFog={() => handleUpdateMap({ fog_cells: [] })}
+        onClearWalls={() => handleUpdateMap({ walls: [] })}
       />
 
       {showAddToken && (
@@ -277,6 +283,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           groupCharacters={groupCharacters}
           isGM={isGM}
           user={user}
+          activeGroup={activeGroup}
           onAdd={handleAddToken}
           onClose={() => setShowAddToken(false)}
         />
