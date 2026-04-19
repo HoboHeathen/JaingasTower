@@ -474,11 +474,20 @@ export default function VttCanvas({
   }, [activeTool, onUpdateMap]);
 
   // ── Wheel zoom ────────────────────────────────────────────────────────────
-  const onWheel = (e) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    setZoom((prev) => Math.min(4, Math.max(0.25, prev + delta)));
-  };
+  // Only zoom on ctrl+wheel (trackpad pinch sends ctrlKey=true).
+  // Plain scroll should not be intercepted — attach as non-passive so we can preventDefault only when needed.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const handler = (e) => {
+      if (!e.ctrlKey) return; // let plain scroll bubble up
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      setZoom((prev) => Math.min(4, Math.max(0.25, prev + delta)));
+    };
+    canvas.addEventListener('wheel', handler, { passive: false });
+    return () => canvas.removeEventListener('wheel', handler);
+  }, []);
 
   // ── Mouse ─────────────────────────────────────────────────────────────────
   const onMouseDown = (e) => {
@@ -754,7 +763,8 @@ export default function VttCanvas({
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseUp}
         onContextMenu={onContextMenu}
-        onWheel={onWheel}
+        // onWheel is handled via useEffect below (non-passive for ctrl+pinch)
+        
         onDoubleClick={(e) => {
           if (activeTool !== 'select') return;
           const world = getWorldPos(e);
@@ -785,8 +795,8 @@ export default function VttCanvas({
           <span className="text-white text-xs px-1 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
           <button onClick={() => setZoom((z) => Math.min(4, z + 0.1))} className="text-white text-sm px-2 py-1 hover:bg-black/80">+</button>
         </div>
-        {/* Hamburger toolbar menu (always visible, shows tools in fullscreen) */}
-        {isGM && onToolChange && (
+        {/* Hamburger toolbar menu — always shown so tools are accessible on mobile/fullscreen */}
+        {onToolChange && (
           <div className="relative">
             <button
               onClick={() => setShowFsToolbar((v) => !v)}

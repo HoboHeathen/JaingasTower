@@ -9,6 +9,7 @@ import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
 import DiceRollerModal from '@/components/dice/DiceRollerModal';
 import ChargeDicePool from '@/components/character/ChargeDicePool';
+import InventoryActionsBlock from '@/components/character/InventoryActionsBlock';
 
 const LAST_CHAR_KEY = 'lastViewedCharacterId';
 
@@ -284,6 +285,8 @@ export default function CharacterSheet() {
                   onShareRoll={character.group_id ? handleShareRoll : null}
                 />
               )}
+
+              <InventoryActionsBlock characterId={characterId} />
             </>
           );
         })()}
