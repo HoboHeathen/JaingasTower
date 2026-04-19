@@ -423,22 +423,20 @@ export default function VttCanvas({
     }
 
     // Line of sight darkness (non-GM players only)
-    if (!isGM) {
-      // Draw semi-transparent black over everything
+    if (!isGM && visibleCells.size > 0) {
+      // Draw black over entire canvas
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
       ctx.fillRect(-pan.x, -pan.y, canvas.width, canvas.height);
       
-      // Erase visible cells to reveal them
-      if (visibleCells.size > 0) {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.fillStyle = 'rgba(0,0,0,1)';
-        visibleCells.forEach((key) => {
-          const [col, row] = key.split(',').map(Number);
-          const { x: vx, y: vy } = cellToWorld(col, row, gs, ox, oy);
-          ctx.fillRect(vx - gs / 2, vy - gs / 2, gs, gs);
-        });
-        ctx.globalCompositeOperation = 'source-over';
-      }
+      // Cut out visible cells to show the map
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      visibleCells.forEach((key) => {
+        const [col, row] = key.split(',').map(Number);
+        const { x: vx, y: vy } = cellToWorld(col, row, gs, ox, oy);
+        ctx.fillRect(vx - gs / 2, vy - gs / 2, gs, gs);
+      });
+      ctx.globalCompositeOperation = 'source-over';
     }
 
     // GM visualization of token LOS (bright color overlays)
@@ -723,11 +721,7 @@ export default function VttCanvas({
         return { ...prev, [draggingId]: [...existing.slice(0, state.waypoints.length - 1), ...state.waypoints] };
       });
 
-      // Update LOS for dragging token
-      const losVis = calculateTokenVisibility(col, row, losRange, walls);
-      setVisibleCells(losVis);
-      
-      // Update GM view of all tokens' LOS
+      // Update LOS for dragging token (GM only)
       if (isGM) {
         const gmLos = {};
         localTokens.forEach((t) => {
