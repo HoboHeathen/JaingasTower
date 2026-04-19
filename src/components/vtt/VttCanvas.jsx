@@ -966,15 +966,6 @@ export default function VttCanvas({
 
       {/* Top-right HUD controls */}
       <div className="absolute top-2 right-2 flex items-center gap-1.5">
-        {isGM && (
-          <button
-            onClick={() => setLosEnabled(!losEnabled)}
-            className={`text-xs px-2 py-1 rounded transition-colors ${losEnabled ? 'bg-primary/80 text-primary-foreground' : 'bg-black/60 text-white hover:bg-black/80'}`}
-            title="Toggle Line of Sight for players"
-          >
-            LOS {losEnabled ? '✓' : '✗'}
-          </button>
-        )}
         {initiativeStarted && Object.keys(trails).length > 0 && (
           <button onClick={clearTrails} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
             Clear Trails
@@ -996,17 +987,28 @@ export default function VttCanvas({
               ☰
             </button>
             {showFsToolbar && (
-              <div className="absolute top-full right-0 mt-1 z-50 bg-black/90 rounded-xl p-2 min-w-[180px] shadow-xl">
+              <div className="absolute top-full right-0 mt-1 z-50 bg-black/90 rounded-xl p-2 min-w-[200px] shadow-xl space-y-2">
                 <VttToolbar
                   activeTool={activeTool}
-                  onToolChange={(t) => { onToolChange(t); setShowFsToolbar(false); }}
+                  onToolChange={(t) => { onToolChange(t); }}
                   isGM={isGM}
                   fogCellCount={fogCellCount || 0}
                   wallCount={wallCount || 0}
-                  onClearFog={() => { onClearFog?.(); setShowFsToolbar(false); }}
-                  onClearWalls={() => { onClearWalls?.(); setShowFsToolbar(false); }}
+                  onClearFog={() => { onClearFog?.(); }}
+                  onClearWalls={() => { onClearWalls?.(); }}
                   compact
                 />
+                {isGM && (
+                  <div className="border-t border-border/30 pt-2">
+                    <button
+                      onClick={() => setLosEnabled(!losEnabled)}
+                      className={`w-full text-left text-xs px-2 py-1.5 rounded transition-colors ${losEnabled ? 'bg-primary/60 text-primary-foreground' : 'bg-secondary/60 text-foreground hover:bg-secondary/80'}`}
+                      title="Toggle Line of Sight for players"
+                    >
+                      Line of Sight: {losEnabled ? '✓ ON' : '✗ OFF'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
