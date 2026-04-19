@@ -474,19 +474,20 @@ export default function VttCanvas({
   }, [activeTool, onUpdateMap]);
 
   // ── Wheel zoom ────────────────────────────────────────────────────────────
-  // Only zoom on ctrl+wheel (trackpad pinch sends ctrlKey=true).
-  // Plain scroll should not be intercepted — attach as non-passive so we can preventDefault only when needed.
+  // Attach on the container (not just canvas) with passive:false so we can
+  // preventDefault on ctrl+wheel (trackpad pinch) before the browser zooms the page.
+  // Plain scroll (no ctrlKey) is allowed to propagate normally.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!container) return;
     const handler = (e) => {
-      if (!e.ctrlKey) return; // let plain scroll bubble up
-      e.preventDefault();
+      if (!e.ctrlKey) return; // plain scroll — let the page scroll
+      e.preventDefault();     // block browser page-zoom
       const delta = e.deltaY < 0 ? 0.1 : -0.1;
       setZoom((prev) => Math.min(4, Math.max(0.25, prev + delta)));
     };
-    canvas.addEventListener('wheel', handler, { passive: false });
-    return () => canvas.removeEventListener('wheel', handler);
+    container.addEventListener('wheel', handler, { passive: false });
+    return () => container.removeEventListener('wheel', handler);
   }, []);
 
   // ── Mouse ─────────────────────────────────────────────────────────────────
