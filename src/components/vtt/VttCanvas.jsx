@@ -59,12 +59,13 @@ function drawHexGrid(ctx, width, height, gs, ox, oy) {
   }
 }
 
+// Cells are centered: cell (col,row) center is at (col*gs + ox + gs/2, row*gs + oy + gs/2)
 function cellToWorld(col, row, gs, ox, oy) {
-  return { x: col * gs + ox, y: row * gs + oy };
+  return { x: col * gs + ox + gs / 2, y: row * gs + oy + gs / 2 };
 }
 
 function worldToCell(wx, wy, gs, ox, oy) {
-  return { col: Math.round((wx - ox) / gs), row: Math.round((wy - oy) / gs) };
+  return { col: Math.floor((wx - ox) / gs), row: Math.floor((wy - oy) / gs) };
 }
 
 function cellDist(ax, ay, bx, by) {
@@ -97,8 +98,8 @@ export default function VttCanvas({
   const [localTokens, setLocalTokens] = useState(map.tokens || []);
   const [trails, setTrails] = useState({});
   const [moveInfo, setMoveInfo] = useState(null);
-  // Track cumulative movement distance per active token turn
-  const turnMoveOrigin = useRef(null); // {col, row} — position at start of turn drag
+  // Track cumulative path length: array of {col,row} waypoints visited this turn
+  const turnPath = useRef([]); // waypoints accumulated across multiple drags this turn
 
   // Fog of war
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
@@ -130,10 +131,10 @@ export default function VttCanvas({
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
   useEffect(() => { setWalls(map.walls || []); }, [map.walls]);
 
-  // Clear movement bubble and origin when the active turn changes
+  // Clear movement bubble and path when the active turn changes
   useEffect(() => {
     setMoveInfo(null);
-    turnMoveOrigin.current = null;
+    turnPath.current = [];
     setTrails({});
   }, [activeTokenId]);
 
@@ -515,10 +516,15 @@ export default function VttCanvas({
     if (draggingId) {
       const world = getWorldPos(e);
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
-      // Cumulative distance from start of this turn (not just this drag)
-      const origin = turnMoveOrigin.current || dragStart.current;
-      const dist = cellDist(origin.col, origin.row, col, row);
-      const feet = dist * FEET_PER_CELL;
+      // Cumulative path length: sum all waypoints + current drag
+      const path = turnPath.current;
+      const lastWaypoint = path.length > 0 ? path[path.length - 1] : dragStart.current;
+      let totalDist = 0;
+      for (let i = 1; i < path.length; i++) {
+        totalDist += cellDist(path[i - 1].col, path[i - 1].row, path[i].col, path[i].row);
+      }
+      if (lastWaypoint) totalDist += cellDist(lastWaypoint.col, lastWaypoint.row, col, row);
+      const feet = totalDist * FEET_PER_CELL;
       setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: col, y: row } : t));
       setMoveInfo({ feet, col, row });
     } else if (isPanning) {
@@ -538,12 +544,12 @@ export default function VttCanvas({
             const existing = prev[draggingId] || [{ col: sc, row: sr }];
             return { ...prev, [draggingId]: [...existing, { col: movedToken.x, row: movedToken.y }] };
           });
-          // Update turn move origin so next drag accumulates from here
+          // Append this drag's endpoint as a waypoint for cumulative distance tracking
           if (initiativeStarted && draggingId === activeTokenId) {
-            if (!turnMoveOrigin.current) {
-              turnMoveOrigin.current = { col: sc, row: sr };
+            if (turnPath.current.length === 0) {
+              turnPath.current = [{ col: sc, row: sr }];
             }
-            // keep turnMoveOrigin at the original start of turn
+            turnPath.current = [...turnPath.current, { col: movedToken.x, row: movedToken.y }];
           }
         }
       }

@@ -12,13 +12,18 @@
     },
     "is_active": {
       "type": "boolean",
-      "default": true,
+      "default": false,
       "description": "Whether the encounter is currently active"
     },
     "round": {
       "type": "number",
       "default": 1,
       "description": "Current round number"
+    },
+    "wave_number": {
+      "type": "number",
+      "default": 1,
+      "description": "Wave or floor number for this specific encounter, used for scaling monster HP and damage"
     }
   },
   "required": [

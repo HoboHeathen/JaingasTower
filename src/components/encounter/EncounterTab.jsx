@@ -26,7 +26,7 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
-  const floorWave = activeGroup?.floor_wave_number || 1;
+  const floorWave = activeEncounter?.wave_number || activeGroup?.floor_wave_number || 1;
   const dieType = activeGroup?.die_type || 'd6';
   const hpAveraged = activeGroup?.hp_averaged || false;
 
@@ -52,7 +52,7 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
   const sortedParticipants = [...participants].sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
 
   const startEncounterMutation = useMutation({
-    mutationFn: () => base44.entities.Encounter.create({ group_id: activeGroup.id, is_active: true, round: 1, name: `Encounter ${encounters.length + 1}` }),
+    mutationFn: () => base44.entities.Encounter.create({ group_id: activeGroup.id, is_active: false, round: 1, wave_number: 1, name: `Encounter ${encounters.length + 1}` }),
     onSuccess: (newEnc) => {
       queryClient.invalidateQueries({ queryKey: ['encounters'] });
       setSelectedEncounterId(newEnc.id);
@@ -188,7 +188,10 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
             <>
               <span className="flex-1 text-sm font-medium truncate">{enc.name || `Encounter`}</span>
               <Badge variant="outline" className="text-[10px] shrink-0">R{enc.round || 1}</Badge>
-              {enc.is_active && <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30 shrink-0">Active</Badge>}
+              {enc.is_active
+            ? <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30 shrink-0">Active</Badge>
+            : isGM && <button onClick={(e) => { e.stopPropagation(); base44.entities.Encounter.update(enc.id, { is_active: true }).then(() => queryClient.invalidateQueries({ queryKey: ['encounters'] })); }} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 shrink-0">Start</button>
+          }
               {isGM && (
                 <button onClick={(e) => { e.stopPropagation(); setRenamingId(enc.id); setRenameValue(enc.name || ''); }} className="text-muted-foreground hover:text-foreground shrink-0"><Pencil className="w-3 h-3" /></button>
               )}
@@ -223,7 +226,15 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
           <Badge className="bg-red-500/10 text-red-400 border-red-500/30 gap-1">
             <Swords className="w-3 h-3" /> Round {activeEncounter.round || 1}
           </Badge>
-          <span className="text-xs text-muted-foreground">Wave {floorWave} · {dieType}</span>
+          <span className="text-xs text-muted-foreground flex items-center gap-2">
+            Wave {floorWave} · {dieType}
+            {isGM && (
+              <span className="flex items-center gap-1">
+                <button onClick={() => base44.entities.Encounter.update(activeEncounter.id, { wave_number: Math.max(1, floorWave - 1) }).then(() => queryClient.invalidateQueries({ queryKey: ['encounters'] }))} className="text-muted-foreground hover:text-foreground px-1">−</button>
+                <button onClick={() => base44.entities.Encounter.update(activeEncounter.id, { wave_number: floorWave + 1 }).then(() => queryClient.invalidateQueries({ queryKey: ['encounters'] }))} className="text-muted-foreground hover:text-foreground px-1">+</button>
+              </span>
+            )}
+          </span>
         </div>
         <div className="flex gap-2 flex-wrap">
           {isGM && (

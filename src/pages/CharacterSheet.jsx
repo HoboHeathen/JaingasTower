@@ -296,7 +296,7 @@ export default function CharacterSheet() {
           character={character}
           onSaveFavorite={handleSaveFavorite}
           onRemoveFavorite={handleRemoveFavorite}
-          onShareRoll={character.group_id && character.share_rolls ? handleShareRoll : null}
+          onShareRoll={character.group_id ? handleShareRoll : null}
         />
       )}
     </div>

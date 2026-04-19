@@ -1,0 +1,22 @@
+{
+  "name": "PlayerWeapon",
+  "type": "object",
+  "properties": {
+    "character_id": {
+      "type": "string",
+      "description": "ID of the character who owns this weapon"
+    },
+    "name": {
+      "type": "string",
+      "description": "Weapon name (e.g. Glaive, Hammer, Dagger)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about the weapon"
+    }
+  },
+  "required": [
+    "character_id",
+    "name"
+  ]
+}

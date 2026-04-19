@@ -100,7 +100,7 @@ export default function Group() {
     queryKey: ['group-rolls', activeGroupId],
     queryFn: () => base44.entities.GroupMessage.filter({ group_id: activeGroupId }),
     select: (d) => d.filter((m) => m.message_type === 'roll'),
-    enabled: !!activeGroupId && tab === 'rolls',
+    enabled: !!activeGroupId,
     refetchInterval: 5000,
   });
 

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import CraftingModal from '@/components/inventory/CraftingModal';
 import AddItemModal from '@/components/inventory/AddItemModal';
 import WeaponUpgradesPanel from '@/components/inventory/WeaponUpgradesPanel';
+import PlayerWeaponsPanel from '@/components/inventory/PlayerWeaponsPanel';
 
 const ITEM_TYPE_COLORS = {
   consumable: 'border-green-500/40 bg-green-500/10 text-green-300',
@@ -125,7 +126,13 @@ export default function Inventory() {
           <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
         </div>
       ) : activeTab === 'Weapons' ? (
-        <WeaponUpgradesPanel characterId={characterId} upgrades={upgrades} onUseCharge={handleUseCharge} onResetCharges={handleResetCharges} />
+        <div className="space-y-6">
+          <PlayerWeaponsPanel characterId={characterId} />
+          <div className="border-t border-border/30 pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Weapon Upgrades</p>
+            <WeaponUpgradesPanel characterId={characterId} upgrades={upgrades} onUseCharge={handleUseCharge} onResetCharges={handleResetCharges} />
+          </div>
+        </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(tabItems[activeTab] || []).length === 0 ? (
