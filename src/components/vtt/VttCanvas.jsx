@@ -422,23 +422,15 @@ export default function VttCanvas({
       });
     }
 
-    // Line of sight darkness (non-GM players only) — grid-based approach
+    // Line of sight darkness (non-GM players only) — darken all cells except visible ones
     if (!isGM && visibleCells.size > 0) {
-      // Calculate grid range with generous margin to cover entire viewport at any pan/zoom
-      const viewportLeft = -pan.x / zoom;
-      const viewportTop = -pan.y / zoom;
-      const viewportRight = viewportLeft + canvas.width / zoom;
-      const viewportBottom = viewportTop + canvas.height / zoom;
-      
-      const minCol = Math.floor(viewportLeft / gs) - 10;
-      const maxCol = Math.ceil(viewportRight / gs) + 10;
-      const minRow = Math.floor(viewportTop / gs) - 10;
-      const maxRow = Math.ceil(viewportBottom / gs) + 10;
-      
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
-      // Darken all cells NOT in visibleCells
-      for (let col = minCol; col <= maxCol; col++) {
-        for (let row = minRow; row <= maxRow; row++) {
+      // Iterate through visible cells and darken their neighbors and the entire map
+      // Use a static large range independent of viewport
+      const staticRange = 300;
+      
+      for (let col = -staticRange; col <= staticRange; col++) {
+        for (let row = -staticRange; row <= staticRange; row++) {
           const key = `${col},${row}`;
           if (!visibleCells.has(key)) {
             const { x: fx, y: fy } = cellToWorld(col, row, gs, ox, oy);
