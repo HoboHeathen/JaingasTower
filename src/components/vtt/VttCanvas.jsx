@@ -425,11 +425,11 @@ export default function VttCanvas({
     // Line of sight darkness (non-GM players only)
     if (!isGM) {
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
-      // Calculate visible grid range to avoid iterating entire map
-      const minCol = Math.floor((-pan.x) / gs) - 2;
-      const maxCol = Math.floor((-pan.x + canvas.width) / gs) + 2;
-      const minRow = Math.floor((-pan.y) / gs) - 2;
-      const maxRow = Math.floor((-pan.y + canvas.height) / gs) + 2;
+      // Calculate visible grid range accounting for zoom
+      const minCol = Math.floor((-pan.x / zoom) / gs) - 2;
+      const maxCol = Math.floor((-pan.x / zoom + canvas.width / zoom) / gs) + 2;
+      const minRow = Math.floor((-pan.y / zoom) / gs) - 2;
+      const maxRow = Math.floor((-pan.y / zoom + canvas.height / zoom) / gs) + 2;
       
       // Draw black on all non-visible cells
       for (let col = minCol; col <= maxCol; col++) {
@@ -910,18 +910,24 @@ export default function VttCanvas({
   const toggleFullscreen = () => {
     const el = containerRef.current;
     if (!isFullscreen) {
-      el.requestFullscreen?.();
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen;
+      req?.call(el);
     } else {
-      document.exitFullscreen?.();
+      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.webkitCancelFullScreen;
+      exit?.call(document);
     }
     setIsFullscreen((v) => !v);
   };
 
   // Sync fullscreen state with browser events
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onFsChange = () => setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
     document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
   }, []);
 
   // Clear measure when tool changes away
