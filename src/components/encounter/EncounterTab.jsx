@@ -26,7 +26,6 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
-  const floorWave = activeEncounter?.wave_number || activeGroup?.floor_wave_number || 1;
   const dieType = activeGroup?.die_type || 'd6';
   const hpAveraged = activeGroup?.hp_averaged || false;
 
@@ -41,6 +40,8 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
   const activeEncounter = encounters.find((e) => e.id === selectedEncounterId)
     || encounters.find((e) => e.is_active)
     || null;
+
+  const floorWave = activeEncounter?.wave_number || activeGroup?.floor_wave_number || 1;
 
   const { data: participants = [] } = useQuery({
     queryKey: ['encounter-participants', activeEncounter?.id],
