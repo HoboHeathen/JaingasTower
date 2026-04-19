@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Trash2, Heart, Pencil, Target } from 'lucide-react';
+import { Trash2, Heart, Pencil, Target, Link } from 'lucide-react';
 
-export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing }) {
+export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -12,6 +12,7 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
 
   const items = [
     { label: 'Ping Location', icon: Target, action: onPing, always: true },
+    { label: 'Link Character', icon: Link, action: onLinkCharacter, always: true },
     { label: 'Edit HP', icon: Heart, action: onEditHP, always: false },
     { label: 'Rename', icon: Pencil, action: onRename, always: false },
     { label: 'Remove Token', icon: Trash2, action: onDelete, always: false, danger: true },
@@ -36,7 +37,7 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
       {visible.map(({ label, icon: Icon, action, danger }) => (
         <button
           key={label}
-          onClick={() => { action(); onClose(); }}
+          onClick={() => action?.()}
           className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 transition-colors ${danger ? 'text-destructive' : 'text-foreground'}`}
         >
           <Icon className="w-3.5 h-3.5 shrink-0" />

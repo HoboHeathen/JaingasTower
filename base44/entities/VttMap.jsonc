@@ -3,21 +3,17 @@
   "type": "object",
   "properties": {
     "group_id": {
-      "type": "string",
-      "description": "ID of the group this map belongs to"
+      "type": "string"
     },
     "name": {
-      "type": "string",
-      "description": "Map name"
+      "type": "string"
     },
     "image_url": {
-      "type": "string",
-      "description": "URL of the uploaded map image"
+      "type": "string"
     },
     "image_scale": {
       "type": "number",
-      "default": 1,
-      "description": "Scale factor for the map image"
+      "default": 1
     },
     "grid_type": {
       "type": "string",
@@ -26,39 +22,72 @@
         "square",
         "hex"
       ],
-      "default": "square",
-      "description": "Type of grid overlay"
+      "default": "square"
     },
     "grid_size": {
       "type": "number",
-      "default": 60,
-      "description": "Size of each grid cell in pixels"
+      "default": 60
     },
     "grid_offset_x": {
       "type": "number",
-      "default": 0,
-      "description": "Horizontal offset of the grid"
+      "default": 0
     },
     "grid_offset_y": {
       "type": "number",
-      "default": 0,
-      "description": "Vertical offset of the grid"
+      "default": 0
     },
     "is_active": {
       "type": "boolean",
-      "default": false,
-      "description": "Whether this is the currently active map for the group"
+      "default": false
     },
     "fog_cells": {
       "type": "array",
-      "description": "List of 'col,row' strings indicating hidden fog-of-war cells",
+      "description": "Hidden fog-of-war cells as 'col,row' strings",
       "items": {
         "type": "string"
       }
     },
+    "walls": {
+      "type": "array",
+      "description": "Wall segments stored as {id, type, cells:[{col,row}]} where type is wall|door|window|obstacle",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "wall",
+              "door",
+              "window",
+              "obstacle"
+            ]
+          },
+          "is_open": {
+            "type": "boolean",
+            "default": false
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "col": {
+                  "type": "number"
+                },
+                "row": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "tokens": {
       "type": "array",
-      "description": "Tokens placed on this map",
       "items": {
         "type": "object",
         "properties": {

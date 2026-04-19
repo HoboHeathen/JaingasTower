@@ -9,6 +9,7 @@ import VttCanvas from '@/components/vtt/VttCanvas';
 import VttMapSettings from '@/components/vtt/VttMapSettings';
 import AddTokenModal from '@/components/vtt/AddTokenModal';
 import InitiativePanel from '@/components/vtt/InitiativePanel';
+import VttToolbar from '@/components/vtt/VttToolbar';
 
 export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const queryClient = useQueryClient();
@@ -18,6 +19,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showAddToken, setShowAddToken] = useState(false);
   const [showMapList, setShowMapList] = useState(false);
+  const [activeTool, setActiveTool] = useState('select');
   const fileInputRef = useRef(null);
 
   // Initiative state (local – GM drives it, ideally would be persisted; kept simple)
@@ -186,6 +188,23 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         </div>
       </div>
 
+      {/* VTT Toolbar */}
+      {activeMap && (
+        <VttToolbar
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          isGM={isGM}
+          fogCellCount={activeMap?.fog_cells?.length || 0}
+          wallCount={activeMap?.walls?.length || 0}
+          onClearFog={() => {
+            handleUpdateMap({ fog_cells: [] });
+          }}
+          onClearWalls={() => {
+            handleUpdateMap({ walls: [] });
+          }}
+        />
+      )}
+
       {/* Grid settings */}
       {isGM && showSettings && activeMap && (
         <VttMapSettings map={activeMap} onUpdate={handleUpdateMap} />
@@ -219,6 +238,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           initiativeOrder={initiativeOrder}
           activeTokenId={activeTokenId}
           initiativeStarted={initiativeStarted}
+          activeTool={activeTool}
         />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">

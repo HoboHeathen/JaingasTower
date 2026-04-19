@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import TokenContextMenu from '@/components/vtt/TokenContextMenu';
 import EditHpModal from '@/components/vtt/EditHpModal';
 import RenameTokenModal from '@/components/vtt/RenameTokenModal';
-import { Eye, EyeOff } from 'lucide-react';
+import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
 
 const TOKEN_COLORS = {
   player: '#4ade80',
@@ -13,6 +13,13 @@ const TOKEN_COLORS = {
 
 const SIZE_SCALE = { tiny: 0.3, small: 0.5, medium: 0.75, large: 2, huge: 3 };
 const FEET_PER_CELL = 5;
+
+const WALL_COLORS = {
+  wall: 'rgba(100,120,160,0.85)',
+  door: 'rgba(180,100,30,0.9)',
+  window: 'rgba(80,180,220,0.8)',
+  obstacle: 'rgba(150,60,200,0.85)',
+};
 
 // ── Grid helpers ──────────────────────────────────────────────────────────────
 function drawSquareGrid(ctx, width, height, gs, ox, oy) {
@@ -64,7 +71,6 @@ function cellDist(ax, ay, bx, by) {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
-// ── Fog helper: encode/decode a Set of "col,row" strings ─────────────────────
 function fogKey(col, row) { return `${col},${row}`; }
 
 export default function VttCanvas({
@@ -77,6 +83,7 @@ export default function VttCanvas({
   initiativeOrder,
   activeTokenId,
   initiativeStarted,
+  activeTool,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -91,22 +98,28 @@ export default function VttCanvas({
   const [trails, setTrails] = useState({});
   const [moveInfo, setMoveInfo] = useState(null);
 
-  // Fog of war: Set of "col,row" strings that are hidden
+  // Fog of war
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
-  const [fogMode, setFogMode] = useState(false); // GM toggle: paint/erase fog
-  const [fogBrush, setFogBrush] = useState('add'); // 'add' | 'erase'
-  const isPaintingFog = useRef(false);
+  const isPainting = useRef(false);
 
-  // Pings: [{id, x, y, born}]
+  // Walls: array of {id, type, is_open, cells:[{col,row}]}
+  const [walls, setWalls] = useState(() => map.walls || []);
+  // Current stroke being painted
+  const paintedCells = useRef(new Set());
+
+  // Pings
   const [pings, setPings] = useState([]);
 
   // Context menu
-  const [contextMenu, setContextMenu] = useState(null); // {token, screenX, screenY}
+  const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
   const [renameToken, setRenameToken] = useState(null);
+  const [linkToken, setLinkToken] = useState(null); // for unlinked initiative warning
+  const [noLinkWarning, setNoLinkWarning] = useState(null); // {token}
 
   useEffect(() => { setLocalTokens(map.tokens || []); }, [map.tokens]);
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
+  useEffect(() => { setWalls(map.walls || []); }, [map.walls]);
 
   // Resize observer
   useEffect(() => {
@@ -164,6 +177,35 @@ export default function VttCanvas({
       if (map.grid_type === 'hex') drawHexGrid(ctx, canvas.width - pan.x + gs * 2, canvas.height - pan.y + gs * 2, gs, ox, oy);
     }
 
+    // Walls
+    walls.forEach((wall) => {
+      if (!wall.cells?.length) return;
+      const color = WALL_COLORS[wall.type] || WALL_COLORS.wall;
+      wall.cells.forEach(({ col, row }) => {
+        const { x: wx, y: wy } = cellToWorld(col, row, gs, ox, oy);
+        ctx.fillStyle = color;
+        ctx.fillRect(wx - gs / 2, wy - gs / 2, gs, gs);
+
+        // Door open indicator
+        if (wall.type === 'door' && wall.is_open) {
+          ctx.strokeStyle = 'rgba(255,220,80,0.9)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([3, 3]);
+          ctx.strokeRect(wx - gs / 2 + 2, wy - gs / 2 + 2, gs - 4, gs - 4);
+          ctx.setLineDash([]);
+        }
+
+        // Label
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = `bold ${Math.max(8, gs * 0.14)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (wall.type === 'door') ctx.fillText(wall.is_open ? '🚪' : 'D', wx, wy);
+        else if (wall.type === 'window') ctx.fillText('W', wx, wy);
+        else if (wall.type === 'obstacle') ctx.fillText('O', wx, wy);
+      });
+    });
+
     // Movement trails
     Object.entries(trails).forEach(([, path]) => {
       if (path.length < 2) return;
@@ -217,13 +259,12 @@ export default function VttCanvas({
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText((token.name || '?').slice(0, 2).toUpperCase(), tx, ty);
-
       ctx.font = `${Math.max(9, gs * 0.16)}px Inter, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.fillText(token.name, tx, ty + radius + (token.max_hp ? 16 : 6));
     });
 
-    // Fog of war overlay (players always see fog; GM sees translucent)
+    // Fog of war overlay
     if (fogCells.size > 0) {
       const alpha = isGM ? 0.45 : 1;
       ctx.fillStyle = `rgba(0,0,0,${alpha})`;
@@ -233,9 +274,6 @@ export default function VttCanvas({
         ctx.fillRect(fx - gs / 2, fy - gs / 2, gs, gs);
       });
     }
-
-    // Fog brush preview (GM fog mode)
-    // (handled via canvas overlay in JSX)
 
     // Move distance HUD
     if (moveInfo) {
@@ -266,7 +304,7 @@ export default function VttCanvas({
     });
 
     ctx.restore();
-  }, [pan, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings]);
+  }, [pan, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -275,8 +313,6 @@ export default function VttCanvas({
     const rect = canvasRef.current.getBoundingClientRect();
     return { x: e.clientX - rect.left - pan.x, y: e.clientY - rect.top - pan.y };
   };
-
-  const getScreenPos = (e) => ({ x: e.clientX, y: e.clientY });
 
   const findTokenAt = (worldPos) => {
     return [...localTokens].reverse().find((token) => {
@@ -287,6 +323,10 @@ export default function VttCanvas({
     });
   };
 
+  const findWallCellAt = (col, row) => {
+    return walls.find((w) => w.cells?.some((c) => c.col === col && c.row === row));
+  };
+
   const canMoveToken = (token) => {
     if (isGM) return true;
     if (initiativeStarted && token.id !== activeTokenId) return false;
@@ -294,33 +334,72 @@ export default function VttCanvas({
     return char?.created_by === user?.email;
   };
 
-  // ── Fog painting ──────────────────────────────────────────────────────────
-  const applyFogBrush = (e) => {
-    if (!fogMode || !isGM) return;
+  // ── Painting helpers ──────────────────────────────────────────────────────
+  const applyPaint = (e) => {
     const world = getWorldPos(e);
     const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
-    setFogCells((prev) => {
-      const next = new Set(prev);
-      const key = fogKey(col, row);
-      if (fogBrush === 'add') next.add(key); else next.delete(key);
-      return next;
-    });
+    const key = fogKey(col, row);
+    if (paintedCells.current.has(key)) return; // avoid re-painting same cell in one stroke
+    paintedCells.current.add(key);
+
+    if (activeTool === 'fog_add') {
+      setFogCells((prev) => { const n = new Set(prev); n.add(key); return n; });
+    } else if (activeTool === 'fog_erase') {
+      setFogCells((prev) => { const n = new Set(prev); n.delete(key); return n; });
+    } else if (['wall', 'door', 'window', 'obstacle'].includes(activeTool)) {
+      setWalls((prev) => {
+        // Check if cell is already occupied by another wall — skip
+        if (prev.some((w) => w.cells?.some((c) => c.col === col && c.row === row))) return prev;
+        // Try to extend the current stroke's segment (last wall if same type from this stroke)
+        const last = prev[prev.length - 1];
+        if (last && last.type === activeTool && last._stroke === 'current') {
+          return [...prev.slice(0, -1), { ...last, cells: [...last.cells, { col, row }] }];
+        }
+        // New wall segment
+        return [...prev, { id: crypto.randomUUID(), type: activeTool, is_open: false, cells: [{ col, row }], _stroke: 'current' }];
+      });
+    } else if (activeTool === 'erase_wall') {
+      setWalls((prev) => {
+        return prev.map((w) => ({
+          ...w,
+          cells: w.cells?.filter((c) => !(c.col === col && c.row === row)),
+        })).filter((w) => w.cells?.length > 0);
+      });
+    }
   };
 
-  const saveFog = useCallback(() => {
-    if (!isGM || !onUpdateMap) return;
-    onUpdateMap({ fog_cells: [...fogCells] });
-  }, [fogCells, isGM, onUpdateMap]);
+  const finishPaint = useCallback(() => {
+    if (!isPainting.current) return;
+    isPainting.current = false;
+    paintedCells.current = new Set();
 
-  // ── Mouse / Touch ─────────────────────────────────────────────────────────
+    if (activeTool === 'fog_add' || activeTool === 'fog_erase') {
+      setFogCells((prev) => {
+        onUpdateMap?.({ fog_cells: [...prev] });
+        return prev;
+      });
+    } else if (['wall', 'door', 'window', 'obstacle', 'erase_wall'].includes(activeTool)) {
+      setWalls((prev) => {
+        // Clean up _stroke marker
+        const cleaned = prev.map(({ _stroke, ...w }) => w);
+        onUpdateMap?.({ walls: cleaned });
+        return cleaned;
+      });
+    }
+  }, [activeTool, onUpdateMap]);
+
+  // ── Mouse ─────────────────────────────────────────────────────────────────
   const onMouseDown = (e) => {
-    if (e.button === 2) return; // handled by onContextMenu
+    if (e.button === 2) return;
     const world = getWorldPos(e);
-    if (fogMode && isGM) {
-      isPaintingFog.current = true;
-      applyFogBrush(e);
+
+    if (activeTool !== 'select' && isGM) {
+      isPainting.current = true;
+      paintedCells.current = new Set();
+      applyPaint(e);
       return;
     }
+
     const token = findTokenAt(world);
     if (token && canMoveToken(token)) {
       dragStart.current = { col: token.x, row: token.y };
@@ -332,7 +411,10 @@ export default function VttCanvas({
   };
 
   const onMouseMove = (e) => {
-    if (isPaintingFog.current && fogMode && isGM) { applyFogBrush(e); return; }
+    if (isPainting.current && activeTool !== 'select' && isGM) {
+      applyPaint(e);
+      return;
+    }
     if (draggingId) {
       const world = getWorldPos(e);
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
@@ -346,11 +428,7 @@ export default function VttCanvas({
   };
 
   const onMouseUp = (e) => {
-    if (isPaintingFog.current) {
-      isPaintingFog.current = false;
-      saveFog();
-      return;
-    }
+    if (isPainting.current) { finishPaint(); return; }
     if (draggingId) {
       const movedToken = localTokens.find((t) => t.id === draggingId);
       if (movedToken && dragStart.current) {
@@ -376,13 +454,23 @@ export default function VttCanvas({
     const token = findTokenAt(world);
     if (token) {
       setContextMenu({ token, screenX: e.clientX, screenY: e.clientY });
-    } else {
-      // Ping on empty right-click
-      addPing(e.clientX, e.clientY);
+      return;
     }
+    // Check wall cells for door toggling
+    if (isGM) {
+      const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
+      const wall = findWallCellAt(col, row);
+      if (wall && wall.type === 'door') {
+        const updated = walls.map((w) => w.id === wall.id ? { ...w, is_open: !w.is_open } : w);
+        setWalls(updated);
+        onUpdateMap?.({ walls: updated });
+        return;
+      }
+    }
+    // Ping on empty right-click
+    addPing(e.clientX, e.clientY);
   };
 
-  // ── Pings ─────────────────────────────────────────────────────────────────
   const addPing = (screenX, screenY) => {
     setPings((prev) => [...prev, { id: Date.now(), x: screenX, y: screenY, born: Date.now() }]);
   };
@@ -393,46 +481,56 @@ export default function VttCanvas({
     const updated = localTokens.filter((t) => t.id !== contextMenu.token.id);
     setLocalTokens(updated);
     onUpdateTokens(updated);
+    setContextMenu(null);
   };
 
-  const handleEditHP = () => {
-    if (!contextMenu) return;
-    setEditHpToken(contextMenu.token);
-  };
-
-  const handleRename = () => {
-    if (!contextMenu) return;
-    setRenameToken(contextMenu.token);
-  };
-
-  const handlePingFromMenu = () => {
-    if (!contextMenu) return;
-    addPing(contextMenu.screenX, contextMenu.screenY);
-  };
+  const handleEditHP = () => { setEditHpToken(contextMenu.token); setContextMenu(null); };
+  const handleRename = () => { setRenameToken(contextMenu.token); setContextMenu(null); };
+  const handlePingFromMenu = () => { addPing(contextMenu.screenX, contextMenu.screenY); setContextMenu(null); };
+  const handleLinkChar = () => { setLinkToken(contextMenu.token); setContextMenu(null); };
 
   const handleSaveHP = ({ current_hp, max_hp }) => {
-    const updated = localTokens.map((t) =>
-      t.id === editHpToken.id ? { ...t, current_hp, max_hp } : t
-    );
-    setLocalTokens(updated);
-    onUpdateTokens(updated);
-    setEditHpToken(null);
+    const updated = localTokens.map((t) => t.id === editHpToken.id ? { ...t, current_hp, max_hp } : t);
+    setLocalTokens(updated); onUpdateTokens(updated); setEditHpToken(null);
   };
 
   const handleSaveName = (name) => {
-    const updated = localTokens.map((t) =>
-      t.id === renameToken.id ? { ...t, name } : t
-    );
-    setLocalTokens(updated);
-    onUpdateTokens(updated);
-    setRenameToken(null);
+    const updated = localTokens.map((t) => t.id === renameToken.id ? { ...t, name } : t);
+    setLocalTokens(updated); onUpdateTokens(updated); setRenameToken(null);
   };
 
-  const onTouchStart = (e) => { if (e.touches.length === 1) { const t = e.touches[0]; onMouseDown({ button: 0, clientX: t.clientX, clientY: t.clientY }); } };
-  const onTouchMove = (e) => { e.preventDefault(); if (e.touches.length === 1) { const t = e.touches[0]; onMouseMove({ clientX: t.clientX, clientY: t.clientY }); } };
+  const handleLinkSave = (characterId) => {
+    const char = groupCharacters?.find((c) => c.id === characterId);
+    const updated = localTokens.map((t) => t.id === linkToken.id ? {
+      ...t, character_id: characterId,
+      name: char?.name || t.name,
+      max_hp: char?.base_health || t.max_hp,
+      current_hp: char?.current_hp ?? char?.base_health ?? t.current_hp,
+    } : t);
+    setLocalTokens(updated); onUpdateTokens(updated); setLinkToken(null);
+  };
 
   const clearTrails = () => setTrails({});
-  const clearFog = () => { setFogCells(new Set()); if (onUpdateMap) onUpdateMap({ fog_cells: [] }); };
+
+  const onTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      onMouseDown({ button: 0, clientX: t.clientX, clientY: t.clientY });
+    }
+  };
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      onMouseMove({ clientX: t.clientX, clientY: t.clientY });
+    }
+  };
+
+  const getCursor = () => {
+    if (activeTool === 'select') return draggingId ? 'grabbing' : isPanning ? 'grabbing' : 'grab';
+    if (activeTool === 'erase_wall') return 'cell';
+    return 'crosshair';
+  };
 
   return (
     <div
@@ -445,7 +543,7 @@ export default function VttCanvas({
         width={canvasSize.w}
         height={canvasSize.h}
         className="block w-full h-full"
-        style={{ cursor: fogMode ? (fogBrush === 'add' ? 'crosshair' : 'cell') : draggingId ? 'grabbing' : isPanning ? 'grabbing' : 'grab', touchAction: 'none' }}
+        style={{ cursor: getCursor(), touchAction: 'none' }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
@@ -456,7 +554,7 @@ export default function VttCanvas({
         onTouchEnd={onMouseUp}
       />
 
-      {/* Legend */}
+      {/* Token type legend */}
       <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap pointer-events-none">
         {Object.entries(TOKEN_COLORS).map(([type, color]) => (
           <div key={type} className="flex items-center gap-1 bg-black/60 rounded px-2 py-0.5">
@@ -466,53 +564,32 @@ export default function VttCanvas({
         ))}
       </div>
 
-      {/* GM Controls (top-right) */}
+      {/* Wall type legend (bottom-right, GM only) */}
       {isGM && (
-        <div className="absolute top-3 right-3 flex gap-1.5 items-center">
-          {initiativeStarted && Object.keys(trails).length > 0 && (
-            <button onClick={clearTrails} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
-              Clear Trails
-            </button>
-          )}
-          {fogCells.size > 0 && !fogMode && (
-            <button onClick={clearFog} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
-              Clear Fog
-            </button>
-          )}
-          {/* Fog mode toggle */}
-          <button
-            onClick={() => setFogMode((v) => !v)}
-            className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded transition-colors ${fogMode ? 'bg-primary/80 text-primary-foreground' : 'bg-black/60 text-white hover:bg-black/80'}`}
-          >
-            {fogMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            {fogMode ? 'Painting Fog' : 'Fog of War'}
-          </button>
-          {fogMode && (
-            <>
-              <button
-                onClick={() => setFogBrush('add')}
-                className={`text-xs px-2 py-1 rounded transition-colors ${fogBrush === 'add' ? 'bg-gray-600 text-white' : 'bg-black/60 text-gray-400 hover:bg-black/80'}`}
-              >Add</button>
-              <button
-                onClick={() => setFogBrush('erase')}
-                className={`text-xs px-2 py-1 rounded transition-colors ${fogBrush === 'erase' ? 'bg-green-700 text-white' : 'bg-black/60 text-gray-400 hover:bg-black/80'}`}
-              >Erase</button>
-            </>
-          )}
+        <div className="absolute bottom-3 right-3 flex flex-col gap-1 pointer-events-none">
+          {Object.entries(WALL_COLORS).map(([type, color]) => (
+            <div key={type} className="flex items-center gap-1.5 bg-black/60 rounded px-2 py-0.5">
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+              <span className="text-[10px] text-white capitalize">{type}</span>
+            </div>
+          ))}
         </div>
+      )}
+
+      {/* Clear trails button */}
+      {initiativeStarted && Object.keys(trails).length > 0 && (
+        <button
+          onClick={clearTrails}
+          className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors"
+        >
+          Clear Trails
+        </button>
       )}
 
       {/* Active turn badge */}
       {initiativeStarted && activeTokenId && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded-full pointer-events-none shadow-lg">
           {localTokens.find((t) => t.id === activeTokenId)?.name ?? ''}'s Turn
-        </div>
-      )}
-
-      {/* Fog mode instructions */}
-      {isGM && fogMode && (
-        <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none">
-          Drag to paint • Right-click empty = Ping
         </div>
       )}
 
@@ -528,24 +605,22 @@ export default function VttCanvas({
           onEditHP={handleEditHP}
           onRename={handleRename}
           onPing={handlePingFromMenu}
+          onLinkCharacter={handleLinkChar}
         />
       )}
 
-      {/* Edit HP modal */}
       {editHpToken && (
-        <EditHpModal
-          token={editHpToken}
-          onSave={handleSaveHP}
-          onClose={() => setEditHpToken(null)}
-        />
+        <EditHpModal token={editHpToken} onSave={handleSaveHP} onClose={() => setEditHpToken(null)} />
       )}
-
-      {/* Rename modal */}
       {renameToken && (
-        <RenameTokenModal
-          token={renameToken}
-          onSave={handleSaveName}
-          onClose={() => setRenameToken(null)}
+        <RenameTokenModal token={renameToken} onSave={handleSaveName} onClose={() => setRenameToken(null)} />
+      )}
+      {linkToken && (
+        <LinkCharacterModal
+          token={linkToken}
+          groupCharacters={groupCharacters}
+          onSave={handleLinkSave}
+          onClose={() => setLinkToken(null)}
         />
       )}
     </div>
