@@ -8,17 +8,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
   Users, Plus, Copy, Check, Send, MessageCircle, Dices,
-  Shield, Heart, Swords, BookOpen, ChevronRight, Settings, Crown
+  Shield, Heart, Swords, BookOpen, ChevronRight, Crown, FlaskConical
 } from 'lucide-react';
+import BestiaryTab from '@/components/gm/BestiaryTab';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const TABS = [
+const PLAYER_TABS = [
   { key: 'party', label: 'Party', icon: Users },
   { key: 'rolls', label: 'Rolls', icon: Dices },
   { key: 'chat', label: 'Chat', icon: MessageCircle },
   { key: 'bestiary', label: 'Bestiary', icon: BookOpen },
+];
+
+const GM_TABS = [
+  { key: 'party', label: 'Party', icon: Users },
+  { key: 'rolls', label: 'Rolls', icon: Dices },
+  { key: 'chat', label: 'Chat', icon: MessageCircle },
+  { key: 'bestiary', label: 'Bestiary', icon: BookOpen },
+  { key: 'gm', label: 'GM Tools', icon: FlaskConical },
 ];
 
 function generateCode() {
@@ -175,6 +184,7 @@ export default function Group() {
   };
 
   const isGM = activeGroup?.gm_email === user?.email;
+  const TABS = isGM ? GM_TABS : PLAYER_TABS;
 
   // No group
   if (!activeGroupId && !myGroups.length) {
@@ -402,39 +412,43 @@ export default function Group() {
         </div>
       )}
 
-      {/* Bestiary Tab */}
+      {/* Bestiary Tab — group's logged monsters */}
       {tab === 'bestiary' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Monsters encountered and shared by the GM.</p>
-            {isGM && (
-              <Button size="sm" className="gap-1.5" onClick={() => setShowAddBeast(true)}>
-                <Plus className="w-3 h-3" /> Add Monster
-              </Button>
-            )}
           </div>
           {bestiary.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No monsters recorded yet.</div>
+            <div className="text-center py-12 text-muted-foreground">No monsters recorded yet. The GM can add monsters from the GM Tools tab.</div>
           ) : (
             <div className="space-y-3">
               {bestiary.map((m) => (
                 <div key={m.id} className="bg-card border border-border/50 rounded-xl p-4">
                   <h3 className="font-heading font-semibold text-foreground mb-1">{m.monster_name}</h3>
-                  {m.description && <p className="text-xs text-muted-foreground mb-2">{m.description}</p>}
+                  {m.description && <p className="text-xs text-muted-foreground mb-2 whitespace-pre-line">{m.description}</p>}
                   <div className="flex flex-wrap gap-3 text-sm">
                     {m.hp && <span className="flex items-center gap-1 text-red-400"><Heart className="w-3.5 h-3.5" />{m.hp}</span>}
                     {m.armor && <span className="flex items-center gap-1 text-blue-400"><Shield className="w-3.5 h-3.5" />{m.armor}</span>}
-                    {['str', 'dex', 'con', 'int', 'wis', 'cha'].filter((s) => m[s]).map((s) => (
-                      <span key={s} className="text-muted-foreground text-xs">{s.toUpperCase()}: {m[s]}</span>
-                    ))}
                   </div>
                   {m.special_abilities && (
-                    <p className="text-xs text-accent-foreground mt-2 bg-accent/10 rounded-lg px-3 py-2">{m.special_abilities}</p>
+                    <p className="text-xs text-accent-foreground mt-2 bg-accent/10 rounded-lg px-3 py-2 whitespace-pre-line">{m.special_abilities}</p>
                   )}
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* GM Tools Tab */}
+      {tab === 'gm' && isGM && (
+        <div className="space-y-4">
+          <div className="flex gap-1 mb-4 bg-secondary/30 rounded-xl p-1">
+            <button className="flex-1 py-1.5 px-3 rounded-lg text-sm font-medium bg-card text-foreground shadow-sm">
+              Bestiary
+            </button>
+          </div>
+          <BestiaryTab activeGroup={activeGroup} isGM={isGM} />
         </div>
       )}
 
@@ -462,25 +476,7 @@ export default function Group() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Beast Dialog */}
-      <Dialog open={showAddBeast} onOpenChange={setShowAddBeast}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="font-heading">Add Monster to Bestiary</DialogTitle></DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); addBeastMutation.mutate({ ...beastForm, hp: Number(beastForm.hp) || undefined, armor: Number(beastForm.armor) || undefined }); }} className="space-y-3">
-            <Input placeholder="Monster name *" value={beastForm.monster_name} onChange={(e) => setBeastForm({ ...beastForm, monster_name: e.target.value })} autoFocus />
-            <Textarea placeholder="Description..." value={beastForm.description} onChange={(e) => setBeastForm({ ...beastForm, description: e.target.value })} rows={2} />
-            <div className="grid grid-cols-2 gap-2">
-              <Input type="number" placeholder="HP" value={beastForm.hp} onChange={(e) => setBeastForm({ ...beastForm, hp: e.target.value })} />
-              <Input type="number" placeholder="Armor" value={beastForm.armor} onChange={(e) => setBeastForm({ ...beastForm, armor: e.target.value })} />
-            </div>
-            <Textarea placeholder="Special abilities..." value={beastForm.special_abilities} onChange={(e) => setBeastForm({ ...beastForm, special_abilities: e.target.value })} rows={2} />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowAddBeast(false)}>Cancel</Button>
-              <Button type="submit" disabled={!beastForm.monster_name.trim()}>Add</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

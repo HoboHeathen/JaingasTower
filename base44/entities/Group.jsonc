@@ -17,6 +17,28 @@
     "description": {
       "type": "string",
       "description": "Optional group description"
+    },
+    "floor_wave_number": {
+      "type": "number",
+      "default": 1,
+      "description": "Current floor or wave number used for scaling monster HP and damage"
+    },
+    "die_type": {
+      "type": "string",
+      "enum": [
+        "d4",
+        "d6",
+        "d8",
+        "d10",
+        "d12"
+      ],
+      "default": "d6",
+      "description": "The die type chosen by players for this session, used for all monster HP and damage calculations"
+    },
+    "hp_averaged": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, monster HP is calculated as the average of the dice pool rather than rolled"
     }
   },
   "required": [
