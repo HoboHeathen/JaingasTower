@@ -71,6 +71,7 @@ export default function CharacterSheet() {
 
   const skillBonuses = { health: 0, armor: 0, speed: 0, spell_range: 0, str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
   const categorizedSkills = { primary: [], secondary: [], tertiary: [], reactionary: [] };
+  const categorizedAugments = { primary: [], secondary: [], tertiary: [], reactionary: [] };
 
   unlockedSkills.forEach(({ tree_id, node_id }) => {
     const tree = treeMap[tree_id];
@@ -85,6 +86,15 @@ export default function CharacterSheet() {
     }
 
     if (node.node_type === 'stat_increase') return;
+
+    // Augments go into their own bucket
+    if (node.node_type === 'augment') {
+      const cat = node.category || 'primary';
+      if (categorizedAugments[cat] !== undefined) {
+        categorizedAugments[cat].push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
+      }
+      return;
+    }
 
     const isReactionary =
       node.category === 'reactionary' ||
@@ -156,6 +166,11 @@ export default function CharacterSheet() {
           </Link>
           <div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">{character.name}</h1>
+            {character.race_selections?.length > 0 && (
+              <p className="text-xs italic text-muted-foreground leading-tight">
+                {character.race_selections.map((r) => r.race_name).filter(Boolean).join(' / ')}
+              </p>
+            )}
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-muted-foreground">
                 {pointsRemaining} / {totalPoints} pts remaining
@@ -204,6 +219,7 @@ export default function CharacterSheet() {
                     key={cat}
                     category={cat}
                     skills={categorizedSkills[cat]}
+                    augmentSkills={categorizedAugments[cat]}
                     usedSkills={usedSingleUseSkills}
                     onMarkUsed={handleMarkUsed}
                     magicDice={magicDice}

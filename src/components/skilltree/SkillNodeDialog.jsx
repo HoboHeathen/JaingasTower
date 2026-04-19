@@ -91,6 +91,16 @@ export default function SkillNodeDialog({
     setForm(updates);
   };
 
+  const STAT_OPTIONS = [
+    { value: '', label: 'None' },
+    { value: 'str', label: 'STR' },
+    { value: 'dex', label: 'DEX' },
+    { value: 'con', label: 'CON' },
+    { value: 'int', label: 'INT' },
+    { value: 'wis', label: 'WIS' },
+    { value: 'cha', label: 'CHA' },
+  ];
+
   const selectedPrereqs = prereqCandidates.filter((n) => (form.prerequisites || []).includes(n.id));
   const unselectedPrereqs = prereqCandidates.filter((n) => !(form.prerequisites || []).includes(n.id));
 
@@ -145,6 +155,7 @@ export default function SkillNodeDialog({
                 options={[
                   { value: 'attack', label: '⚔️ Attack', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
                   { value: 'skill', label: '✨ Skill', color: 'border-primary/50 bg-primary/10 text-primary' },
+                  { value: 'augment', label: '🔧 Augment', color: 'border-orange-500/50 bg-orange-500/10 text-orange-400' },
                   { value: 'stat_increase', label: '📈 Stat Increase', color: 'border-green-500/50 bg-green-500/10 text-green-400' },
                 ]}
                 value={nodeType}
@@ -153,22 +164,81 @@ export default function SkillNodeDialog({
               <p className="text-xs text-muted-foreground mt-1.5">
                 {nodeType === 'attack' && 'An offensive action that appears in the character\'s action list with attack weight and dice.'}
                 {nodeType === 'skill' && 'A non-attack action (Parry, Dodge, etc.) that appears in the character\'s action list.'}
+                {nodeType === 'augment' && 'Modifies a specific attack weight (light/medium/heavy). Shown in its own Augments section, no roll button.'}
                 {nodeType === 'stat_increase' && 'Passively improves stats or modifiers — does not appear as an action on the character sheet.'}
               </p>
             </div>
 
+            {/* Augment attack type */}
+            {nodeType === 'augment' && (
+              <div>
+                <Label className="mb-1.5 block">Modifies Attack Type</Label>
+                <ToggleGroup
+                  options={[
+                    { value: 'light', label: 'Light', color: 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' },
+                    { value: 'medium', label: 'Medium', color: 'border-orange-500/50 bg-orange-500/10 text-orange-400' },
+                    { value: 'heavy', label: 'Heavy', color: 'border-red-500/50 bg-red-500/10 text-red-400' },
+                    { value: 'any', label: 'Any', color: 'border-primary/50 bg-primary/10 text-primary' },
+                  ]}
+                  value={form.augment_attack_type || 'any'}
+                  onChange={(v) => setForm({ ...form, augment_attack_type: v })}
+                />
+              </div>
+            )}
+
             {/* Tier */}
             <div>
               <Label className="mb-1.5 block">Tier (Tree Depth)</Label>
-              <p className="text-xs text-muted-foreground mb-2">Tier 0 = root. Higher tiers appear deeper.</p>
+              <p className="text-xs text-muted-foreground mb-2">Tier 1 = root/first. Higher tiers appear deeper.</p>
               <ToggleGroup
-                options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => ({
+                options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((t) => ({
                   value: t,
-                  label: t === 0 ? 'Root' : `Tier ${t}`,
+                  label: `Tier ${t}`,
                 }))}
                 value={form.tier}
                 onChange={(v) => setForm({ ...form, tier: v })}
               />
+            </div>
+
+            {/* Stat Prerequisite */}
+            <div>
+              <Label className="mb-1.5 block">Ability Score Prerequisite <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <p className="text-xs text-muted-foreground mb-2">Lock this node unless the character meets the ability score requirement.</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs mb-1 block">Stat Required</Label>
+                  <Select
+                    value={form.required_stat || ''}
+                    onValueChange={(v) => setForm({ ...form, required_stat: v || undefined })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      {STAT_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">Min Value</Label>
+                  <Input
+                    type="number" min={1} max={30}
+                    value={form.required_stat_value || ''}
+                    onChange={(e) => setForm({ ...form, required_stat_value: parseInt(e.target.value) || undefined })}
+                    placeholder="e.g. 13"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">Or Alt Stat</Label>
+                  <Select
+                    value={form.required_stat_alt || ''}
+                    onValueChange={(v) => setForm({ ...form, required_stat_alt: v || undefined })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      {STAT_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
 
             {/* Action Category — shown for attack and skill, not stat_increase */}

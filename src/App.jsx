@@ -13,6 +13,8 @@ import EditTree from '@/pages/EditTree';
 import SpendPoints from '@/pages/SpendPoints.jsx';
 import Races from '@/pages/Races.jsx';
 import EditMyTree from '@/pages/EditMyTree.jsx';
+import Rules from '@/pages/Rules.jsx';
+import Group from '@/pages/Group.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -48,6 +50,8 @@ const AuthenticatedApp = () => {
         <Route path="/spend-points" element={<SpendPoints />} />
         <Route path="/races" element={<Races />} />
         <Route path="/edit-my-tree" element={<EditMyTree />} />
+        <Route path="/rules" element={<Rules />} />
+        <Route path="/group" element={<Group />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

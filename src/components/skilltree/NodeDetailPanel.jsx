@@ -17,13 +17,26 @@ const categoryColors = {
   reactionary: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
 };
 
-export default function NodeDetailPanel({ node, status, remaining, onAcquire, onRelease, onClose }) {
+const STAT_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
+
+export default function NodeDetailPanel({ node, status, remaining, onAcquire, onRelease, onClose, character }) {
   if (!node) return null;
 
   const isUnlocked = status === 'unlocked';
   const isLocked = status === 'locked';
   const isBlocked = status === 'blocked';
+  const isStatLocked = status === 'stat_locked';
   const canAfford = remaining >= node.cost;
+
+  // Build stat requirement description
+  let statReqText = null;
+  if (node.required_stat && node.required_stat_value) {
+    if (node.required_stat_alt) {
+      statReqText = `Requires ${STAT_LABELS[node.required_stat]} ${node.required_stat_value} or ${STAT_LABELS[node.required_stat_alt]} ${node.required_stat_value}`;
+    } else {
+      statReqText = `Requires ${STAT_LABELS[node.required_stat]} ${node.required_stat_value} or higher`;
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60">
@@ -87,6 +100,13 @@ export default function NodeDetailPanel({ node, status, remaining, onAcquire, on
             </span>
           </div>
 
+          {/* Stat requirement display */}
+          {statReqText && (
+            <div className="text-xs text-muted-foreground bg-secondary/40 rounded-lg px-3 py-2">
+              📊 {statReqText}
+            </div>
+          )}
+
           {/* Status */}
           <div className="flex items-center gap-2 text-sm">
             {isUnlocked ? (
@@ -98,6 +118,11 @@ export default function NodeDetailPanel({ node, status, remaining, onAcquire, on
               <>
                 <Lock className="w-4 h-4 text-destructive" />
                 <span className="text-destructive text-xs">You've already chosen a different armor progression</span>
+              </>
+            ) : isStatLocked ? (
+              <>
+                <Lock className="w-4 h-4 text-orange-400" />
+                <span className="text-orange-400 text-xs">{statReqText || 'Ability score requirement not met'}</span>
               </>
             ) : isLocked ? (
               <>
@@ -115,7 +140,7 @@ export default function NodeDetailPanel({ node, status, remaining, onAcquire, on
 
         {/* Footer */}
         <div className="p-4 pt-0 flex flex-col gap-2">
-          {!isUnlocked && !isLocked && (
+          {!isUnlocked && !isLocked && !isStatLocked && (
             <Button
               className="w-full"
               disabled={!canAfford}

@@ -29,6 +29,8 @@ function SkillNode({ node, status, onClick }) {
           ? `${categoryColor[node.category] || categoryColor.primary} hover:brightness-110 cursor-pointer`
           : blocked
           ? 'border-destructive/20 bg-destructive/5 text-muted-foreground opacity-40 cursor-not-allowed'
+          : status === 'stat_locked'
+          ? 'border-orange-400/30 bg-orange-400/5 text-orange-300 opacity-60 cursor-pointer'
           : 'border-border/30 bg-secondary/20 text-muted-foreground opacity-50 cursor-not-allowed'
       )}
     >
@@ -46,15 +48,17 @@ function SkillNode({ node, status, onClick }) {
   );
 }
 
-export default function SkillTreeViewer({ tree, unlockedNodeIds = [], blockedNodeIds = [], onUnlock, onSelect, editMode = false }) {
+export default function SkillTreeViewer({ tree, unlockedNodeIds = [], blockedNodeIds = [], statLockedNodeIds = [], onUnlock, onSelect, editMode = false }) {
   const nodes = tree?.nodes || [];
 
   const isUnlocked = (id) => unlockedNodeIds.includes(id);
   const isBlocked = (id) => blockedNodeIds.includes(id);
+  const isStatLocked = (id) => statLockedNodeIds.includes(id);
 
   const isAvailable = (node) => {
     if (isUnlocked(node.id)) return false;
     if (isBlocked(node.id)) return false;
+    if (isStatLocked(node.id)) return false;
     const prereqs = node.prerequisites || [];
     return prereqs.every((pid) => isUnlocked(pid));
   };
@@ -62,6 +66,7 @@ export default function SkillTreeViewer({ tree, unlockedNodeIds = [], blockedNod
   const getStatus = (node) => {
     if (isUnlocked(node.id)) return 'unlocked';
     if (isBlocked(node.id)) return 'blocked';
+    if (isStatLocked(node.id)) return 'stat_locked';
     if (isAvailable(node)) return 'available';
     return 'locked';
   };
@@ -111,7 +116,7 @@ export default function SkillTreeViewer({ tree, unlockedNodeIds = [], blockedNod
         return (
           <div key={tier} className="flex flex-col items-center gap-2 w-full">
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-              {tier === '0' ? 'Root' : `Tier ${tier}`}
+              Tier {tier}
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               {/* Left augments */}

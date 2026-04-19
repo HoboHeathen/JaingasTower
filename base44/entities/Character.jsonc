@@ -35,6 +35,30 @@
         }
       }
     },
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group this character belongs to"
+    },
+    "group_name": {
+      "type": "string",
+      "description": "Name of the group (denormalised)"
+    },
+    "share_rolls": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this character's rolls are shared to the group"
+    },
+    "conditions": {
+      "type": "array",
+      "description": "Active conditions on this character",
+      "items": {
+        "type": "string"
+      }
+    },
+    "current_hp": {
+      "type": "number",
+      "description": "Current HP (tracked during play)"
+    },
     "unlocked_racial_skills": {
       "type": "array",
       "description": "Racial skill nodes that have been unlocked",

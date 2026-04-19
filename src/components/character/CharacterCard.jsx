@@ -25,6 +25,11 @@ export default function CharacterCard({ character, onDelete }) {
             <h3 className="font-heading text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
               {character.name}
             </h3>
+            {character.race_selections?.length > 0 && (
+              <p className="text-xs italic text-muted-foreground leading-tight">
+                {character.race_selections.map((r) => r.race_name).filter(Boolean).join(' / ')}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               {skillCount} skill{skillCount !== 1 ? 's' : ''} · {pointsRemaining} pts remaining
             </p>

@@ -50,14 +50,15 @@
           },
           "tier": {
             "type": "number",
-            "description": "Depth tier 0-6"
+            "description": "Depth tier 1-10"
           },
           "node_type": {
             "type": "string",
             "enum": [
               "attack",
               "skill",
-              "stat_increase"
+              "stat_increase",
+              "augment"
             ],
             "default": "attack"
           },
@@ -77,6 +78,16 @@
               "medium",
               "heavy"
             ]
+          },
+          "augment_attack_type": {
+            "type": "string",
+            "enum": [
+              "light",
+              "medium",
+              "heavy",
+              "any"
+            ],
+            "description": "Which attack weight this augment modifies"
           },
           "weapon_required": {
             "type": "string",
@@ -121,6 +132,34 @@
             "items": {
               "type": "string"
             }
+          },
+          "required_stat": {
+            "type": "string",
+            "enum": [
+              "str",
+              "dex",
+              "con",
+              "int",
+              "wis",
+              "cha"
+            ],
+            "description": "Ability score required to unlock this node"
+          },
+          "required_stat_value": {
+            "type": "number",
+            "description": "Minimum value of required_stat needed"
+          },
+          "required_stat_alt": {
+            "type": "string",
+            "enum": [
+              "str",
+              "dex",
+              "con",
+              "int",
+              "wis",
+              "cha"
+            ],
+            "description": "Alternate ability score (either this OR required_stat must be met)"
           },
           "stat_bonuses": {
             "type": "object",

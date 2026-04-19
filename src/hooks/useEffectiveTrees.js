@@ -29,7 +29,10 @@ export function useEffectiveTrees() {
   // Effective trees: use user copy if it exists, else default
   const effectiveTrees = defaultTrees.map((def) => {
     const copy = userTreeMap[def.id];
-    return copy ? { ...copy, _isUserCopy: true, _defaultTree: def } : { ...def, _isUserCopy: false };
+    if (!copy) return { ...def, _isUserCopy: false };
+    // Check if the user copy is identical to the default (i.e. was just reset)
+    const nodesMatch = JSON.stringify(copy.nodes) === JSON.stringify(def.nodes);
+    return { ...copy, _isUserCopy: true, _isResetToDefault: nodesMatch, _defaultTree: def };
   });
 
   const forkMutation = useMutation({

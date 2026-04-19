@@ -1,0 +1,27 @@
+{
+  "name": "Group",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Group name"
+    },
+    "invite_code": {
+      "type": "string",
+      "description": "Unique invite code for this group"
+    },
+    "gm_email": {
+      "type": "string",
+      "description": "Email of the GM who created the group"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional group description"
+    }
+  },
+  "required": [
+    "name",
+    "invite_code",
+    "gm_email"
+  ]
+}

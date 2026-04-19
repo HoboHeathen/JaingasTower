@@ -1,0 +1,44 @@
+{
+  "name": "GroupMessage",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group this message belongs to"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of the sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Display name of the sender"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "If set, this is a private message to this user (null = group-wide)"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "chat",
+        "roll"
+      ],
+      "default": "chat",
+      "description": "Type of message"
+    },
+    "roll_data": {
+      "type": "object",
+      "description": "Dice roll data if message_type is roll"
+    }
+  },
+  "required": [
+    "group_id",
+    "sender_email",
+    "content"
+  ]
+}

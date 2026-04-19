@@ -1,0 +1,61 @@
+{
+  "name": "GroupBestiary",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group this entry belongs to"
+    },
+    "monster_name": {
+      "type": "string",
+      "description": "Name of the monster"
+    },
+    "description": {
+      "type": "string",
+      "description": "Lore or flavor text"
+    },
+    "hp": {
+      "type": "number"
+    },
+    "armor": {
+      "type": "number"
+    },
+    "speed": {
+      "type": "number"
+    },
+    "str": {
+      "type": "number"
+    },
+    "dex": {
+      "type": "number"
+    },
+    "con": {
+      "type": "number"
+    },
+    "int": {
+      "type": "number"
+    },
+    "wis": {
+      "type": "number"
+    },
+    "cha": {
+      "type": "number"
+    },
+    "special_abilities": {
+      "type": "string",
+      "description": "Free text for special abilities"
+    },
+    "added_by_email": {
+      "type": "string",
+      "description": "GM email who added this entry"
+    },
+    "is_visible_to_players": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "group_id",
+    "monster_name"
+  ]
+}

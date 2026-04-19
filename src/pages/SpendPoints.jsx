@@ -76,11 +76,18 @@ export default function SpendPoints() {
   const isArmorNodeBlocked = (nodeId) => {
     const chosenProg = getArmorProgression();
     if (!chosenProg) return false;
-    // Block nodes that belong to a different armor progression
     for (const [prog, ids] of Object.entries(ARMOR_PROGRESSIONS)) {
       if (ids.includes(nodeId) && prog !== chosenProg) return true;
     }
     return false;
+  };
+
+  // Check if a node's ability score prerequisite is met by the character
+  const isStatPrereqMet = (node) => {
+    if (!node.required_stat || !node.required_stat_value) return true;
+    const charVal = (character?.[node.required_stat] || 0);
+    const altVal = node.required_stat_alt ? (character?.[node.required_stat_alt] || 0) : -1;
+    return charVal >= node.required_stat_value || altVal >= node.required_stat_value;
   };
 
   const handleUnlock = (treeId, node) => {
@@ -93,6 +100,14 @@ export default function SpendPoints() {
 
     if (isArmorNodeBlocked(node.id)) {
       toast.error("You've already chosen a different armor progression. Reset your armor skills to switch.");
+      return;
+    }
+
+    if (!isStatPrereqMet(node)) {
+      const stat = node.required_stat?.toUpperCase();
+      const alt = node.required_stat_alt?.toUpperCase();
+      const val = node.required_stat_value;
+      toast.error(alt ? `Requires ${stat} or ${alt} ${val}+` : `Requires ${stat} ${val}+`);
       return;
     }
 
@@ -238,6 +253,10 @@ export default function SpendPoints() {
         .flatMap(([, ids]) => ids)
     : [];
 
+  // Compute stat-locked node IDs per tree
+  const getStatLockedNodeIds = (tree) =>
+    (tree.nodes || []).filter((n) => !isStatPrereqMet(n)).map((n) => n.id);
+
   return (
     <div>
       {/* Floating back button */}
@@ -336,6 +355,7 @@ export default function SpendPoints() {
                               tree={tree}
                               unlockedNodeIds={getUnlockedNodeIds(tree.id)}
                               blockedNodeIds={blockedArmorNodeIds}
+                              statLockedNodeIds={getStatLockedNodeIds(tree)}
                               onUnlock={(node) => handleUnlock(tree.id, node)}
                               onSelect={(node, status) => setSelectedNode({ node, treeId: tree.id, status })}
                             />
@@ -420,6 +440,7 @@ export default function SpendPoints() {
           node={selectedNode.node}
           status={selectedNode.status}
           remaining={remaining}
+          character={character}
           onAcquire={(node) => selectedNode.isRacial ? handleUnlockRacial(selectedNode.treeId, node) : handleUnlock(selectedNode.treeId, node)}
           onRelease={(node) => selectedNode.isRacial ? handleReleaseRacial(selectedNode.treeId, node) : handleRelease(selectedNode.treeId, node)}
           onClose={() => setSelectedNode(null)}

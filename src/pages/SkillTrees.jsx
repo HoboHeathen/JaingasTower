@@ -265,7 +265,7 @@ function UserSkillTrees() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-heading font-semibold text-foreground leading-tight">{tree.name}</h3>
-                    {tree._isUserCopy && (
+                    {tree._isUserCopy && !tree._isResetToDefault && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground border border-accent/30">
                         customized
                       </span>
