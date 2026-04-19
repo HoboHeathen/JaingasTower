@@ -1,0 +1,113 @@
+{
+  "name": "VttMap",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group this map belongs to"
+    },
+    "name": {
+      "type": "string",
+      "description": "Map name"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL of the uploaded map image"
+    },
+    "image_scale": {
+      "type": "number",
+      "default": 1,
+      "description": "Scale factor for the map image"
+    },
+    "grid_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "square",
+        "hex"
+      ],
+      "default": "square",
+      "description": "Type of grid overlay"
+    },
+    "grid_size": {
+      "type": "number",
+      "default": 60,
+      "description": "Size of each grid cell in pixels"
+    },
+    "grid_offset_x": {
+      "type": "number",
+      "default": 0,
+      "description": "Horizontal offset of the grid"
+    },
+    "grid_offset_y": {
+      "type": "number",
+      "default": 0,
+      "description": "Vertical offset of the grid"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the currently active map for the group"
+    },
+    "tokens": {
+      "type": "array",
+      "description": "Tokens placed on this map",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "player",
+              "enemy",
+              "friendly",
+              "neutral"
+            ]
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "tiny",
+              "small",
+              "medium",
+              "large",
+              "huge"
+            ],
+            "default": "medium"
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "character_id": {
+            "type": "string"
+          },
+          "monster_id": {
+            "type": "string"
+          },
+          "current_hp": {
+            "type": "number"
+          },
+          "max_hp": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "group_id",
+    "name"
+  ]
+}

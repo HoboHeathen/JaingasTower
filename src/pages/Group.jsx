@@ -8,11 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
   Users, Plus, Copy, Check, Send, MessageCircle, Dices,
-  Shield, Heart, Swords, BookOpen, ChevronRight, Crown, FlaskConical
+  Shield, Heart, Swords, BookOpen, ChevronRight, Crown, FlaskConical, Map
 } from 'lucide-react';
 // Icon is used by tab mapping via destructuring; imported above via lucide-react
 import BestiaryTab from '@/components/gm/BestiaryTab';
 import EncounterTab from '@/components/encounter/EncounterTab';
+import VttTab from '@/components/vtt/VttTab';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ const PLAYER_TABS = [
   { key: 'chat', label: 'Chat', icon: MessageCircle },
   { key: 'bestiary', label: 'Bestiary', icon: BookOpen },
   { key: 'encounter', label: 'Encounter', icon: Swords },
+  { key: 'vtt', label: 'Map', icon: Map },
 ];
 
 const GM_TABS = [
@@ -31,6 +33,7 @@ const GM_TABS = [
   { key: 'chat', label: 'Chat', icon: MessageCircle },
   { key: 'bestiary', label: 'Bestiary', icon: BookOpen },
   { key: 'encounter', label: 'Encounter', icon: Swords },
+  { key: 'vtt', label: 'Map', icon: Map },
   { key: 'gm', label: 'GM Tools', icon: FlaskConical },
 ];
 
@@ -415,6 +418,11 @@ export default function Group() {
           user={user}
           groupCharacters={groupCharacters}
         />
+      )}
+
+      {/* VTT Map Tab */}
+      {tab === 'vtt' && (
+        <VttTab activeGroup={activeGroup} isGM={isGM} user={user} groupCharacters={groupCharacters} />
       )}
 
       {/* GM Tools Tab */}
