@@ -109,7 +109,6 @@ export default function VttCanvas({
   
   // Movement tracking per token (persists across multiple drags in one turn)
   const movementState = useRef({}); // {tokenId: {totalFeet: number, waypoints: [{col,row}]}}
-  const dragStart = useRef(null); // {col, row} - where drag started
 
   // Fog of war
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
