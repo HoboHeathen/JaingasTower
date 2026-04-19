@@ -193,6 +193,7 @@ export default function VttCanvas({
 
   // Zoom
   const [zoom, setZoom] = useState(1);
+  const [losEnabled, setLosEnabled] = useState(true);
 
   // Measurement tool
   const [measureStart, setMeasureStart] = useState(null); // {col, row}
@@ -423,7 +424,7 @@ export default function VttCanvas({
     }
 
     // Line of sight darkness (non-GM players only) — darken all cells except visible ones
-    if (!isGM && visibleCells.size > 0) {
+    if (!isGM && losEnabled && visibleCells.size > 0) {
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
       // Iterate through visible cells and darken their neighbors and the entire map
       // Use a static large range independent of viewport
@@ -965,6 +966,15 @@ export default function VttCanvas({
 
       {/* Top-right HUD controls */}
       <div className="absolute top-2 right-2 flex items-center gap-1.5">
+        {isGM && (
+          <button
+            onClick={() => setLosEnabled(!losEnabled)}
+            className={`text-xs px-2 py-1 rounded transition-colors ${losEnabled ? 'bg-primary/80 text-primary-foreground' : 'bg-black/60 text-white hover:bg-black/80'}`}
+            title="Toggle Line of Sight for players"
+          >
+            LOS {losEnabled ? '✓' : '✗'}
+          </button>
+        )}
         {initiativeStarted && Object.keys(trails).length > 0 && (
           <button onClick={clearTrails} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
             Clear Trails
