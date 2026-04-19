@@ -1,0 +1,27 @@
+{
+  "name": "Encounter",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group this encounter belongs to"
+    },
+    "name": {
+      "type": "string",
+      "description": "Encounter name (optional)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the encounter is currently active"
+    },
+    "round": {
+      "type": "number",
+      "default": 1,
+      "description": "Current round number"
+    }
+  },
+  "required": [
+    "group_id"
+  ]
+}

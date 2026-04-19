@@ -1,0 +1,114 @@
+{
+  "name": "CustomMonster",
+  "type": "object",
+  "properties": {
+    "owner_email": {
+      "type": "string",
+      "description": "Email of the GM who created this custom monster"
+    },
+    "name": {
+      "type": "string",
+      "description": "Monster name"
+    },
+    "category": {
+      "type": "string",
+      "description": "Monster category/type"
+    },
+    "size": {
+      "type": "string",
+      "description": "Monster size (e.g. Small, Medium, Large)"
+    },
+    "hp_type": {
+      "type": "string",
+      "enum": [
+        "weak",
+        "standard",
+        "tough",
+        "hulking"
+      ],
+      "default": "standard",
+      "description": "HP scaling tier"
+    },
+    "defense": {
+      "type": "number",
+      "default": 10
+    },
+    "speed": {
+      "type": "string",
+      "default": "30ft"
+    },
+    "vulnerabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resistances": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "immunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "attributes": {
+      "type": "array",
+      "description": "Special passive attributes",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "description": "Combat actions",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "action_slot": {
+            "type": "string"
+          },
+          "range": {
+            "type": "string"
+          },
+          "to_hit": {
+            "type": "string"
+          },
+          "damage_type": {
+            "type": "string",
+            "enum": [
+              "light",
+              "medium",
+              "heavy",
+              "devastating"
+            ]
+          },
+          "damage_keyword": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "owner_email",
+    "name"
+  ]
+}

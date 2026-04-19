@@ -10,7 +10,9 @@ import {
   Users, Plus, Copy, Check, Send, MessageCircle, Dices,
   Shield, Heart, Swords, BookOpen, ChevronRight, Crown, FlaskConical
 } from 'lucide-react';
+// Icon is used by tab mapping via destructuring; imported above via lucide-react
 import BestiaryTab from '@/components/gm/BestiaryTab';
+import EncounterTab from '@/components/encounter/EncounterTab';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -20,6 +22,7 @@ const PLAYER_TABS = [
   { key: 'rolls', label: 'Rolls', icon: Dices },
   { key: 'chat', label: 'Chat', icon: MessageCircle },
   { key: 'bestiary', label: 'Bestiary', icon: BookOpen },
+  { key: 'encounter', label: 'Encounter', icon: Swords },
 ];
 
 const GM_TABS = [
@@ -27,6 +30,7 @@ const GM_TABS = [
   { key: 'rolls', label: 'Rolls', icon: Dices },
   { key: 'chat', label: 'Chat', icon: MessageCircle },
   { key: 'bestiary', label: 'Bestiary', icon: BookOpen },
+  { key: 'encounter', label: 'Encounter', icon: Swords },
   { key: 'gm', label: 'GM Tools', icon: FlaskConical },
 ];
 
@@ -49,8 +53,6 @@ export default function Group() {
   const [joinCharacterId, setJoinCharacterId] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [copied, setCopied] = useState(false);
-  const [beastForm, setBeastForm] = useState({ monster_name: '', description: '', hp: '', armor: '', special_abilities: '' });
-  const [showAddBeast, setShowAddBeast] = useState(false);
   const chatEndRef = useRef(null);
 
   const { data: myGroups = [] } = useQuery({
@@ -99,11 +101,7 @@ export default function Group() {
     refetchInterval: 5000,
   });
 
-  const { data: bestiary = [] } = useQuery({
-    queryKey: ['group-bestiary', activeGroupId],
-    queryFn: () => base44.entities.GroupBestiary.filter({ group_id: activeGroupId }),
-    enabled: !!activeGroupId && tab === 'bestiary',
-  });
+
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -148,15 +146,7 @@ export default function Group() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['group-messages'] }),
   });
 
-  const addBeastMutation = useMutation({
-    mutationFn: (data) => base44.entities.GroupBestiary.create({ ...data, group_id: activeGroupId, added_by_email: user.email }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group-bestiary'] });
-      setShowAddBeast(false);
-      setBeastForm({ monster_name: '', description: '', hp: '', armor: '', special_abilities: '' });
-      toast.success('Monster added to bestiary!');
-    },
-  });
+
 
   const handleCreateGroup = (e) => {
     e.preventDefault();
@@ -412,44 +402,24 @@ export default function Group() {
         </div>
       )}
 
-      {/* Bestiary Tab — group's logged monsters */}
+      {/* Bestiary Tab */}
       {tab === 'bestiary' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Monsters encountered and shared by the GM.</p>
-          </div>
-          {bestiary.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No monsters recorded yet. The GM can add monsters from the GM Tools tab.</div>
-          ) : (
-            <div className="space-y-3">
-              {bestiary.map((m) => (
-                <div key={m.id} className="bg-card border border-border/50 rounded-xl p-4">
-                  <h3 className="font-heading font-semibold text-foreground mb-1">{m.monster_name}</h3>
-                  {m.description && <p className="text-xs text-muted-foreground mb-2 whitespace-pre-line">{m.description}</p>}
-                  <div className="flex flex-wrap gap-3 text-sm">
-                    {m.hp && <span className="flex items-center gap-1 text-red-400"><Heart className="w-3.5 h-3.5" />{m.hp}</span>}
-                    {m.armor && <span className="flex items-center gap-1 text-blue-400"><Shield className="w-3.5 h-3.5" />{m.armor}</span>}
-                  </div>
-                  {m.special_abilities && (
-                    <p className="text-xs text-accent-foreground mt-2 bg-accent/10 rounded-lg px-3 py-2 whitespace-pre-line">{m.special_abilities}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <BestiaryTab activeGroup={activeGroup} isGM={isGM} user={user} />
+      )}
+
+      {/* Encounter Tab */}
+      {tab === 'encounter' && (
+        <EncounterTab
+          activeGroup={activeGroup}
+          isGM={isGM}
+          user={user}
+          groupCharacters={groupCharacters}
+        />
       )}
 
       {/* GM Tools Tab */}
       {tab === 'gm' && isGM && (
-        <div className="space-y-4">
-          <div className="flex gap-1 mb-4 bg-secondary/30 rounded-xl p-1">
-            <button className="flex-1 py-1.5 px-3 rounded-lg text-sm font-medium bg-card text-foreground shadow-sm">
-              Bestiary
-            </button>
-          </div>
-          <BestiaryTab activeGroup={activeGroup} isGM={isGM} />
-        </div>
+        <BestiaryTab activeGroup={activeGroup} isGM={isGM} user={user} />
       )}
 
       {/* Join Dialog */}

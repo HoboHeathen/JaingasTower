@@ -1,0 +1,72 @@
+{
+  "name": "EncounterParticipant",
+  "type": "object",
+  "properties": {
+    "encounter_id": {
+      "type": "string",
+      "description": "ID of the encounter this participant belongs to"
+    },
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group (denormalised for easy filtering)"
+    },
+    "participant_type": {
+      "type": "string",
+      "enum": [
+        "monster",
+        "player"
+      ],
+      "description": "Whether this is a monster or a player character"
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name (monster name or character name)"
+    },
+    "character_id": {
+      "type": "string",
+      "description": "For player participants: ID of the Character entity"
+    },
+    "monster_id": {
+      "type": "string",
+      "description": "For monster participants: ID in the BESTIARY data or custom monster"
+    },
+    "is_custom_monster": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if monster comes from CustomMonster entity rather than static bestiary"
+    },
+    "monster_snapshot": {
+      "type": "object",
+      "description": "Snapshot of monster data at time of adding to encounter (for stat display)"
+    },
+    "max_hp": {
+      "type": "number",
+      "description": "Max HP for this participant"
+    },
+    "current_hp": {
+      "type": "number",
+      "description": "Current HP"
+    },
+    "initiative": {
+      "type": "number",
+      "description": "Initiative roll result (higher goes first)"
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Active conditions"
+    },
+    "sort_order": {
+      "type": "number",
+      "description": "Manual sort order within initiative ties"
+    }
+  },
+  "required": [
+    "encounter_id",
+    "group_id",
+    "participant_type",
+    "name"
+  ]
+}
