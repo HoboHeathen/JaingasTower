@@ -73,7 +73,71 @@ function cellDist(ax, ay, bx, by) {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
+// Line-of-sight helper: check if a cell is blocked by walls/obstacles
+function isCellBlockedByWall(col, row, walls) {
+  return walls.some((wall) =>
+    wall.cells?.some((c) => c.col === col && c.row === row && 
+      (wall.type === 'wall' || wall.type === 'obstacle' || (wall.type === 'door' && !wall.is_open)))
+  );
+}
+
+// Bresenham line algorithm to get cells between two points
+function getLineOfSightCells(fromCol, fromRow, toCol, toRow) {
+  const cells = [];
+  let x0 = fromCol, y0 = fromRow;
+  let x1 = toCol, y1 = toRow;
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  let x = x0, y = y0;
+  while (true) {
+    cells.push({ col: x, row: y });
+    if (x === x1 && y === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x += sx; }
+    if (e2 < dx) { err += dx; y += sy; }
+  }
+  return cells;
+}
+
+// Calculate visible cells for a token using shadowcasting
+function calculateTokenVisibility(tokenCol, tokenRow, range, walls) {
+  const visible = new Set();
+  const key = (col, row) => `${col},${row}`;
+  visible.add(key(tokenCol, tokenRow));
+
+  // Simple approach: raycast in all directions within range
+  for (let col = tokenCol - range; col <= tokenCol + range; col++) {
+    for (let row = tokenRow - range; row <= tokenRow + range; row++) {
+      const dist = cellDist(tokenCol, tokenRow, col, row);
+      if (dist <= range && dist > 0) {
+        const path = getLineOfSightCells(tokenCol, tokenRow, col, row);
+        let blocked = false;
+        for (const cell of path) {
+          if (isCellBlockedByWall(cell.col, cell.row, walls)) {
+            blocked = true;
+            break;
+          }
+        }
+        if (!blocked) {
+          visible.add(key(col, row));
+        }
+      }
+    }
+  }
+  return visible;
+}
+
 function fogKey(col, row) { return `${col},${row}`; }
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 export default function VttCanvas({
   map,
@@ -122,6 +186,11 @@ export default function VttCanvas({
   // Pings
   const [pings, setPings] = useState([]);
 
+  // Line of sight
+  const [visibleCells, setVisibleCells] = useState(new Set()); // {tokenId: Set of "col,row"}
+  const [gmTokenLOS, setGmTokenLOS] = useState({}); // For GM to see all tokens' LOS
+  const losRange = 30; // 30 cells = 150 feet
+
   // Zoom
   const [zoom, setZoom] = useState(1);
 
@@ -146,6 +215,16 @@ export default function VttCanvas({
     movementState.current = {};
     setTrails({});
   }, [activeTokenId]);
+
+  // Calculate LOS for all tokens on token/wall changes (GM view)
+  useEffect(() => {
+    if (!isGM) return;
+    const gmLos = {};
+    localTokens.forEach((t) => {
+      gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
+    });
+    setGmTokenLOS(gmLos);
+  }, [localTokens, walls, isGM]);
 
   // Resize observer
   useEffect(() => {
@@ -329,6 +408,38 @@ export default function VttCanvas({
         const [col, row] = key.split(',').map(Number);
         const { x: fx, y: fy } = cellToWorld(col, row, gs, ox, oy);
         ctx.fillRect(fx - gs / 2, fy - gs / 2, gs, gs);
+      });
+    }
+
+    // Line of sight darkness (non-GM players only)
+    if (!isGM && visibleCells.size > 0) {
+      // Draw black over entire canvas, then punch out visible cells
+      ctx.fillStyle = 'rgba(0,0,0,0.95)';
+      ctx.fillRect(-pan.x, -pan.y, canvas.width, canvas.height);
+      
+      // Reveal visible cells
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.globalCompositeOperation = 'destination-out';
+      visibleCells.forEach((key) => {
+        const [col, row] = key.split(',').map(Number);
+        const { x: vx, y: vy } = cellToWorld(col, row, gs, ox, oy);
+        ctx.fillRect(vx - gs / 2, vy - gs / 2, gs, gs);
+      });
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // GM visualization of token LOS (semi-transparent highlights)
+    if (isGM && Object.keys(gmTokenLOS).length > 0) {
+      localTokens.forEach((token) => {
+        const los = gmTokenLOS[token.id];
+        if (!los) return;
+        const color = token.color || TOKEN_COLORS[token.type] || '#888';
+        ctx.fillStyle = hexToRgba(color, 0.08);
+        los.forEach((key) => {
+          const [col, row] = key.split(',').map(Number);
+          const { x: lx, y: ly } = cellToWorld(col, row, gs, ox, oy);
+          ctx.fillRect(lx - gs / 2, ly - gs / 2, gs, gs);
+        });
       });
     }
 
@@ -574,6 +685,19 @@ export default function VttCanvas({
         const existing = prev[draggingId] || [dragStart.current];
         return { ...prev, [draggingId]: [...existing.slice(0, state.waypoints.length - 1), ...state.waypoints] };
       });
+
+      // Update LOS for dragging token
+      const losVis = calculateTokenVisibility(col, row, losRange, walls);
+      setVisibleCells(losVis);
+      
+      // Update GM view of all tokens' LOS
+      if (isGM) {
+        const gmLos = {};
+        localTokens.forEach((t) => {
+          gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
+        });
+        setGmTokenLOS(gmLos);
+      }
     } else if (isPanning) {
       setPan({ x: e.clientX / zoom - panStart.current.x, y: e.clientY / zoom - panStart.current.y });
     }
