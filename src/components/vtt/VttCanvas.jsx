@@ -216,14 +216,25 @@ export default function VttCanvas({
     setTrails({});
   }, [activeTokenId]);
 
-  // Calculate LOS for all tokens on token/wall changes (GM view)
+  // Calculate LOS for all tokens on token/wall changes
   useEffect(() => {
-    if (!isGM) return;
     const gmLos = {};
     localTokens.forEach((t) => {
       gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
     });
     setGmTokenLOS(gmLos);
+    
+    // For non-GM players, calculate LOS for their own character tokens
+    if (!isGM) {
+      const playerLos = new Set();
+      localTokens.forEach((t) => {
+        if (t.type === 'player') {
+          const los = calculateTokenVisibility(t.x, t.y, losRange, walls);
+          los.forEach((cell) => playerLos.add(cell));
+        }
+      });
+      setVisibleCells(playerLos);
+    }
   }, [localTokens, walls, isGM]);
 
   // Resize observer
@@ -412,33 +423,59 @@ export default function VttCanvas({
     }
 
     // Line of sight darkness (non-GM players only)
-    if (!isGM && visibleCells.size > 0) {
-      // Draw black over entire canvas, then punch out visible cells
-      ctx.fillStyle = 'rgba(0,0,0,0.95)';
+    if (!isGM) {
+      // Draw semi-transparent black over everything
+      ctx.fillStyle = 'rgba(0,0,0,0.92)';
       ctx.fillRect(-pan.x, -pan.y, canvas.width, canvas.height);
       
-      // Reveal visible cells
-      ctx.fillStyle = 'rgba(0,0,0,0)';
-      ctx.globalCompositeOperation = 'destination-out';
-      visibleCells.forEach((key) => {
-        const [col, row] = key.split(',').map(Number);
-        const { x: vx, y: vy } = cellToWorld(col, row, gs, ox, oy);
-        ctx.fillRect(vx - gs / 2, vy - gs / 2, gs, gs);
-      });
-      ctx.globalCompositeOperation = 'source-over';
+      // Erase visible cells to reveal them
+      if (visibleCells.size > 0) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0,0,0,1)';
+        visibleCells.forEach((key) => {
+          const [col, row] = key.split(',').map(Number);
+          const { x: vx, y: vy } = cellToWorld(col, row, gs, ox, oy);
+          ctx.fillRect(vx - gs / 2, vy - gs / 2, gs, gs);
+        });
+        ctx.globalCompositeOperation = 'source-over';
+      }
     }
 
-    // GM visualization of token LOS (semi-transparent highlights)
+    // GM visualization of token LOS (bright color overlays)
     if (isGM && Object.keys(gmTokenLOS).length > 0) {
       localTokens.forEach((token) => {
         const los = gmTokenLOS[token.id];
-        if (!los) return;
+        if (!los || los.size === 0) return;
         const color = token.color || TOKEN_COLORS[token.type] || '#888';
-        ctx.fillStyle = hexToRgba(color, 0.08);
+        // Bright overlay for visibility
+        ctx.fillStyle = hexToRgba(color, 0.15);
         los.forEach((key) => {
           const [col, row] = key.split(',').map(Number);
           const { x: lx, y: ly } = cellToWorld(col, row, gs, ox, oy);
           ctx.fillRect(lx - gs / 2, ly - gs / 2, gs, gs);
+        });
+        // Subtle border around the LOS edge
+        ctx.strokeStyle = hexToRgba(color, 0.4);
+        ctx.lineWidth = 1;
+        const boundary = new Set();
+        los.forEach((key) => {
+          const [col, row] = key.split(',').map(Number);
+          // Check if adjacent to non-visible cell
+          for (let dc = -1; dc <= 1; dc++) {
+            for (let dr = -1; dr <= 1; dr++) {
+              if (Math.abs(dc) + Math.abs(dr) === 1) {
+                if (!los.has(`${col + dc},${row + dr}`)) {
+                  boundary.add(key);
+                  break;
+                }
+              }
+            }
+          }
+        });
+        boundary.forEach((key) => {
+          const [col, row] = key.split(',').map(Number);
+          const { x: bx, y: by } = cellToWorld(col, row, gs, ox, oy);
+          ctx.strokeRect(bx - gs / 2, by - gs / 2, gs, gs);
         });
       });
     }
