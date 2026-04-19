@@ -1,9 +1,10 @@
 import React from 'react';
-import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2, Ruler } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TOOLS = [
   { key: 'select', label: 'Select / Move', icon: Move, gmOnly: false },
+  { key: 'measure', label: 'Measure', icon: Ruler, gmOnly: false },
   { key: 'fog_add', label: 'Add Fog', icon: Eye, gmOnly: true },
   { key: 'fog_erase', label: 'Erase Fog', icon: EyeOff, gmOnly: true },
   { key: 'wall', label: 'Wall', icon: Minus, gmOnly: true },
@@ -81,6 +82,7 @@ export default function VttToolbar({ activeTool, onToolChange, isGM, onClearFog,
       {/* Active tool hint */}
       <div className="ml-auto text-[10px] text-muted-foreground italic hidden md:block">
         {activeTool === 'select' && 'Drag tokens to move • Right-click token for options • Right-click empty = ping'}
+        {activeTool === 'measure' && 'Click to set origin • drag to measure distance in feet'}
         {activeTool === 'fog_add' && 'Click/drag to add fog cells'}
         {activeTool === 'fog_erase' && 'Click/drag to erase fog cells'}
         {activeTool === 'wall' && 'Click/drag cells to place walls'}

@@ -112,12 +112,19 @@ export default function VttCanvas({
   // Pings
   const [pings, setPings] = useState([]);
 
+  // Zoom
+  const [zoom, setZoom] = useState(1);
+
+  // Measurement tool
+  const [measureStart, setMeasureStart] = useState(null); // {col, row}
+  const [measureEnd, setMeasureEnd] = useState(null);     // {col, row}
+
   // Context menu
   const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
   const [renameToken, setRenameToken] = useState(null);
-  const [linkToken, setLinkToken] = useState(null); // for unlinked initiative warning
-  const [noLinkWarning, setNoLinkWarning] = useState(null); // {token}
+  const [linkToken, setLinkToken] = useState(null);
+  const [noLinkWarning, setNoLinkWarning] = useState(null);
 
   useEffect(() => { setLocalTokens(map.tokens || []); }, [map.tokens]);
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
@@ -170,6 +177,7 @@ export default function VttCanvas({
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
+    ctx.scale(zoom, zoom);
     ctx.translate(pan.x, pan.y);
 
     // Map image
@@ -231,14 +239,18 @@ export default function VttCanvas({
       ctx.setLineDash([]);
     });
 
-    // Tokens
-    localTokens.forEach((token) => {
+    // Tokens (skip hidden ones for non-GMs)
+    const visibleTokens = localTokens.filter((t) => isGM || t.is_visible !== false);
+    visibleTokens.forEach((token) => {
       const scale = SIZE_SCALE[token.size] || 0.75;
       const radius = (gs * scale) / 2;
       const { x: tx, y: ty } = cellToWorld(token.x, token.y, gs, ox, oy);
       const isActive = token.id === activeTokenId;
 
       if (isActive) { ctx.shadowColor = '#facc15'; ctx.shadowBlur = 18; }
+
+      const isHidden = token.is_visible === false;
+      ctx.globalAlpha = isHidden ? 0.35 : 1;
 
       ctx.beginPath();
       ctx.arc(tx, ty, radius, 0, Math.PI * 2);
@@ -248,7 +260,9 @@ export default function VttCanvas({
       if (isActive) {
         ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.stroke(); ctx.shadowBlur = 0;
       } else {
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.strokeStyle = isHidden ? 'rgba(255,80,80,0.8)' : 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = isHidden ? 2 : 1.5;
+        ctx.stroke();
       }
 
       // HP bar + defense
@@ -288,6 +302,13 @@ export default function VttCanvas({
       ctx.font = `${Math.max(9, gs * 0.16)}px Inter, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.fillText(token.name, tx, ty + radius + (token.max_hp ? 16 : 6));
+      // Hidden label for GM
+      if (isHidden) {
+        ctx.font = `${Math.max(8, gs * 0.13)}px Inter, sans-serif`;
+        ctx.fillStyle = 'rgba(255,80,80,0.9)';
+        ctx.fillText('[hidden]', tx, ty + radius + (token.max_hp ? 26 : 14));
+      }
+      ctx.globalAlpha = 1;
     });
 
     // Fog of war overlay
@@ -315,6 +336,33 @@ export default function VttCanvas({
       ctx.fillText(`${moveInfo.feet}ft`, mx, my - 32);
     }
 
+    // Measurement overlay
+    if (measureStart && measureEnd) {
+      const { x: sx, y: sy } = cellToWorld(measureStart.col, measureStart.row, gs, ox, oy);
+      const { x: ex, y: ey } = cellToWorld(measureEnd.col, measureEnd.row, gs, ox, oy);
+      const dist = cellDist(measureStart.col, measureStart.row, measureEnd.col, measureEnd.row);
+      const feet = dist * FEET_PER_CELL;
+      ctx.strokeStyle = 'rgba(250,204,21,0.9)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 3]);
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+      ctx.setLineDash([]);
+      // Dots at endpoints
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI * 2); ctx.fill();
+      // Distance label
+      const mx2 = (sx + ex) / 2;
+      const my2 = (sy + ey) / 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.beginPath(); ctx.roundRect(mx2 - 28, my2 - 12, 56, 20, 4); ctx.fill();
+      ctx.fillStyle = '#facc15';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${feet}ft`, mx2, my2 - 2);
+    }
+
     // Pings
     const now = Date.now();
     pings.forEach((ping) => {
@@ -330,14 +378,17 @@ export default function VttCanvas({
     });
 
     ctx.restore();
-  }, [pan, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls]);
+  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, measureStart, measureEnd, groupCharacters]);
 
   useEffect(() => { draw(); }, [draw, imgLoaded]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getWorldPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    return { x: e.clientX - rect.left - pan.x, y: e.clientY - rect.top - pan.y };
+    return {
+      x: (e.clientX - rect.left) / zoom - pan.x,
+      y: (e.clientY - rect.top) / zoom - pan.y,
+    };
   };
 
   const findTokenAt = (worldPos) => {
@@ -414,10 +465,25 @@ export default function VttCanvas({
     }
   }, [activeTool, onUpdateMap]);
 
+  // ── Wheel zoom ────────────────────────────────────────────────────────────
+  const onWheel = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setZoom((prev) => Math.min(4, Math.max(0.25, prev + delta)));
+  };
+
   // ── Mouse ─────────────────────────────────────────────────────────────────
   const onMouseDown = (e) => {
     if (e.button === 2) return;
     const world = getWorldPos(e);
+
+    // Measurement tool
+    if (activeTool === 'measure') {
+      const cell = worldToCell(world.x, world.y, gs, ox, oy);
+      setMeasureStart(cell);
+      setMeasureEnd(cell);
+      return;
+    }
 
     if (activeTool !== 'select' && isGM) {
       isPainting.current = true;
@@ -432,11 +498,16 @@ export default function VttCanvas({
       setDraggingId(token.id);
     } else {
       setIsPanning(true);
-      panStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+      panStart.current = { x: e.clientX / zoom - pan.x, y: e.clientY / zoom - pan.y };
     }
   };
 
   const onMouseMove = (e) => {
+    if (activeTool === 'measure' && measureStart) {
+      const world = getWorldPos(e);
+      setMeasureEnd(worldToCell(world.x, world.y, gs, ox, oy));
+      return;
+    }
     if (isPainting.current && activeTool !== 'select' && isGM) {
       applyPaint(e);
       return;
@@ -451,11 +522,12 @@ export default function VttCanvas({
       setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: col, y: row } : t));
       setMoveInfo({ feet, col, row });
     } else if (isPanning) {
-      setPan({ x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y });
+      setPan({ x: e.clientX / zoom - panStart.current.x, y: e.clientY / zoom - panStart.current.y });
     }
   };
 
   const onMouseUp = (e) => {
+    if (activeTool === 'measure') return; // keep measure line until tool switch
     if (isPainting.current) { finishPaint(); return; }
     if (draggingId) {
       const movedToken = localTokens.find((t) => t.id === draggingId);
@@ -523,6 +595,13 @@ export default function VttCanvas({
   const handleRename = () => { setRenameToken(contextMenu.token); setContextMenu(null); };
   const handlePingFromMenu = () => { addPing(contextMenu.screenX, contextMenu.screenY); setContextMenu(null); };
   const handleLinkChar = () => { setLinkToken(contextMenu.token); setContextMenu(null); };
+  const handleToggleVisibility = () => {
+    if (!contextMenu) return;
+    const updated = localTokens.map((t) =>
+      t.id === contextMenu.token.id ? { ...t, is_visible: t.is_visible === false ? true : false } : t
+    );
+    setLocalTokens(updated); onUpdateTokens(updated); setContextMenu(null);
+  };
 
   const handleSaveHP = ({ current_hp, max_hp }) => {
     const updated = localTokens.map((t) => t.id === editHpToken.id ? { ...t, current_hp, max_hp } : t);
@@ -609,16 +688,34 @@ export default function VttCanvas({
   };
 
   const getCursor = () => {
+    if (activeTool === 'measure') return 'crosshair';
     if (activeTool === 'select') return draggingId ? 'grabbing' : isPanning ? 'grabbing' : 'grab';
     if (activeTool === 'erase_wall') return 'cell';
     return 'crosshair';
   };
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    const el = containerRef.current;
+    if (!isFullscreen) {
+      el.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+    setIsFullscreen((v) => !v);
+  };
+
+  // Clear measure when tool changes away
+  useEffect(() => {
+    if (activeTool !== 'measure') { setMeasureStart(null); setMeasureEnd(null); }
+  }, [activeTool]);
+
   return (
     <div
       ref={containerRef}
       className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50"
-      style={{ height: '65vh' }}
+      style={{ height: isFullscreen ? '100vh' : '65vh' }}
     >
       <canvas
         ref={canvasRef}
@@ -631,7 +728,9 @@ export default function VttCanvas({
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseUp}
         onContextMenu={onContextMenu}
+        onWheel={onWheel}
         onDoubleClick={(e) => {
+          if (activeTool !== 'select') return;
           const world = getWorldPos(e);
           const token = findTokenAt(world);
           if (token) setEditHpToken(token);
@@ -641,21 +740,28 @@ export default function VttCanvas({
         onTouchEnd={onTouchEnd}
       />
 
-
-
-      {/* Clear trails button */}
-      {initiativeStarted && Object.keys(trails).length > 0 && (
-        <button
-          onClick={clearTrails}
-          className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors"
-        >
-          Clear Trails
+      {/* Top-right HUD controls */}
+      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+        {initiativeStarted && Object.keys(trails).length > 0 && (
+          <button onClick={clearTrails} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
+            Clear Trails
+          </button>
+        )}
+        {/* Zoom controls */}
+        <div className="flex items-center bg-black/60 rounded-lg overflow-hidden">
+          <button onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))} className="text-white text-sm px-2 py-1 hover:bg-black/80">−</button>
+          <span className="text-white text-xs px-1 min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
+          <button onClick={() => setZoom((z) => Math.min(4, z + 0.1))} className="text-white text-sm px-2 py-1 hover:bg-black/80">+</button>
+        </div>
+        {/* Fullscreen toggle */}
+        <button onClick={toggleFullscreen} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
+          {isFullscreen ? '⤡' : '⤢'}
         </button>
-      )}
+      </div>
 
       {/* Active turn badge */}
       {initiativeStarted && activeTokenId && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded-full pointer-events-none shadow-lg">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded-full pointer-events-none shadow-lg">
           {localTokens.find((t) => t.id === activeTokenId)?.name ?? ''}'s Turn
         </div>
       )}
@@ -673,6 +779,7 @@ export default function VttCanvas({
           onRename={handleRename}
           onPing={handlePingFromMenu}
           onLinkCharacter={handleLinkChar}
+          onToggleVisibility={handleToggleVisibility}
         />
       )}
 

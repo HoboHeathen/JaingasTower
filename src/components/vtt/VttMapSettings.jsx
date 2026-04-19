@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -9,15 +9,19 @@ export default function VttMapSettings({ map, onUpdate }) {
   const [offsetY, setOffsetY] = useState(map.grid_offset_y || 0);
   const [imageScale, setImageScale] = useState(map.image_scale || 1);
 
-  const handleSave = () => {
-    onUpdate({
-      grid_type: gridType,
-      grid_size: Number(gridSize),
-      grid_offset_x: Number(offsetX),
-      grid_offset_y: Number(offsetY),
-      image_scale: Number(imageScale),
-    });
-  };
+  // Live-apply on any change (debounced via useEffect)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      onUpdate({
+        grid_type: gridType,
+        grid_size: Math.max(10, Number(gridSize) || 60),
+        grid_offset_x: Number(offsetX) || 0,
+        grid_offset_y: Number(offsetY) || 0,
+        image_scale: Math.max(0.1, Number(imageScale) || 1),
+      });
+    }, 300);
+    return () => clearTimeout(id);
+  }, [gridType, gridSize, offsetX, offsetY, imageScale]);
 
   return (
     <div className="bg-card border border-border/50 rounded-xl p-4 flex flex-wrap gap-4 items-end">
@@ -35,7 +39,7 @@ export default function VttMapSettings({ map, onUpdate }) {
       </div>
       <div>
         <label className="text-xs text-muted-foreground block mb-1">Cell Size (px)</label>
-        <Input type="number" min={20} max={200} value={gridSize} onChange={(e) => setGridSize(e.target.value)} className="w-24" />
+        <Input type="number" min={10} max={200} value={gridSize} onChange={(e) => setGridSize(e.target.value)} className="w-24" />
       </div>
       <div>
         <label className="text-xs text-muted-foreground block mb-1">Grid Offset X</label>
@@ -49,7 +53,7 @@ export default function VttMapSettings({ map, onUpdate }) {
         <label className="text-xs text-muted-foreground block mb-1">Image Scale</label>
         <Input type="number" min={0.1} max={5} step={0.1} value={imageScale} onChange={(e) => setImageScale(e.target.value)} className="w-24" />
       </div>
-      <Button size="sm" onClick={handleSave}>Apply</Button>
+      <p className="text-[10px] text-muted-foreground w-full -mt-2">Changes apply live (300ms debounce)</p>
     </div>
   );
 }

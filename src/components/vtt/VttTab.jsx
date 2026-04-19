@@ -105,7 +105,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     // Center of canvas viewport in grid coords (canvas approx 800x500)
     const centerCol = Math.round((400 - ox) / gs);
     const centerRow = Math.round((250 - oy) / gs);
-    handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: centerCol, y: centerRow }]);
+    handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: centerCol, y: centerRow, is_visible: true }]);
     setShowAddToken(false);
   };
 

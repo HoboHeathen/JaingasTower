@@ -238,8 +238,26 @@ export default function LootTable() {
     });
   }, [search, filter]);
 
+  // Parse dice formula: "3d6+2", "2d10 - 4", "d20", "15", etc.
+  const rollFormula = (formula) => {
+    if (!formula.trim()) return Math.floor(Math.random() * 180) + 1;
+    const clean = formula.replace(/\s/g, '').toLowerCase();
+    // Check if it's a plain number
+    if (/^\d+$/.test(clean)) return parseInt(clean);
+    // Match NdM+K pattern
+    const match = clean.match(/^(\d*)d(\d+)([+-]\d+)?$/);
+    if (!match) return NaN;
+    const count = parseInt(match[1] || '1');
+    const faces = parseInt(match[2]);
+    const modifier = parseInt(match[3] || '0');
+    let total = 0;
+    for (let i = 0; i < count; i++) total += Math.floor(Math.random() * faces) + 1;
+    return total + modifier;
+  };
+
   const handleRoll = () => {
-    const roll = rollInput ? parseInt(rollInput) : Math.floor(Math.random() * 180) + 1;
+    const roll = rollFormula(rollInput);
+    if (isNaN(roll)) { toast.error('Invalid formula. Try: 3d6+2, d20, or just a number.'); return; }
     const result = LOOT_DATA.find((e) => roll >= e.roll_min && roll <= e.roll_max);
     setRolledResult({ roll, result: result || { result_label: 'No result found' } });
   };
@@ -261,13 +279,11 @@ export default function LootTable() {
         </h2>
         <div className="flex gap-3 items-center flex-wrap">
           <Input
-            type="number"
-            placeholder="Enter roll (blank = random)"
+            placeholder="e.g. 3d6+2, d20, 42 (blank = random)"
             value={rollInput}
             onChange={(e) => setRollInput(e.target.value)}
-            className="w-56"
-            min={1}
-            max={999}
+            onKeyDown={(e) => e.key === 'Enter' && handleRoll()}
+            className="w-64"
           />
           <Button onClick={handleRoll} className="gap-2">
             <Dices className="w-4 h-4" /> Roll
