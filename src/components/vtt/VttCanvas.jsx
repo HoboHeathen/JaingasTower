@@ -724,6 +724,7 @@ export default function VttCanvas({
   return (
     <div
       ref={containerRef}
+      data-vtt-container
       className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50"
       style={{ height: isFullscreen ? '100vh' : '65vh' }}
     >

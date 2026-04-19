@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 
 function guessItemType(label) {
-  if (label.includes('Type Component')) return { item_type: 'crafting_component', component_category: 'type' };
-  if (label.includes('Target Component')) return { item_type: 'crafting_component', component_category: 'target' };
+  // Check effect/target/type keywords before "Component" to ensure correct category
   if (label.includes('Effect Component')) return { item_type: 'crafting_component', component_category: 'effect' };
+  if (label.includes('Target Component')) return { item_type: 'crafting_component', component_category: 'target' };
+  if (label.includes('Type Component')) return { item_type: 'crafting_component', component_category: 'type' };
   if (label.includes('Potion') || label.includes('Totem')) return { item_type: 'consumable' };
   if (label.includes('gp')) return { item_type: 'gold' };
   if (label.includes('Skill Point')) return { item_type: 'skill_points' };

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2, Pencil, Check, X, Sword } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 export default function PlayerWeaponsPanel({ characterId }) {
@@ -134,7 +135,16 @@ export default function PlayerWeaponsPanel({ characterId }) {
                       </button>
                     </div>
                   </div>
-                  {weapon.notes && <p className="text-xs text-muted-foreground">{weapon.notes}</p>}
+                  {weapon.notes && <p className="text-xs text-muted-foreground mb-2">{weapon.notes}</p>}
+                  {/* 3 upgrade slots */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Upgrade Slots:</span>
+                    {[1, 2, 3].map((slot) => (
+                      <div key={slot} className="w-5 h-5 rounded border border-dashed border-border/60 bg-secondary/20 flex items-center justify-center">
+                        <span className="text-[9px] text-muted-foreground">{slot}</span>
+                      </div>
+                    ))}
+                  </div>
                 </>
               )}
             </div>

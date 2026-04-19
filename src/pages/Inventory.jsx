@@ -100,25 +100,40 @@ export default function Inventory() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-secondary/30 p-1 rounded-lg">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-              activeTab === tab
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+      <div className="mb-6">
+        {/* Mobile dropdown */}
+        <div className="sm:hidden">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            {tab}
-            {tab !== 'Weapons' && tabItems[tab] && (
-              <span className="ml-1.5 text-xs opacity-60">
-                ({tab === 'Components' ? tabItems[tab].reduce((a, i) => a + (i.quantity || 1), 0) : tabItems[tab].length})
-              </span>
-            )}
-          </button>
-        ))}
+            {TABS.map((tab) => (
+              <option key={tab} value={tab}>{tab}</option>
+            ))}
+          </select>
+        </div>
+        {/* Desktop pills */}
+        <div className="hidden sm:flex gap-1 bg-secondary/30 p-1 rounded-lg">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                activeTab === tab
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab}
+              {tab !== 'Weapons' && tabItems[tab] && (
+                <span className="ml-1.5 text-xs opacity-60">
+                  ({tab === 'Components' ? tabItems[tab].reduce((a, i) => a + (i.quantity || 1), 0) : tabItems[tab].length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (

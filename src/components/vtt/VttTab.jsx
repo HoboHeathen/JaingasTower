@@ -85,6 +85,11 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     setInitiativeOrder([]);
     setInitiativeStarted(false);
     setActiveIndex(0);
+    // Auto-enter fullscreen
+    setTimeout(() => {
+      const el = document.querySelector('[data-vtt-container]');
+      if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
+    }, 300);
   };
 
   const handleUpdateMap = (data) => {
