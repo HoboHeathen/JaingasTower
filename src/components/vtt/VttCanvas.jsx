@@ -423,24 +423,20 @@ export default function VttCanvas({
     }
 
     // Line of sight darkness (non-GM players only)
-    if (!isGM) {
+    if (!isGM && visibleCells.size > 0) {
+      // Dark the entire viewport first
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
-      // Calculate visible grid range accounting for zoom
-      const minCol = Math.floor((-pan.x / zoom) / gs) - 2;
-      const maxCol = Math.floor((-pan.x / zoom + canvas.width / zoom) / gs) + 2;
-      const minRow = Math.floor((-pan.y / zoom) / gs) - 2;
-      const maxRow = Math.floor((-pan.y / zoom + canvas.height / zoom) / gs) + 2;
+      ctx.fillRect(-pan.x, -pan.y, canvas.width, canvas.height);
       
-      // Draw black on all non-visible cells
-      for (let col = minCol; col <= maxCol; col++) {
-        for (let row = minRow; row <= maxRow; row++) {
-          const key = `${col},${row}`;
-          if (!visibleCells.has(key)) {
-            const { x: fx, y: fy } = cellToWorld(col, row, gs, ox, oy);
-            ctx.fillRect(fx - gs / 2, fy - gs / 2, gs, gs);
-          }
-        }
-      }
+      // Then light up only the visible cells by drawing map elements
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      visibleCells.forEach((key) => {
+        const [col, row] = key.split(',').map(Number);
+        const { x: vx, y: vy } = cellToWorld(col, row, gs, ox, oy);
+        ctx.fillRect(vx - gs / 2, vy - gs / 2, gs, gs);
+      });
+      ctx.globalCompositeOperation = 'source-over';
     }
 
     // GM visualization of token LOS (bright color overlays)
