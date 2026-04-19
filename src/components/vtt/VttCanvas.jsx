@@ -104,10 +104,12 @@ export default function VttCanvas({
   const [draggingId, setDraggingId] = useState(null);
   const dragStart = useRef(null);
   const [localTokens, setLocalTokens] = useState(map.tokens || []);
-  const [trails, setTrails] = useState({});
-  const [moveInfo, setMoveInfo] = useState(null);
-  // Track cumulative path length: array of {col,row} waypoints visited this turn
-  const turnPath = useRef([]); // waypoints accumulated across multiple drags this turn
+  const [trails, setTrails] = useState({}); // {tokenId: [{col,row}, ...]}
+  const [moveInfo, setMoveInfo] = useState(null); // {feet, col, row} - current hover position + cumulative distance
+  
+  // Movement tracking per token (persists across multiple drags in one turn)
+  const movementState = useRef({}); // {tokenId: {totalFeet: number, waypoints: [{col,row}]}}
+  const dragStart = useRef(null); // {col, row} - where drag started
 
   // Fog of war
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
@@ -139,10 +141,10 @@ export default function VttCanvas({
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
   useEffect(() => { setWalls(map.walls || []); }, [map.walls]);
 
-  // Clear movement bubble and path when the active turn changes
+  // Clear movement tracking and trails when the turn changes
   useEffect(() => {
     setMoveInfo(null);
-    turnPath.current = [];
+    movementState.current = {};
     setTrails({});
   }, [activeTokenId]);
 
@@ -548,21 +550,19 @@ export default function VttCanvas({
     if (draggingId) {
       const world = getWorldPos(e);
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
-      // Cumulative path length: sum committed waypoints + current drag leg
-      const path = turnPath.current;
-      // Sum committed waypoints
-      let committedDist = 0;
-      for (let i = 1; i < path.length; i++) {
-        committedDist += cellDist(path[i - 1].col, path[i - 1].row, path[i].col, path[i].row);
+      
+      // Initialize movement state for this token on first drag
+      if (!movementState.current[draggingId]) {
+        movementState.current[draggingId] = { totalFeet: 0, waypoints: [dragStart.current] };
       }
-      // Add current drag leg from last committed point to cursor
-      const lastCommitted = path.length > 0 ? path[path.length - 1] : dragStart.current;
-      const currentLeg = lastCommitted ? cellDist(lastCommitted.col, lastCommitted.row, col, row) : 0;
-      const totalDist = committedDist + currentLeg;
-      const feet = totalDist * FEET_PER_CELL;
+      
+      const state = movementState.current[draggingId];
+      const lastWaypoint = state.waypoints[state.waypoints.length - 1];
+      const legDist = cellDist(lastWaypoint.col, lastWaypoint.row, col, row);
+      const totalFeet = state.totalFeet + (legDist * FEET_PER_CELL);
+      
       setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: col, y: row } : t));
-      // Only update moveInfo if feet increased (never decrease display)
-      setMoveInfo((prev) => ({ feet: prev ? Math.max(prev.feet, feet) : feet, col, row }));
+      setMoveInfo({ feet: totalFeet, col, row });
     } else if (isPanning) {
       setPan({ x: e.clientX / zoom - panStart.current.x, y: e.clientY / zoom - panStart.current.y });
     }
@@ -576,22 +576,24 @@ export default function VttCanvas({
       if (movedToken && dragStart.current) {
         const { col: sc, row: sr } = dragStart.current;
         if (movedToken.x !== sc || movedToken.y !== sr) {
+          // Update trails for visual path display
           setTrails((prev) => {
             const existing = prev[draggingId] || [{ col: sc, row: sr }];
             return { ...prev, [draggingId]: [...existing, { col: movedToken.x, row: movedToken.y }] };
           });
-          // Append this drag's endpoint as a waypoint for cumulative distance tracking
-          if (initiativeStarted && draggingId === activeTokenId) {
-            if (turnPath.current.length === 0) {
-              turnPath.current = [{ col: sc, row: sr }];
-            }
-            turnPath.current = [...turnPath.current, { col: movedToken.x, row: movedToken.y }];
+          
+          // Commit waypoint and accumulate distance
+          if (movementState.current[draggingId]) {
+            const state = movementState.current[draggingId];
+            const lastWaypoint = state.waypoints[state.waypoints.length - 1];
+            const legDist = cellDist(lastWaypoint.col, lastWaypoint.row, movedToken.x, movedToken.y);
+            state.totalFeet += legDist * FEET_PER_CELL;
+            state.waypoints.push({ col: movedToken.x, row: movedToken.y });
           }
         }
       }
       onUpdateTokens(localTokens);
       setDraggingId(null);
-      // Keep moveInfo visible (shows cumulative distance) — cleared when turn changes
       dragStart.current = null;
     }
     setIsPanning(false);
