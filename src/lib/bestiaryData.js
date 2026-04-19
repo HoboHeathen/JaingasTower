@@ -42,7 +42,7 @@ export function formatHp(hpType, floorWave, dieType, averaged) {
   const count = getDiceCount(hpType, floorWave);
   if (averaged) {
     const faces = getDieFaces(dieType);
-    return `${count * Math.floor(faces / 2)} (avg)`;
+    return `${count * Math.ceil(faces / 2)} (avg)`;
   }
   return `${count}${dieType}`;
 }

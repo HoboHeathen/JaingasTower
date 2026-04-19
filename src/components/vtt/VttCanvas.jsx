@@ -92,6 +92,7 @@ export default function VttCanvas({
   wallCount,
   onClearFog,
   onClearWalls,
+  round,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -371,7 +372,7 @@ export default function VttCanvas({
       ctx.fillText(`${feet}ft`, mx2, my2 - 2);
     }
 
-    // Pings
+    // Pings (stored as world coords)
     const now = Date.now();
     pings.forEach((ping) => {
       const age = now - ping.born;
@@ -381,8 +382,8 @@ export default function VttCanvas({
       const r2 = 14 + t * 20;
       ctx.strokeStyle = `rgba(250,204,21,${alpha})`;
       ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(ping.x - pan.x, ping.y - pan.y, r1, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(ping.x - pan.x, ping.y - pan.y, r2, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(ping.x, ping.y, r1, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(ping.x, ping.y, r2, 0, Math.PI * 2); ctx.stroke();
     });
 
     ctx.restore();
@@ -473,18 +474,32 @@ export default function VttCanvas({
     }
   }, [activeTool, onUpdateMap]);
 
-  // ── Wheel zoom ────────────────────────────────────────────────────────────
-  // Attach on the container (not just canvas) with passive:false so we can
-  // preventDefault on ctrl+wheel (trackpad pinch) before the browser zooms the page.
-  // Plain scroll (no ctrlKey) is allowed to propagate normally.
+  // ── Wheel zoom (mouse-centered) ───────────────────────────────────────────
+  // Attach on the container with passive:false so we can preventDefault on
+  // ctrl+wheel (trackpad pinch). Plain scroll (no ctrlKey) passes through.
+  // Zoom is centered on the mouse cursor by adjusting pan so the world point
+  // under the cursor stays fixed.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const handler = (e) => {
-      if (!e.ctrlKey) return; // plain scroll — let the page scroll
-      e.preventDefault();     // block browser page-zoom
-      const delta = e.deltaY < 0 ? 0.1 : -0.1;
-      setZoom((prev) => Math.min(4, Math.max(0.25, prev + delta)));
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const rect = container.getBoundingClientRect();
+      // Mouse position relative to container
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      setZoom((prevZoom) => {
+        const delta = e.deltaY < 0 ? 0.1 : -0.1;
+        const newZoom = Math.min(4, Math.max(0.25, prevZoom + delta));
+        // Adjust pan so world point under cursor stays fixed:
+        // worldX = mx/prevZoom - panX  =>  panX_new = mx/newZoom - worldX
+        setPan((prevPan) => ({
+          x: mx / newZoom - (mx / prevZoom - prevPan.x),
+          y: my / newZoom - (my / prevZoom - prevPan.y),
+        }));
+        return newZoom;
+      });
     };
     container.addEventListener('wheel', handler, { passive: false });
     return () => container.removeEventListener('wheel', handler);
@@ -606,7 +621,12 @@ export default function VttCanvas({
   };
 
   const addPing = (screenX, screenY) => {
-    setPings((prev) => [...prev, { id: Date.now(), x: screenX, y: screenY, born: Date.now() }]);
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // Store as world coords so the ping stays fixed on the map regardless of pan/zoom
+    const wx = (screenX - rect.left) / zoom - pan.x;
+    const wy = (screenY - rect.top) / zoom - pan.y;
+    setPings((prev) => [...prev, { id: Date.now(), x: wx, y: wy, born: Date.now(), isWorld: true }]);
   };
 
   // ── Context menu actions ──────────────────────────────────────────────────
@@ -784,12 +804,6 @@ export default function VttCanvas({
             Clear Trails
           </button>
         )}
-        {/* Next Turn button for GM in fullscreen */}
-        {isFullscreen && isGM && initiativeStarted && onNextTurn && (
-          <button onClick={onNextTurn} className="bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded hover:bg-yellow-400 transition-colors">
-            ▶ Next Turn
-          </button>
-        )}
         {/* Zoom controls */}
         <div className="flex items-center bg-black/60 rounded-lg overflow-hidden">
           <button onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))} className="text-white text-sm px-2 py-1 hover:bg-black/80">−</button>
@@ -827,8 +841,25 @@ export default function VttCanvas({
         </button>
       </div>
 
-      {/* Active turn badge */}
-      {initiativeStarted && activeTokenId && (
+      {/* Initiative HUD — shown in fullscreen for all users */}
+      {isFullscreen && initiativeStarted && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/80 rounded-xl px-3 py-2 shadow-xl border border-yellow-500/30 z-10">
+          <span className="text-yellow-400 text-xs font-bold">Round {typeof round === 'number' ? round : ''}</span>
+          {activeTokenId && (
+            <span className="text-white text-xs font-semibold">
+              ⚔️ {localTokens.find((t) => t.id === activeTokenId)?.name ?? ''}'s Turn
+            </span>
+          )}
+          {isGM && onNextTurn && (
+            <button onClick={onNextTurn} className="bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded-lg hover:bg-yellow-400 transition-colors ml-1">
+              Next Turn ▶
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Active turn badge (non-fullscreen) */}
+      {!isFullscreen && initiativeStarted && activeTokenId && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded-full pointer-events-none shadow-lg">
           {localTokens.find((t) => t.id === activeTokenId)?.name ?? ''}'s Turn
         </div>

@@ -107,9 +107,9 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     const gs = activeMap?.grid_size || 60;
     const ox = activeMap?.grid_offset_x || 0;
     const oy = activeMap?.grid_offset_y || 0;
-    // Center of canvas viewport in grid coords (canvas approx 800x500)
-    const centerCol = Math.round((400 - ox) / gs);
-    const centerRow = Math.round((250 - oy) / gs);
+    // Default to grid cell (0,0) — GM can drag it to the right spot
+    const centerCol = 0;
+    const centerRow = 0;
     // Players default to visible; enemies/neutrals/friendly default to hidden for GM to reveal
     const defaultVisible = token.type === 'player';
     handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: centerCol, y: centerRow, is_visible: defaultVisible }]);
@@ -272,6 +272,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         activeTool={activeTool}
         onToolChange={setActiveTool}
         onNextTurn={handleNextTurn}
+        round={round}
         fogCellCount={activeMap?.fog_cells?.length || 0}
         wallCount={activeMap?.walls?.length || 0}
         onClearFog={() => handleUpdateMap({ fog_cells: [] })}

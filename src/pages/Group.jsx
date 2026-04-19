@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
   Users, Plus, Copy, Check, Send, MessageCircle, Dices,
-  Shield, Heart, Swords, BookOpen, ChevronRight, Crown, FlaskConical, Map
+  Shield, Heart, Swords, BookOpen, ChevronRight, Crown, Map
 } from 'lucide-react';
 // Icon is used by tab mapping via destructuring; imported above via lucide-react
 import BestiaryTab from '@/components/gm/BestiaryTab';
@@ -34,7 +34,6 @@ const GM_TABS = [
   { key: 'bestiary', label: 'Bestiary', icon: BookOpen },
   { key: 'encounter', label: 'Encounter', icon: Swords },
   { key: 'vtt', label: 'Map', icon: Map },
-  { key: 'gm', label: 'GM Tools', icon: FlaskConical },
 ];
 
 function generateCode() {
@@ -459,11 +458,6 @@ export default function Group() {
       {/* VTT Map Tab */}
       {tab === 'vtt' && (
         <VttTab activeGroup={activeGroup} isGM={isGM} user={user} groupCharacters={groupCharacters} />
-      )}
-
-      {/* GM Tools Tab */}
-      {tab === 'gm' && isGM && (
-        <BestiaryTab activeGroup={activeGroup} isGM={isGM} user={user} />
       )}
 
       {/* Join Dialog */}

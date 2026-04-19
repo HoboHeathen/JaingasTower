@@ -44,7 +44,7 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
     const dieFaces = parseInt(dieType.replace('d', '')) || 6;
     let maxHp;
     if (hpAveraged) {
-      maxHp = diceCount * Math.floor(dieFaces / 2);
+      maxHp = diceCount * Math.ceil(dieFaces / 2);
     } else {
       let total = 0;
       for (let i = 0; i < diceCount; i++) total += Math.floor(Math.random() * dieFaces) + 1;
