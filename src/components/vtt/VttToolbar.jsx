@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2, Ruler } from 'lucide-react';
+import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2, Ruler, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TOOLS = [
@@ -25,7 +25,17 @@ const TOOL_COLORS = {
   select: 'bg-secondary text-foreground border-border',
 };
 
-export default function VttToolbar({ activeTool, onToolChange, isGM, onClearFog, onClearWalls, fogCellCount, wallCount }) {
+export default function VttToolbar({
+  activeTool,
+  onToolChange,
+  isGM,
+  onClearFog,
+  onClearWalls,
+  fogCellCount,
+  wallCount,
+  isSurvivalMode,
+  onToggleSurvivalMode,
+}) {
   const visibleTools = TOOLS.filter((t) => !t.gmOnly || isGM);
 
   return (
@@ -76,6 +86,19 @@ export default function VttToolbar({ activeTool, onToolChange, isGM, onClearFog,
               <span className="hidden sm:inline">Clear Walls</span>
             </button>
           )}
+          <button
+            onClick={onToggleSurvivalMode}
+            title="Toggle Survival Mode"
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
+              isSurvivalMode
+                ? 'bg-orange-900/60 text-orange-300 border-orange-700 ring-1 ring-orange-500/60'
+                : 'bg-transparent text-muted-foreground border-transparent hover:bg-secondary/60 hover:text-foreground'
+            )}
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Survival</span>
+          </button>
         </>
       )}
 

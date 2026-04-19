@@ -49,7 +49,7 @@
     },
     "walls": {
       "type": "array",
-      "description": "Wall segments stored as {id, type, cells:[{col,row}]} where type is wall|door|window|obstacle",
+      "description": "Wall segments stored as {id, type, cells:[{col,row}]} where type is wall|door|window|obstacle|fortification|spawn_point",
       "items": {
         "type": "object",
         "properties": {
@@ -62,7 +62,9 @@
               "wall",
               "door",
               "window",
-              "obstacle"
+              "obstacle",
+              "fortification",
+              "spawn_point"
             ]
           },
           "is_open": {
@@ -103,7 +105,8 @@
               "player",
               "enemy",
               "friendly",
-              "neutral"
+              "neutral",
+              "innocent"
             ]
           },
           "size": {

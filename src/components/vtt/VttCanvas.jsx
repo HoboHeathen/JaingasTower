@@ -4,6 +4,7 @@ import EditHpModal from '@/components/vtt/EditHpModal';
 import RenameTokenModal from '@/components/vtt/RenameTokenModal';
 import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
 import VttToolbar from '@/components/vtt/VttToolbar';
+import SurvivalToolbar from '@/components/vtt/SurvivalToolbar';
 
 const TOKEN_COLORS = {
   player: '#4ade80',
@@ -20,6 +21,8 @@ const WALL_COLORS = {
   door: 'rgba(180,100,30,0.9)',
   window: 'rgba(80,180,220,0.8)',
   obstacle: 'rgba(150,60,200,0.85)',
+  fortification: 'rgba(255,200,0,0.6)',
+  spawn_point: 'rgba(100,200,100,0.4)',
 };
 
 // ── Grid helpers ──────────────────────────────────────────────────────────────
@@ -194,6 +197,7 @@ export default function VttCanvas({
   // Zoom
   const [zoom, setZoom] = useState(1);
   const [losEnabled, setLosEnabled] = useState(true);
+  const [isSurvivalMode, setIsSurvivalMode] = useState(false);
 
   // Measurement tool
   const [measureStart, setMeasureStart] = useState(null); // {col, row}
@@ -217,15 +221,18 @@ export default function VttCanvas({
     setTrails({});
   }, [activeTokenId]);
 
-  // Calculate LOS for all tokens on token/wall changes
+  // Calculate LOS for all tokens on token/wall changes (excluding innocents)
   useEffect(() => {
     const gmLos = {};
     localTokens.forEach((t) => {
-      gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
+      // Skip innocents from LOS calculation
+      if (t.type !== 'innocent') {
+        gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
+      }
     });
     setGmTokenLOS(gmLos);
     
-    // For non-GM players, calculate LOS for their own character tokens
+    // For non-GM players, calculate LOS for their own character tokens (excluding innocents)
     if (!isGM) {
       const playerLos = new Set();
       localTokens.forEach((t) => {
@@ -314,7 +321,7 @@ export default function VttCanvas({
           ctx.setLineDash([]);
         }
 
-        // Label
+        // Label/Symbol
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.font = `bold ${Math.max(8, gs * 0.14)}px Inter, sans-serif`;
         ctx.textAlign = 'center';
@@ -322,6 +329,8 @@ export default function VttCanvas({
         if (wall.type === 'door') ctx.fillText(wall.is_open ? '🚪' : 'D', wx, wy);
         else if (wall.type === 'window') ctx.fillText('W', wx, wy);
         else if (wall.type === 'obstacle') ctx.fillText('O', wx, wy);
+        else if (wall.type === 'fortification') ctx.fillText('⚔', wx, wy);
+        else if (wall.type === 'spawn_point' && isGM) ctx.fillText('☠', wx, wy);
       });
     });
 
@@ -340,13 +349,13 @@ export default function VttCanvas({
       ctx.setLineDash([]);
     });
 
-    // Tokens (skip hidden ones for non-GMs)
+    // Tokens (skip hidden ones for non-GMs, skip innocents from being active tokens)
     const visibleTokens = localTokens.filter((t) => isGM || t.is_visible !== false);
     visibleTokens.forEach((token) => {
       const scale = SIZE_SCALE[token.size] || 0.75;
       const radius = (gs * scale) / 2;
       const { x: tx, y: ty } = cellToWorld(token.x, token.y, gs, ox, oy);
-      const isActive = token.id === activeTokenId;
+      const isActive = token.id === activeTokenId && token.type !== 'innocent';
 
       if (isActive) { ctx.shadowColor = '#facc15'; ctx.shadowBlur = 18; }
 
@@ -581,7 +590,7 @@ export default function VttCanvas({
       setFogCells((prev) => { const n = new Set(prev); n.add(key); return n; });
     } else if (activeTool === 'fog_erase') {
       setFogCells((prev) => { const n = new Set(prev); n.delete(key); return n; });
-    } else if (['wall', 'door', 'window', 'obstacle'].includes(activeTool)) {
+    } else if (['wall', 'door', 'window', 'obstacle', 'fortification', 'spawn_point'].includes(activeTool)) {
       setWalls((prev) => {
         // Check if cell is already occupied by another wall — skip
         if (prev.some((w) => w.cells?.some((c) => c.col === col && c.row === row))) return prev;
@@ -613,7 +622,7 @@ export default function VttCanvas({
         onUpdateMap?.({ fog_cells: [...prev] });
         return prev;
       });
-    } else if (['wall', 'door', 'window', 'obstacle', 'erase_wall'].includes(activeTool)) {
+    } else if (['wall', 'door', 'window', 'obstacle', 'fortification', 'spawn_point', 'erase_wall'].includes(activeTool)) {
       setWalls((prev) => {
         // Clean up _stroke marker
         const cleaned = prev.map(({ _stroke, ...w }) => w);
@@ -667,7 +676,7 @@ export default function VttCanvas({
       return;
     }
 
-    if (activeTool !== 'select' && isGM) {
+    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || (isSurvivalMode && ['fortification', 'spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       isPainting.current = true;
       paintedCells.current = new Set();
       applyPaint(e);
@@ -690,7 +699,7 @@ export default function VttCanvas({
       setMeasureEnd(worldToCell(world.x, world.y, gs, ox, oy));
       return;
     }
-    if (isPainting.current && activeTool !== 'select' && isGM) {
+    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || (isSurvivalMode && ['fortification', 'spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       applyPaint(e);
       return;
     }
@@ -833,6 +842,21 @@ export default function VttCanvas({
   };
 
   const clearTrails = () => setTrails({});
+
+  const fortificationCount = walls.filter((w) => w.type === 'fortification').reduce((sum, w) => sum + w.cells.length, 0);
+  const spawnPointCount = walls.filter((w) => w.type === 'spawn_point').reduce((sum, w) => sum + w.cells.length, 0);
+
+  const clearFortifications = () => {
+    const updated = walls.filter((w) => w.type !== 'fortification');
+    setWalls(updated);
+    onUpdateMap?.({ walls: updated });
+  };
+
+  const clearSpawnPoints = () => {
+    const updated = walls.filter((w) => w.type !== 'spawn_point');
+    setWalls(updated);
+    onUpdateMap?.({ walls: updated });
+  };
 
   // ── Touch handling ────────────────────────────────────────────────────────
   const touchStartRef = useRef(null);
@@ -996,8 +1020,24 @@ export default function VttCanvas({
                   wallCount={wallCount || 0}
                   onClearFog={() => { onClearFog?.(); }}
                   onClearWalls={() => { onClearWalls?.(); }}
+                  isSurvivalMode={isSurvivalMode}
+                  onToggleSurvivalMode={() => setIsSurvivalMode(!isSurvivalMode)}
                   compact
                 />
+                {isSurvivalMode && isGM && (
+                  <div className="border-t border-border/30 pt-2">
+                    <SurvivalToolbar
+                      activeTool={activeTool}
+                      onToolChange={(t) => { onToolChange(t); }}
+                      isGM={isGM}
+                      onOpenWaveGenerator={() => {}} // Placeholder for wave generator
+                      onClearFortifications={clearFortifications}
+                      onClearSpawnPoints={clearSpawnPoints}
+                      fortificationCount={fortificationCount}
+                      spawnPointCount={spawnPointCount}
+                    />
+                  </div>
+                )}
                 {isGM && (
                   <div className="border-t border-border/30 pt-2">
                     <button

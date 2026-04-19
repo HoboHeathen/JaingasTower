@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BESTIARY, getDiceCount, getDieFaces } from '@/lib/bestiaryData';
 
-const TOKEN_TYPES = ['player', 'enemy', 'friendly', 'neutral'];
+const TOKEN_TYPES = ['player', 'enemy', 'friendly', 'neutral', 'innocent'];
 const TOKEN_SIZES = ['tiny', 'small', 'medium', 'large', 'huge'];
-const TOKEN_COLORS = { player: '#4ade80', enemy: '#f87171', friendly: '#60a5fa', neutral: '#facc15' };
+const TOKEN_COLORS = { player: '#4ade80', enemy: '#f87171', friendly: '#60a5fa', neutral: '#facc15', innocent: '#9333ea' };
 
 export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onClose, activeGroup }) {
   const [mode, setMode] = useState('character'); // 'character' | 'monster' | 'custom'
@@ -64,6 +64,21 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
     } else if (mode === 'custom') {
       if (!customName.trim()) return;
       token = { ...token, name: customName.trim(), color: TOKEN_COLORS[tokenType] };
+      // Innocents have default HP 4, Defense 10
+      if (tokenType === 'innocent') {
+        token.max_hp = 4;
+        token.current_hp = 4;
+      }
+    } else if (mode === 'innocent') {
+      if (!customName.trim()) return;
+      token = {
+        ...token,
+        name: customName.trim(),
+        type: 'innocent',
+        color: TOKEN_COLORS.innocent,
+        max_hp: 4,
+        current_hp: 4,
+      };
     } else return;
 
     // Place token at center of viewport (canvas is ~800x600 equivalent in grid coords)
@@ -82,7 +97,7 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
 
         {/* Mode tabs */}
         <div className="flex gap-1 bg-secondary/30 rounded-lg p-1 mb-2">
-          {['character', ...(isGM ? ['monster', 'custom'] : [])].map((m) => (
+          {['character', ...(isGM ? ['monster', 'custom', 'innocent'] : [])].map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -151,7 +166,7 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Type</label>
               <div className="flex gap-1 flex-wrap">
-                {TOKEN_TYPES.map((t) => (
+                {TOKEN_TYPES.filter((t) => t !== 'innocent').map((t) => (
                   <button key={t} onClick={() => setTokenType(t)}
                     className={`px-2 py-1 rounded text-xs capitalize ${tokenType === t ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground'}`}>
                     {t}
@@ -169,6 +184,26 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {mode === 'innocent' && isGM && (
+          <div className="space-y-3">
+            <Input placeholder="Innocent name..." value={customName} onChange={(e) => setCustomName(e.target.value)} autoFocus />
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Size</label>
+              <div className="flex gap-1 flex-wrap">
+                {TOKEN_SIZES.map((s) => (
+                  <button key={s} onClick={() => setTokenSize(s)}
+                    className={`px-2 py-1 rounded text-xs capitalize ${tokenSize === s ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-muted-foreground'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground bg-secondary/30 p-2 rounded">
+              Innocents spawn with 4 HP and Defense 10. They don't participate in initiative.
             </div>
           </div>
         )}
