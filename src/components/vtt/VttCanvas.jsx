@@ -222,13 +222,13 @@ export default function VttCanvas({
       const { x: mx, y: my } = cellToWorld(moveInfo.col, moveInfo.row, gs, ox, oy);
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.beginPath();
-      ctx.roundRect(mx - 28, my - radius - 22, 56, 20, 4);
+      ctx.roundRect(mx - 28, my - 42, 56, 20, 4);
       ctx.fill();
       ctx.fillStyle = '#facc15';
       ctx.font = 'bold 12px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`${moveInfo.feet}ft`, mx, my - radius - 12);
+      ctx.fillText(`${moveInfo.feet}ft`, mx, my - 32);
     }
 
     ctx.restore();
