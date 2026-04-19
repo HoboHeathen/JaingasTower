@@ -1,15 +1,14 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Map, Plus, Upload, Trash2, ChevronDown, Settings, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import VttCanvas from '@/components/vtt/VttCanvas';
 import VttMapSettings from '@/components/vtt/VttMapSettings';
 import AddTokenModal from '@/components/vtt/AddTokenModal';
+import InitiativePanel from '@/components/vtt/InitiativePanel';
 
 export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const queryClient = useQueryClient();
@@ -21,18 +20,28 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [showMapList, setShowMapList] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Initiative state (local – GM drives it, ideally would be persisted; kept simple)
+  const [initiativeOrder, setInitiativeOrder] = useState([]); // [{tokenId, name, roll, type, color}]
+  const [initiativeStarted, setInitiativeStarted] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const { data: maps = [] } = useQuery({
     queryKey: ['vtt-maps', activeGroup?.id],
     queryFn: () => base44.entities.VttMap.filter({ group_id: activeGroup.id }),
     enabled: !!activeGroup?.id,
+    refetchInterval: 5000,
   });
 
   const activeMap = maps.find((m) => m.is_active) || maps[0] || null;
 
+  const updateMapMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.VttMap.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vtt-maps'] }),
+  });
+
   const createMapMutation = useMutation({
     mutationFn: (data) => base44.entities.VttMap.create({ ...data, group_id: activeGroup.id }),
     onSuccess: async (newMap) => {
-      // Deactivate others, activate new
       await Promise.all(maps.map((m) => base44.entities.VttMap.update(m.id, { is_active: false })));
       await base44.entities.VttMap.update(newMap.id, { is_active: true });
       queryClient.invalidateQueries({ queryKey: ['vtt-maps'] });
@@ -40,11 +49,6 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       setNewMapName('');
       toast.success('Map created!');
     },
-  });
-
-  const updateMapMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.VttMap.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vtt-maps'] }),
   });
 
   const deleteMapMutation = useMutation({
@@ -55,7 +59,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     },
   });
 
-  const handleUploadAndCreate = async () => {
+  const handleUploadAndCreate = () => {
     if (!newMapName.trim()) { toast.error('Enter a map name first.'); return; }
     fileInputRef.current?.click();
   };
@@ -67,18 +71,18 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       createMapMutation.mutate({ name: newMapName.trim(), image_url: file_url });
-    } catch {
-      toast.error('Upload failed.');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
+    } catch { toast.error('Upload failed.'); }
+    finally { setUploading(false); e.target.value = ''; }
   };
 
   const handleSetActive = async (mapId) => {
     await Promise.all(maps.map((m) => base44.entities.VttMap.update(m.id, { is_active: m.id === mapId })));
     queryClient.invalidateQueries({ queryKey: ['vtt-maps'] });
     setShowMapList(false);
+    // Reset initiative when switching maps
+    setInitiativeOrder([]);
+    setInitiativeStarted(false);
+    setActiveIndex(0);
   };
 
   const handleUpdateMap = (data) => {
@@ -97,26 +101,42 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     setShowAddToken(false);
   };
 
+  // Initiative handlers
+  const handleStartInitiative = () => {
+    setActiveIndex(0);
+    setInitiativeStarted(true);
+  };
+
+  const handleEndInitiative = () => {
+    setInitiativeStarted(false);
+    setActiveIndex(0);
+    setInitiativeOrder([]);
+  };
+
+  const handleNextTurn = () => {
+    setActiveIndex((prev) => (prev + 1) % initiativeOrder.length);
+  };
+
+  const activeTokenId = initiativeStarted && initiativeOrder.length > 0
+    ? initiativeOrder[activeIndex]?.tokenId
+    : null;
+
+  const tokens = activeMap?.tokens || [];
+
   return (
     <div className="space-y-3">
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* Map selector */}
         <div className="relative">
-          <Button
-            variant="outline" size="sm"
-            className="gap-1.5"
-            onClick={() => setShowMapList((v) => !v)}
-          >
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowMapList((v) => !v)}>
             <Map className="w-4 h-4" />
             {activeMap ? activeMap.name : 'No Map'}
             <ChevronDown className="w-3 h-3" />
           </Button>
           {showMapList && (
             <div className="absolute top-full mt-1 left-0 z-50 bg-card border border-border rounded-xl shadow-xl min-w-48 py-1">
-              {maps.length === 0 && (
-                <p className="text-xs text-muted-foreground px-3 py-2">No maps yet.</p>
-              )}
+              {maps.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No maps yet.</p>}
               {maps.map((m) => (
                 <div key={m.id} className="flex items-center gap-2 px-3 py-2 hover:bg-secondary/40 transition-colors">
                   <button className="flex-1 text-left text-sm text-foreground" onClick={() => handleSetActive(m.id)}>
@@ -142,16 +162,10 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         )}
         {isGM && showNewMap && (
           <div className="flex items-center gap-2">
-            <Input
-              placeholder="Map name..."
-              value={newMapName}
-              onChange={(e) => setNewMapName(e.target.value)}
-              className="h-8 text-sm w-36"
-              autoFocus
-            />
+            <Input placeholder="Map name..." value={newMapName} onChange={(e) => setNewMapName(e.target.value)}
+              className="h-8 text-sm w-36" autoFocus />
             <Button size="sm" className="gap-1.5 h-8" onClick={handleUploadAndCreate} disabled={uploading || createMapMutation.isPending}>
-              <Upload className="w-3 h-3" />
-              {uploading ? 'Uploading…' : 'Upload Image'}
+              <Upload className="w-3 h-3" />{uploading ? 'Uploading…' : 'Upload Image'}
             </Button>
             <Button size="sm" variant="ghost" className="h-8" onClick={() => { setShowNewMap(false); setNewMapName(''); }}>Cancel</Button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -172,12 +186,28 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         </div>
       </div>
 
-      {/* Grid settings panel */}
+      {/* Grid settings */}
       {isGM && showSettings && activeMap && (
         <VttMapSettings map={activeMap} onUpdate={handleUpdateMap} />
       )}
 
-      {/* Main canvas */}
+      {/* Initiative panel */}
+      {activeMap && tokens.length > 0 && (
+        <InitiativePanel
+          tokens={tokens}
+          groupCharacters={groupCharacters}
+          isGM={isGM}
+          initiativeStarted={initiativeStarted}
+          initiativeOrder={initiativeOrder}
+          activeIndex={activeIndex}
+          onStart={handleStartInitiative}
+          onEnd={handleEndInitiative}
+          onNextTurn={handleNextTurn}
+          onSetOrder={setInitiativeOrder}
+        />
+      )}
+
+      {/* Canvas */}
       {activeMap ? (
         <VttCanvas
           map={activeMap}
@@ -185,6 +215,9 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           user={user}
           groupCharacters={groupCharacters}
           onUpdateTokens={handleUpdateTokens}
+          initiativeOrder={initiativeOrder}
+          activeTokenId={activeTokenId}
+          initiativeStarted={initiativeStarted}
         />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
