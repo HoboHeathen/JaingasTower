@@ -557,11 +557,17 @@ export default function VttCanvas({
       
       const state = movementState.current[draggingId];
       const lastWaypoint = state.waypoints[state.waypoints.length - 1];
-      const legDist = cellDist(lastWaypoint.col, lastWaypoint.row, col, row);
-      const totalFeet = state.totalFeet + (legDist * FEET_PER_CELL);
+      const currentCell = { col, row };
+      
+      // Add waypoint and accumulate distance only when entering a new cell
+      if (currentCell.col !== lastWaypoint.col || currentCell.row !== lastWaypoint.row) {
+        const legDist = cellDist(lastWaypoint.col, lastWaypoint.row, col, row);
+        state.totalFeet += legDist * FEET_PER_CELL;
+        state.waypoints.push(currentCell);
+      }
       
       setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: col, y: row } : t));
-      setMoveInfo({ feet: totalFeet, col, row });
+      setMoveInfo({ feet: state.totalFeet, col, row });
     } else if (isPanning) {
       setPan({ x: e.clientX / zoom - panStart.current.x, y: e.clientY / zoom - panStart.current.y });
     }
@@ -580,15 +586,6 @@ export default function VttCanvas({
             const existing = prev[draggingId] || [{ col: sc, row: sr }];
             return { ...prev, [draggingId]: [...existing, { col: movedToken.x, row: movedToken.y }] };
           });
-          
-          // Commit waypoint and accumulate distance
-          if (movementState.current[draggingId]) {
-            const state = movementState.current[draggingId];
-            const lastWaypoint = state.waypoints[state.waypoints.length - 1];
-            const legDist = cellDist(lastWaypoint.col, lastWaypoint.row, movedToken.x, movedToken.y);
-            state.totalFeet += legDist * FEET_PER_CELL;
-            state.waypoints.push({ col: movedToken.x, row: movedToken.y });
-          }
         }
       }
       onUpdateTokens(localTokens);
