@@ -16,8 +16,10 @@ function guessItemType(label) {
   return { item_type: 'special' };
 }
 
+const LAST_CHAR_KEY = 'lastSelectedCharacterId';
+
 export default function AddToInventoryModal({ result, onClose }) {
-  const [characterId, setCharacterId] = useState('');
+  const [characterId, setCharacterId] = useState(() => localStorage.getItem(LAST_CHAR_KEY) || '');
   const queryClient = useQueryClient();
 
   const { data: characters = [] } = useQuery({
@@ -42,6 +44,7 @@ export default function AddToInventoryModal({ result, onClose }) {
     },
     onSuccess: () => {
       const char = characters.find((c) => c.id === characterId);
+      localStorage.setItem(LAST_CHAR_KEY, characterId);
       toast.success(`Added to ${char?.name || 'character'}'s inventory`);
       queryClient.invalidateQueries({ queryKey: ['inventory', characterId] });
       onClose();
@@ -60,7 +63,7 @@ export default function AddToInventoryModal({ result, onClose }) {
           Adding: <span className="text-foreground font-medium">{result.result_label}</span>
         </p>
 
-        <Select value={characterId} onValueChange={setCharacterId}>
+        <Select value={characterId} onValueChange={(v) => { setCharacterId(v); localStorage.setItem(LAST_CHAR_KEY, v); }}>
           <SelectTrigger className="mb-4">
             <SelectValue placeholder="Select character..." />
           </SelectTrigger>

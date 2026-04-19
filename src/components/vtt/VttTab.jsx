@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Map, Plus, Upload, Trash2, ChevronDown, Settings, Check } from 'lucide-react';
+import { Map, Plus, Upload, Trash2, Settings, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import VttCanvas from '@/components/vtt/VttCanvas';
 import VttMapSettings from '@/components/vtt/VttMapSettings';
@@ -18,7 +18,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [uploading, setUploading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAddToken, setShowAddToken] = useState(false);
-  const [showMapList, setShowMapList] = useState(false);
+  const [selectedMapId, setSelectedMapId] = useState(null); // null = show list view
   const [activeTool, setActiveTool] = useState('select');
   const fileInputRef = useRef(null);
 
@@ -35,7 +35,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     refetchInterval: 5000,
   });
 
-  const activeMap = maps.find((m) => m.is_active) || maps[0] || null;
+  // If selectedMapId is set, use that map; otherwise show list view
+  const activeMap = selectedMapId ? (maps.find((m) => m.id === selectedMapId) || null) : null;
 
   const updateMapMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.VttMap.update(id, data),
@@ -78,10 +79,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     finally { setUploading(false); e.target.value = ''; }
   };
 
-  const handleSetActive = async (mapId) => {
-    await Promise.all(maps.map((m) => base44.entities.VttMap.update(m.id, { is_active: m.id === mapId })));
-    queryClient.invalidateQueries({ queryKey: ['vtt-maps'] });
-    setShowMapList(false);
+  const handleSetActive = (mapId) => {
+    setSelectedMapId(mapId);
     // Reset initiative when switching maps
     setInitiativeOrder([]);
     setInitiativeStarted(false);
@@ -145,47 +144,25 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
 
   const tokens = activeMap?.tokens || [];
 
-  return (
-    <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Map selector */}
-        <div className="relative">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowMapList((v) => !v)}>
-            <Map className="w-4 h-4" />
-            {activeMap ? activeMap.name : 'No Map'}
-            <ChevronDown className="w-3 h-3" />
-          </Button>
-          {showMapList && (
-            <div className="absolute top-full mt-1 left-0 z-50 bg-card border border-border rounded-xl shadow-xl min-w-48 py-1">
-              {maps.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No maps yet.</p>}
-              {maps.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 px-3 py-2 hover:bg-secondary/40 transition-colors">
-                  <button className="flex-1 text-left text-sm text-foreground" onClick={() => handleSetActive(m.id)}>
-                    {m.is_active && <Check className="w-3 h-3 inline mr-1 text-primary" />}
-                    {m.name}
-                  </button>
-                  {isGM && (
-                    <button onClick={() => deleteMapMutation.mutate(m.id)} className="text-destructive hover:opacity-70">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+  // ── Map List View ─────────────────────────────────────────────────────────
+  if (!activeMap) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading font-semibold text-foreground flex items-center gap-2">
+            <Map className="w-4 h-4 text-primary" /> Maps
+          </h2>
+          {isGM && !showNewMap && (
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowNewMap(true)}>
+              <Plus className="w-4 h-4" /> New Map
+            </Button>
           )}
         </div>
 
-        {/* New Map (GM only) */}
-        {isGM && !showNewMap && (
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowNewMap(true)}>
-            <Plus className="w-4 h-4" /> New Map
-          </Button>
-        )}
         {isGM && showNewMap && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap bg-card border border-border/50 rounded-xl p-3">
             <Input placeholder="Map name..." value={newMapName} onChange={(e) => setNewMapName(e.target.value)}
-              className="h-8 text-sm w-36" autoFocus />
+              className="h-8 text-sm flex-1 min-w-0" autoFocus />
             <Button size="sm" className="gap-1.5 h-8" onClick={handleUploadAndCreate} disabled={uploading || createMapMutation.isPending}>
               <Upload className="w-3 h-3" />{uploading ? 'Uploading…' : 'Upload Image'}
             </Button>
@@ -194,44 +171,73 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           </div>
         )}
 
+        {maps.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+            <Map className="w-12 h-12 opacity-30" />
+            <p className="text-sm">{isGM ? 'No maps yet. Create one above.' : 'No maps available yet.'}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {maps.map((m) => (
+              <div key={m.id} className="flex items-center gap-3 bg-card border border-border/50 rounded-xl px-4 py-3 hover:bg-secondary/20 transition-colors">
+                <button className="flex-1 text-left" onClick={() => handleSetActive(m.id)}>
+                  <p className="font-medium text-foreground">{m.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{m.tokens?.length || 0} token{m.tokens?.length !== 1 ? 's' : ''} · {m.grid_type || 'no'} grid</p>
+                </button>
+                <Button size="sm" onClick={() => handleSetActive(m.id)}>Open</Button>
+                {isGM && (
+                  <button onClick={() => deleteMapMutation.mutate(m.id)} className="text-destructive hover:opacity-70 ml-1">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Active Map View ────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-3">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setSelectedMapId(null)}>
+          <ArrowLeft className="w-4 h-4" /> Maps
+        </Button>
+        <span className="font-heading font-semibold text-foreground text-sm">{activeMap.name}</span>
+
         <div className="ml-auto flex items-center gap-2">
-          {isGM && activeMap && (
+          {isGM && (
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowSettings((v) => !v)}>
               <Settings className="w-4 h-4" /> Grid
             </Button>
           )}
-          {activeMap && (
-            <Button size="sm" className="gap-1.5" onClick={() => setShowAddToken(true)}>
-              <Plus className="w-4 h-4" /> Token
-            </Button>
-          )}
+          <Button size="sm" className="gap-1.5" onClick={() => setShowAddToken(true)}>
+            <Plus className="w-4 h-4" /> Token
+          </Button>
         </div>
       </div>
 
       {/* VTT Toolbar */}
-      {activeMap && (
-        <VttToolbar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          isGM={isGM}
-          fogCellCount={activeMap?.fog_cells?.length || 0}
-          wallCount={activeMap?.walls?.length || 0}
-          onClearFog={() => {
-            handleUpdateMap({ fog_cells: [] });
-          }}
-          onClearWalls={() => {
-            handleUpdateMap({ walls: [] });
-          }}
-        />
-      )}
+      <VttToolbar
+        activeTool={activeTool}
+        onToolChange={setActiveTool}
+        isGM={isGM}
+        fogCellCount={activeMap?.fog_cells?.length || 0}
+        wallCount={activeMap?.walls?.length || 0}
+        onClearFog={() => handleUpdateMap({ fog_cells: [] })}
+        onClearWalls={() => handleUpdateMap({ walls: [] })}
+      />
 
       {/* Grid settings */}
-      {isGM && showSettings && activeMap && (
+      {isGM && showSettings && (
         <VttMapSettings map={activeMap} onUpdate={handleUpdateMap} />
       )}
 
       {/* Initiative panel */}
-      {activeMap && tokens.length > 0 && (
+      {tokens.length > 0 && (
         <InitiativePanel
           tokens={tokens}
           groupCharacters={groupCharacters}
@@ -248,25 +254,18 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       )}
 
       {/* Canvas */}
-      {activeMap ? (
-        <VttCanvas
-          map={activeMap}
-          isGM={isGM}
-          user={user}
-          groupCharacters={groupCharacters}
-          onUpdateTokens={handleUpdateTokens}
-          onUpdateMap={handleUpdateMap}
-          initiativeOrder={initiativeOrder}
-          activeTokenId={activeTokenId}
-          initiativeStarted={initiativeStarted}
-          activeTool={activeTool}
-        />
-      ) : (
-        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
-          <Map className="w-12 h-12 opacity-30" />
-          <p className="text-sm">{isGM ? 'Create a map to get started.' : 'No map loaded yet.'}</p>
-        </div>
-      )}
+      <VttCanvas
+        map={activeMap}
+        isGM={isGM}
+        user={user}
+        groupCharacters={groupCharacters}
+        onUpdateTokens={handleUpdateTokens}
+        onUpdateMap={handleUpdateMap}
+        initiativeOrder={initiativeOrder}
+        activeTokenId={activeTokenId}
+        initiativeStarted={initiativeStarted}
+        activeTool={activeTool}
+      />
 
       {showAddToken && (
         <AddTokenModal

@@ -516,17 +516,21 @@ export default function VttCanvas({
     if (draggingId) {
       const world = getWorldPos(e);
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
-      // Cumulative path length: sum all waypoints + current drag
+      // Cumulative path length: sum committed waypoints + current drag leg
       const path = turnPath.current;
-      const lastWaypoint = path.length > 0 ? path[path.length - 1] : dragStart.current;
-      let totalDist = 0;
+      // Sum committed waypoints
+      let committedDist = 0;
       for (let i = 1; i < path.length; i++) {
-        totalDist += cellDist(path[i - 1].col, path[i - 1].row, path[i].col, path[i].row);
+        committedDist += cellDist(path[i - 1].col, path[i - 1].row, path[i].col, path[i].row);
       }
-      if (lastWaypoint) totalDist += cellDist(lastWaypoint.col, lastWaypoint.row, col, row);
+      // Add current drag leg from last committed point to cursor
+      const lastCommitted = path.length > 0 ? path[path.length - 1] : dragStart.current;
+      const currentLeg = lastCommitted ? cellDist(lastCommitted.col, lastCommitted.row, col, row) : 0;
+      const totalDist = committedDist + currentLeg;
       const feet = totalDist * FEET_PER_CELL;
       setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: col, y: row } : t));
-      setMoveInfo({ feet, col, row });
+      // Only update moveInfo if feet increased (never decrease display)
+      setMoveInfo((prev) => ({ feet: prev ? Math.max(prev.feet, feet) : feet, col, row }));
     } else if (isPanning) {
       setPan({ x: e.clientX / zoom - panStart.current.x, y: e.clientY / zoom - panStart.current.y });
     }

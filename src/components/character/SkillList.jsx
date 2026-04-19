@@ -88,7 +88,7 @@ function rollDice(diceStr) {
 const isPowerAttack = (skill) => /^power attack/i.test(skill.name);
 const isCharge = (skill) => /^charge (i|ii|iii)$/i.test(skill.name);
 
-function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, chargeLimit = 0, onCharge, onDeplete }) {
+function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, chargeLimit = 0, onCharge, onDeplete, onShareRoll }) {
   const [rollResult, setRollResult] = useState(null);
   const [isRolling, setIsRolling] = useState(false);
   const baseDiceStr = getDiceString(skill, magicDice);
@@ -129,6 +129,9 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, charg
       setIsRolling(false);
       if (isPA && onDeplete) onDeplete();
       if (skill.is_single_use && !isUsed) onMarkUsed(skill.id);
+      if (onShareRoll && result) {
+        onShareRoll(`${skill.name} (${skill.attack_sub_category || 'skill'}): [${result.rolls.join(', ')}] = ${result.total}`);
+      }
     }, 500);
   };
 
@@ -258,7 +261,7 @@ function AugmentCard({ skill }) {
   );
 }
 
-export default function SkillList({ category, skills, augmentSkills = [], usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, chargeLimit = 0, onCharge, onDeplete }) {
+export default function SkillList({ category, skills, augmentSkills = [], usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, chargeLimit = 0, onCharge, onDeplete, onShareRoll }) {
   const weightOrder = { heavy: 3, medium: 2, light: 1 };
 
   const mainChain = skills.filter(isMainChainSkill);
@@ -303,6 +306,7 @@ export default function SkillList({ category, skills, augmentSkills = [], usedSk
                 chargeLimit={chargeLimit}
                 onCharge={onCharge}
                 onDeplete={onDeplete}
+                onShareRoll={onShareRoll}
               />
             ))}
           </div>

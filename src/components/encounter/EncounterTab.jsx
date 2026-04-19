@@ -223,12 +223,12 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
       {encounterSelector}
       {/* Encounter Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Badge className="bg-red-500/10 text-red-400 border-red-500/30 gap-1">
             <Swords className="w-3 h-3" /> Round {activeEncounter.round || 1}
           </Badge>
           <span className="text-xs text-muted-foreground flex items-center gap-2">
-            Wave {floorWave} · {dieType}
+            Wave {floorWave}
             {isGM && (
               <span className="flex items-center gap-1">
                 <button onClick={() => base44.entities.Encounter.update(activeEncounter.id, { wave_number: Math.max(1, floorWave - 1) }).then(() => queryClient.invalidateQueries({ queryKey: ['encounters'] }))} className="text-muted-foreground hover:text-foreground px-1">−</button>
@@ -236,6 +236,21 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
               </span>
             )}
           </span>
+          {isGM && (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Die:</span>
+              {['d4','d6','d8','d10','d12'].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => base44.entities.Group.update(activeGroup.id, { die_type: d }).then(() => queryClient.invalidateQueries({ queryKey: ['group'] }))}
+                  className={`text-[10px] px-1.5 py-0.5 rounded border transition-all ${dieType === d ? 'bg-primary text-primary-foreground border-primary' : 'border-border/40 text-muted-foreground hover:border-border'}`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          )}
+          {!isGM && <span className="text-xs text-muted-foreground">{dieType}</span>}
         </div>
         <div className="flex gap-2 flex-wrap">
           {isGM && (

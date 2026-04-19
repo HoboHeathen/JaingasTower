@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -10,9 +10,16 @@ import SkillList from '@/components/character/SkillList';
 import DiceRollerModal from '@/components/dice/DiceRollerModal';
 import ChargeDicePool from '@/components/character/ChargeDicePool';
 
+const LAST_CHAR_KEY = 'lastViewedCharacterId';
+
 export default function CharacterSheet() {
   const urlParams = new URLSearchParams(window.location.search);
   const characterId = urlParams.get('id');
+
+  // Save last viewed character id
+  React.useEffect(() => {
+    if (characterId) localStorage.setItem(LAST_CHAR_KEY, characterId);
+  }, [characterId]);
   const queryClient = useQueryClient();
   const [showDiceRoller, setShowDiceRoller] = useState(false);
 
@@ -227,7 +234,7 @@ export default function CharacterSheet() {
 
       <div className="space-y-6">
         <StatBlock character={character} skillBonuses={skillBonuses} />
-        <AbilityScores character={character} skillBonuses={skillBonuses} />
+        <AbilityScores character={character} skillBonuses={skillBonuses} onShareRoll={character.group_id ? handleShareRoll : null} />
 
         {(() => {
           const magicDice = {
@@ -260,6 +267,7 @@ export default function CharacterSheet() {
                     chargeLimit={character.charge_pool_limit ?? 0}
                     onCharge={handleCharge}
                     onDeplete={handleDeplete}
+                    onShareRoll={character.group_id ? handleShareRoll : null}
                   />
                 ))}
               </div>
@@ -275,6 +283,7 @@ export default function CharacterSheet() {
                   chargeLimit={character.charge_pool_limit ?? 0}
                   onCharge={handleCharge}
                   onDeplete={handleDeplete}
+                  onShareRoll={character.group_id ? handleShareRoll : null}
                 />
               )}
             </>

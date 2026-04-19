@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Swords } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CharacterCard from '@/components/character/CharacterCard';
 import CreateCharacterWizard from '@/components/character/CreateCharacterWizard';
 
+const LAST_CHAR_KEY = 'lastViewedCharacterId';
+
 export default function Characters() {
   const [showWizard, setShowWizard] = useState(false);
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -20,6 +24,16 @@ export default function Characters() {
     queryFn: () => base44.entities.Character.filter({ created_by: currentUser.email }, '-created_date'),
     enabled: !!currentUser,
   });
+
+  // Auto-redirect to last viewed character
+  useEffect(() => {
+    if (!isLoading && characters.length > 0) {
+      const lastId = localStorage.getItem(LAST_CHAR_KEY);
+      if (lastId && characters.find((c) => c.id === lastId)) {
+        navigate(`/character?id=${lastId}`);
+      }
+    }
+  }, [isLoading, characters, navigate]);
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Character.delete(id),

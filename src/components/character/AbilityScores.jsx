@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Dices, Star } from 'lucide-react';
+import { toast } from 'sonner';
 
 const ABILITIES = [
   { key: 'str', label: 'STR' },
@@ -18,7 +19,7 @@ function fmtMod(mod) {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 }
 
-function AbilityCard({ label, score }) {
+function AbilityCard({ label, score, onShareRoll }) {
   const mod = getModifier(score);
   const [result, setResult] = useState(null);
   const [isCritical, setIsCritical] = useState(false);
@@ -34,9 +35,13 @@ function AbilityCard({ label, score }) {
     setRolling(true);
     setTimeout(() => {
       const d20 = Math.floor(Math.random() * 20) + 1;
-      setResult(d20 + mod);
+      const total = d20 + mod;
+      setResult(total);
       setIsCritical(d20 === 20);
       setRolling(false);
+      if (onShareRoll) {
+        onShareRoll(`${label} check: d20${fmtMod(mod)} = ${total}${d20 === 20 ? ' 🌟 CRITICAL!' : ''}`);
+      }
     }, 400);
   };
 
@@ -68,12 +73,12 @@ function AbilityCard({ label, score }) {
   );
 }
 
-export default function AbilityScores({ character, skillBonuses = {} }) {
+export default function AbilityScores({ character, skillBonuses = {}, onShareRoll }) {
   return (
     <div className="grid grid-cols-6 gap-2">
       {ABILITIES.map(({ key, label }) => {
         const score = (character?.[key] ?? 8) + (skillBonuses[key] || 0);
-        return <AbilityCard key={key} label={label} score={score} />;
+        return <AbilityCard key={key} label={label} score={score} onShareRoll={onShareRoll} />;
       })}
     </div>
   );
