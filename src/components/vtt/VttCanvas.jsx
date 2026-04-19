@@ -422,23 +422,25 @@ export default function VttCanvas({
       });
     }
 
-    // Line of sight darkness (non-GM players only)
+    // Line of sight darkness (non-GM players only) — grid-based approach
     if (!isGM && visibleCells.size > 0) {
-      // First darken entire viewport
-      ctx.fillStyle = 'rgba(0,0,0,0.92)';
-      ctx.fillRect(-pan.x / zoom, -pan.y / zoom, canvas.width / zoom, canvas.height / zoom);
+      // Calculate grid range to check (wider margin to catch all visible cells)
+      const minCol = Math.floor((-pan.x / zoom - gs) / gs) - 2;
+      const maxCol = Math.ceil((-pan.x / zoom + canvas.width / zoom + gs) / gs) + 2;
+      const minRow = Math.floor((-pan.y / zoom - gs) / gs) - 2;
+      const maxRow = Math.ceil((-pan.y / zoom + canvas.height / zoom + gs) / gs) + 2;
       
-      // Then reveal only visible cells
-      ctx.fillStyle = 'rgba(0,0,0,0)';
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
-      ctx.fillRect(-pan.x / zoom, -pan.y / zoom, canvas.width / zoom, canvas.height / zoom);
-      
-      visibleCells.forEach((key) => {
-        const [col, row] = key.split(',').map(Number);
-        const { x: fx, y: fy } = cellToWorld(col, row, gs, ox, oy);
-        ctx.clearRect(fx - gs / 2, fy - gs / 2, gs, gs);
-      });
+      // Darken all cells NOT in visibleCells
+      for (let col = minCol; col <= maxCol; col++) {
+        for (let row = minRow; row <= maxRow; row++) {
+          const key = `${col},${row}`;
+          if (!visibleCells.has(key)) {
+            const { x: fx, y: fy } = cellToWorld(col, row, gs, ox, oy);
+            ctx.fillRect(fx - gs / 2, fy - gs / 2, gs, gs);
+          }
+        }
+      }
     }
 
     // GM visualization of token LOS (bright color overlays)
