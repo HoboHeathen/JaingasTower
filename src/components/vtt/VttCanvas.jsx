@@ -424,13 +424,16 @@ export default function VttCanvas({
 
     // Line of sight darkness (non-GM players only) — grid-based approach
     if (!isGM && visibleCells.size > 0) {
-      // Calculate grid range to check — expand significantly for zoomed out views
-      const viewportWorldWidth = canvas.width / zoom;
-      const viewportWorldHeight = canvas.height / zoom;
-      const minCol = Math.floor((-pan.x / zoom) / gs) - Math.ceil(viewportWorldWidth / (2 * gs));
-      const maxCol = Math.ceil((-pan.x / zoom + viewportWorldWidth) / gs) + Math.ceil(viewportWorldWidth / (2 * gs));
-      const minRow = Math.floor((-pan.y / zoom) / gs) - Math.ceil(viewportWorldHeight / (2 * gs));
-      const maxRow = Math.ceil((-pan.y / zoom + viewportWorldHeight) / gs) + Math.ceil(viewportWorldHeight / (2 * gs));
+      // Calculate grid range with generous margin to cover entire viewport at any pan/zoom
+      const viewportLeft = -pan.x / zoom;
+      const viewportTop = -pan.y / zoom;
+      const viewportRight = viewportLeft + canvas.width / zoom;
+      const viewportBottom = viewportTop + canvas.height / zoom;
+      
+      const minCol = Math.floor(viewportLeft / gs) - 10;
+      const maxCol = Math.ceil(viewportRight / gs) + 10;
+      const minRow = Math.floor(viewportTop / gs) - 10;
+      const maxRow = Math.ceil(viewportBottom / gs) + 10;
       
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
       // Darken all cells NOT in visibleCells
