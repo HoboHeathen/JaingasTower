@@ -568,6 +568,12 @@ export default function VttCanvas({
       
       setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: col, y: row } : t));
       setMoveInfo({ feet: state.totalFeet, col, row });
+      
+      // Update trail in real-time
+      setTrails((prev) => {
+        const existing = prev[draggingId] || [dragStart.current];
+        return { ...prev, [draggingId]: [...existing.slice(0, state.waypoints.length - 1), ...state.waypoints] };
+      });
     } else if (isPanning) {
       setPan({ x: e.clientX / zoom - panStart.current.x, y: e.clientY / zoom - panStart.current.y });
     }
