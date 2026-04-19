@@ -425,11 +425,11 @@ export default function VttCanvas({
     // Line of sight darkness (non-GM players only)
     if (!isGM && visibleCells.size > 0) {
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
-      // Calculate visible grid range accounting for zoom
-      const minCol = Math.floor((-pan.x / zoom) / gs) - 2;
-      const maxCol = Math.floor((-pan.x / zoom + canvas.width / zoom) / gs) + 2;
-      const minRow = Math.floor((-pan.y / zoom) / gs) - 2;
-      const maxRow = Math.floor((-pan.y / zoom + canvas.height / zoom) / gs) + 2;
+      // Calculate visible grid range accounting for zoom with larger margin
+      const minCol = Math.floor((-pan.x / zoom) / gs) - 5;
+      const maxCol = Math.floor((-pan.x / zoom + canvas.width / zoom) / gs) + 5;
+      const minRow = Math.floor((-pan.y / zoom) / gs) - 5;
+      const maxRow = Math.floor((-pan.y / zoom + canvas.height / zoom) / gs) + 5;
       
       // Draw black on all non-visible cells within view
       for (let col = minCol; col <= maxCol; col++) {
