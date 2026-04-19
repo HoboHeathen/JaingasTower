@@ -356,15 +356,23 @@ export default function Group() {
             <div className="text-center py-12 text-muted-foreground">No shared rolls yet.</div>
           ) : (
             <div className="space-y-2">
-              {rollMessages.map((msg) => (
-                <div key={msg.id} className="bg-card border border-border/50 rounded-xl p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-sm text-foreground">{msg.sender_name}</span>
-                    <span className="text-xs text-muted-foreground">{new Date(msg.created_date).toLocaleTimeString()}</span>
-                  </div>
-                  <p className="text-sm text-primary font-semibold mt-1">{msg.content}</p>
-                </div>
-              ))}
+              {[...rollMessages]
+                .sort((a, b) => new Date(a.created_date) - new Date(b.created_date))
+                .map((msg) => {
+                  const senderChars = groupCharacters.filter((c) => c.created_by === msg.sender_email);
+                  const displayName = senderChars.length > 0
+                    ? senderChars.map((c) => c.name).join('/')
+                    : msg.sender_name;
+                  return (
+                    <div key={msg.id} className="bg-card border border-border/50 rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-sm text-foreground">{displayName}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(msg.created_date).toLocaleTimeString()}</span>
+                      </div>
+                      <p className="text-sm text-primary font-semibold mt-1">{msg.content}</p>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
@@ -377,17 +385,24 @@ export default function Group() {
             {messages.filter((m) => m.message_type === 'chat').length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">No messages yet. Say hello!</div>
             ) : (
-              messages.filter((m) => m.message_type === 'chat').map((msg) => {
-                const isMe = msg.sender_email === user?.email;
-                return (
-                  <div key={msg.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
-                    <div className={cn('max-w-xs rounded-xl px-4 py-2.5', isMe ? 'bg-primary/20 text-primary' : 'bg-card border border-border/50 text-foreground')}>
-                      {!isMe && <p className="text-[10px] text-muted-foreground mb-0.5">{msg.sender_name}</p>}
-                      <p className="text-sm">{msg.content}</p>
+              [...messages.filter((m) => m.message_type === 'chat')]
+                .sort((a, b) => new Date(a.created_date) - new Date(b.created_date))
+                .map((msg) => {
+                  const isMe = msg.sender_email === user?.email;
+                  // Resolve display name from group characters
+                  const senderChars = groupCharacters.filter((c) => c.created_by === msg.sender_email);
+                  const displayName = senderChars.length > 0
+                    ? senderChars.map((c) => c.name).join('/')
+                    : msg.sender_name;
+                  return (
+                    <div key={msg.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
+                      <div className={cn('max-w-xs rounded-xl px-4 py-2.5', isMe ? 'bg-primary/20 text-primary' : 'bg-card border border-border/50 text-foreground')}>
+                        {!isMe && <p className="text-[10px] text-muted-foreground mb-0.5">{displayName}</p>}
+                        <p className="text-sm">{msg.content}</p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })
             )}
             <div ref={chatEndRef} />
           </div>

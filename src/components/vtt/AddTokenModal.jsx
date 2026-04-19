@@ -50,6 +50,10 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
       token = { ...token, name: customName.trim(), color: TOKEN_COLORS[tokenType] };
     } else return;
 
+    // Place token at center of viewport (canvas is ~800x600 equivalent in grid coords)
+    // Default center grid cell
+    token.x = token.x ?? 5;
+    token.y = token.y ?? 4;
     onAdd(token);
   };
 
@@ -152,6 +156,16 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
             </div>
           </div>
         )}
+
+        {/* Color legend */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-border/40">
+          {Object.entries(TOKEN_COLORS).map(([type, color]) => (
+            <div key={type} className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+              <span className="text-[10px] text-muted-foreground capitalize">{type}</span>
+            </div>
+          ))}
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>

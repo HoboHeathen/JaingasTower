@@ -10,7 +10,7 @@ const TOOLS = [
   { key: 'door', label: 'Door', icon: DoorOpen, gmOnly: true },
   { key: 'window', label: 'Window', icon: Square, gmOnly: true },
   { key: 'obstacle', label: 'Obstacle', icon: Square, gmOnly: true },
-  { key: 'erase_wall', label: 'Erase Wall', icon: Eraser, gmOnly: true },
+  { key: 'erase_wall', label: 'Eraser', icon: Eraser, gmOnly: true },
 ];
 
 const TOOL_COLORS = {
@@ -87,7 +87,7 @@ export default function VttToolbar({ activeTool, onToolChange, isGM, onClearFog,
         {activeTool === 'door' && 'Click/drag cells to place doors • Right-click door to open/close'}
         {activeTool === 'window' && 'Click/drag cells to place windows'}
         {activeTool === 'obstacle' && 'Click/drag cells to place obstacles'}
-        {activeTool === 'erase_wall' && 'Click/drag to erase wall cells'}
+        {activeTool === 'erase_wall' && 'Click/drag to erase cells'}
       </div>
     </div>
   );

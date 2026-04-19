@@ -135,11 +135,9 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
       <div className="text-center py-16 space-y-4">
         <Swords className="w-12 h-12 text-muted-foreground mx-auto" />
         <p className="text-muted-foreground">No active encounter.</p>
-        {isGM && (
-          <Button onClick={() => startEncounterMutation.mutate()} disabled={startEncounterMutation.isPending} className="gap-2">
-            <Play className="w-4 h-4" /> Start Encounter
-          </Button>
-        )}
+        <Button onClick={() => startEncounterMutation.mutate()} disabled={startEncounterMutation.isPending} className="gap-2">
+          <Play className="w-4 h-4" /> Start Encounter
+        </Button>
       </div>
     );
   }
@@ -154,28 +152,32 @@ export default function EncounterTab({ activeGroup, isGM, user, groupCharacters 
           </Badge>
           <span className="text-xs text-muted-foreground">Wave {floorWave} · {dieType}</span>
         </div>
-        {isGM && (
-          <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          {isGM && (
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleRollAllInitiative}>
               <Dices className="w-3.5 h-3.5" /> Roll Initiative
             </Button>
+          )}
+          {isGM && (
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => nextRoundMutation.mutate()}>
               <RotateCcw className="w-3.5 h-3.5" /> Next Round
             </Button>
-            <Button size="sm" className="gap-1.5 text-xs" onClick={() => setShowAddModal(true)}>
-              <Plus className="w-3.5 h-3.5" /> Add Combatant
-            </Button>
+          )}
+          <Button size="sm" className="gap-1.5 text-xs" onClick={() => setShowAddModal(true)}>
+            <Plus className="w-3.5 h-3.5" /> Add Combatant
+          </Button>
+          {isGM && (
             <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => endEncounterMutation.mutate()}>
               <StopCircle className="w-3.5 h-3.5" /> End Encounter
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Participants */}
       {sortedParticipants.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">
-          No combatants yet.{isGM ? " Add monsters and players above." : ""}
+          No combatants yet. Add monsters and players above.
         </div>
       ) : (
         <div className="space-y-2">

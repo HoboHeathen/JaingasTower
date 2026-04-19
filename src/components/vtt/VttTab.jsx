@@ -99,7 +99,13 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
 
   const handleAddToken = (token) => {
     const existing = activeMap?.tokens || [];
-    handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: 2, y: 2 }]);
+    const gs = activeMap?.grid_size || 60;
+    const ox = activeMap?.grid_offset_x || 0;
+    const oy = activeMap?.grid_offset_y || 0;
+    // Center of canvas viewport in grid coords (canvas approx 800x500)
+    const centerCol = Math.round((400 - ox) / gs);
+    const centerRow = Math.round((250 - oy) / gs);
+    handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: centerCol, y: centerRow }]);
     setShowAddToken(false);
   };
 

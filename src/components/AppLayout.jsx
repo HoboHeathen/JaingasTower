@@ -5,10 +5,10 @@ import { useAuth } from '@/lib/AuthContext';
 
 const ALL_NAV_ITEMS = [
   { path: '/', label: 'Characters', icon: User },
+  { path: '/group', label: 'Adventure', icon: Users },
   { path: '/skill-trees', label: 'Skill Trees', icon: TreePine, adminOnly: true },
   { path: '/races', label: 'Races', icon: Swords },
   { path: '/rules', label: 'Rules', icon: BookOpen },
-  { path: '/group', label: 'Group', icon: Users },
   { path: '/loot-table', label: 'Loot Table', icon: Dices },
 ];
 

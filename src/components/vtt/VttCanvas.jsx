@@ -131,12 +131,13 @@ export default function VttCanvas({
   }, []);
 
   // Load image
+  const [imgLoaded, setImgLoaded] = useState(false);
   useEffect(() => {
-    if (!map.image_url) { imgRef.current = null; return; }
+    if (!map.image_url) { imgRef.current = null; setImgLoaded(false); return; }
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.src = map.image_url;
-    img.onload = () => { imgRef.current = img; };
+    img.onload = () => { imgRef.current = img; setImgLoaded(true); };
   }, [map.image_url]);
 
   // Ping cleanup
@@ -306,7 +307,7 @@ export default function VttCanvas({
     ctx.restore();
   }, [pan, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls]);
 
-  useEffect(() => { draw(); }, [draw]);
+  useEffect(() => { draw(); }, [draw, imgLoaded]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getWorldPos = (e) => {
@@ -549,32 +550,17 @@ export default function VttCanvas({
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseUp}
         onContextMenu={onContextMenu}
+        onDoubleClick={(e) => {
+          const world = getWorldPos(e);
+          const token = findTokenAt(world);
+          if (token) setEditHpToken(token);
+        }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onMouseUp}
       />
 
-      {/* Token type legend */}
-      <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap pointer-events-none">
-        {Object.entries(TOKEN_COLORS).map(([type, color]) => (
-          <div key={type} className="flex items-center gap-1 bg-black/60 rounded px-2 py-0.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-            <span className="text-[10px] text-white capitalize">{type}</span>
-          </div>
-        ))}
-      </div>
 
-      {/* Wall type legend (bottom-right, GM only) */}
-      {isGM && (
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1 pointer-events-none">
-          {Object.entries(WALL_COLORS).map(([type, color]) => (
-            <div key={type} className="flex items-center gap-1.5 bg-black/60 rounded px-2 py-0.5">
-              <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
-              <span className="text-[10px] text-white capitalize">{type}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Clear trails button */}
       {initiativeStarted && Object.keys(trails).length > 0 && (
