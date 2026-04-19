@@ -380,7 +380,7 @@ export default function VttCanvas({
     ctx.restore();
   }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, measureStart, measureEnd, groupCharacters]);
 
-  useEffect(() => { draw(); }, [draw, imgLoaded]);
+  useEffect(() => { draw(); }, [draw, imgLoaded, canvasSize]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getWorldPos = (e) => {

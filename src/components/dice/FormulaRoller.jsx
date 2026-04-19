@@ -106,7 +106,7 @@ const EXAMPLES = [
   { label: '5d12', desc: 'Big damage roll' },
 ];
 
-export default function FormulaRoller({ onSaveFavorite }) {
+export default function FormulaRoller({ onSaveFavorite, onShareRoll }) {
   const [formula, setFormula] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -120,6 +120,14 @@ export default function FormulaRoller({ onSaveFavorite }) {
     } else {
       setError('');
       setResult(r);
+      if (onShareRoll) {
+        const summary = r.type === 'success'
+          ? `🎲 ${r.label}: ${r.summary} (rolls: [${r.rolls.join(', ')}])`
+          : r.type === 'keep'
+          ? `🎲 ${r.label}: ${r.summary}`
+          : `🎲 ${r.label} = **${r.total}**`;
+        onShareRoll(summary);
+      }
     }
   };
 

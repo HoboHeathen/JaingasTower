@@ -21,6 +21,7 @@ export default function InitiativePanel({
   initiativeStarted,
   initiativeOrder,     // [{tokenId, roll, name}]
   activeIndex,
+  round,
   onStart,
   onEnd,
   onNextTurn,
@@ -51,6 +52,9 @@ export default function InitiativePanel({
           <span className="font-heading text-sm font-semibold">Initiative</span>
           {initiativeStarted && (
             <Badge className="text-[10px] bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Active</Badge>
+          )}
+          {initiativeStarted && round > 0 && (
+            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/30">Round {round}</Badge>
           )}
         </div>
         <div className="flex gap-1.5">

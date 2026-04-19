@@ -9,7 +9,7 @@ function rollDie(sides) {
   return Math.floor(Math.random() * sides) + 1;
 }
 
-export default function StandardRoller({ onSaveFavorite }) {
+export default function StandardRoller({ onSaveFavorite, onShareRoll }) {
   const [counts, setCounts] = useState({ 4: 1, 6: 1, 8: 1, 10: 1, 12: 1, 20: 1, 100: 1 });
   const [modifier, setModifier] = useState(0);
   const [selectedDie, setSelectedDie] = useState(null);
@@ -20,7 +20,12 @@ export default function StandardRoller({ onSaveFavorite }) {
     const count = counts[selectedDie];
     const rolls = Array.from({ length: count }, () => rollDie(selectedDie));
     const total = rolls.reduce((a, b) => a + b, 0) + modifier;
-    setResult({ rolls, total, die: selectedDie, count, modifier });
+    const r = { rolls, total, die: selectedDie, count, modifier };
+    setResult(r);
+    if (onShareRoll) {
+      const label = `${count}d${selectedDie}${modifier !== 0 ? (modifier > 0 ? `+${modifier}` : modifier) : ''}`;
+      onShareRoll(`🎲 ${label}: [${rolls.join(', ')}]${modifier !== 0 ? ` ${modifier > 0 ? '+' : ''}${modifier}` : ''} = **${total}**`);
+    }
   };
 
   const handleSave = () => {

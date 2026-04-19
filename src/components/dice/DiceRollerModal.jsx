@@ -12,7 +12,7 @@ const TABS = [
   { id: 'favorites', label: 'Favorites' },
 ];
 
-export default function DiceRollerModal({ onClose, character, onSaveFavorite, onRemoveFavorite }) {
+export default function DiceRollerModal({ onClose, character, onSaveFavorite, onRemoveFavorite, onShareRoll }) {
   const [activeTab, setActiveTab] = useState('standard');
 
   return (
@@ -50,10 +50,10 @@ export default function DiceRollerModal({ onClose, character, onSaveFavorite, on
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5">
           {activeTab === 'standard' && (
-            <StandardRoller onSaveFavorite={onSaveFavorite} />
+            <StandardRoller onSaveFavorite={onSaveFavorite} onShareRoll={onShareRoll} />
           )}
           {activeTab === 'formula' && (
-            <FormulaRoller onSaveFavorite={onSaveFavorite} />
+            <FormulaRoller onSaveFavorite={onSaveFavorite} onShareRoll={onShareRoll} />
           )}
           {activeTab === 'favorites' && (
             <FavoritesRoller

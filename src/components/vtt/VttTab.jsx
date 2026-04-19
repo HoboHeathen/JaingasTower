@@ -26,6 +26,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [initiativeOrder, setInitiativeOrder] = useState([]); // [{tokenId, name, roll, type, color}]
   const [initiativeStarted, setInitiativeStarted] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [round, setRound] = useState(1);
 
   const { data: maps = [] } = useQuery({
     queryKey: ['vtt-maps', activeGroup?.id],
@@ -105,25 +106,35 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     // Center of canvas viewport in grid coords (canvas approx 800x500)
     const centerCol = Math.round((400 - ox) / gs);
     const centerRow = Math.round((250 - oy) / gs);
-    handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: centerCol, y: centerRow, is_visible: true }]);
+    // Players default to visible; enemies/neutrals/friendly default to hidden for GM to reveal
+    const defaultVisible = token.type === 'player';
+    handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: centerCol, y: centerRow, is_visible: defaultVisible }]);
     setShowAddToken(false);
   };
 
   // Initiative handlers
   const handleStartInitiative = () => {
     setActiveIndex(0);
+    setRound(1);
     setInitiativeStarted(true);
   };
 
   const handleEndInitiative = () => {
     setInitiativeStarted(false);
     setActiveIndex(0);
+    setRound(1);
     setInitiativeOrder([]);
   };
 
   const handleNextTurn = () => {
     setActiveIndex((prev) => {
       const next = (prev + 1) % initiativeOrder.length;
+      if (next === 0 && initiativeOrder.length > 0) {
+        setRound((r) => {
+          toast(`Round ${r + 1} begins!`, { icon: '⚔️' });
+          return r + 1;
+        });
+      }
       return next;
     });
   };
@@ -228,6 +239,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           initiativeStarted={initiativeStarted}
           initiativeOrder={initiativeOrder}
           activeIndex={activeIndex}
+          round={round}
           onStart={handleStartInitiative}
           onEnd={handleEndInitiative}
           onNextTurn={handleNextTurn}
