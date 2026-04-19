@@ -49,6 +49,13 @@
       "default": false,
       "description": "Whether this is the currently active map for the group"
     },
+    "fog_cells": {
+      "type": "array",
+      "description": "List of 'col,row' strings indicating hidden fog-of-war cells",
+      "items": {
+        "type": "string"
+      }
+    },
     "tokens": {
       "type": "array",
       "description": "Tokens placed on this map",
