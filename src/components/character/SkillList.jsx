@@ -240,14 +240,14 @@ export default function SkillList({ category, skills, usedSkills = [], onMarkUse
   const mainChain = skills.filter(isMainChainSkill);
   const nonMain = skills.filter((s) => !isMainChainSkill(s) && s.node_type !== 'augment');
 
-  // Deduplicate main-chain: keep only highest attack weight per weapon
+  // Deduplicate main-chain: per (weapon, weight) keep only the highest tier node
   const seen = new Map();
   mainChain.forEach((skill) => {
-    const key = skill.weapon_required || 'any';
+    const key = `${skill.weapon_required || 'any'}__${skill.attack_sub_category || ''}`;
     const existing = seen.get(key);
-    const currentWeight = weightOrder[skill.attack_sub_category] || 0;
-    const existingWeight = existing ? (weightOrder[existing.attack_sub_category] || 0) : -1;
-    if (!existing || currentWeight > existingWeight) seen.set(key, skill);
+    const currentTier = skill.tier ?? 0;
+    const existingTier = existing?.tier ?? -1;
+    if (!existing || currentTier > existingTier) seen.set(key, skill);
   });
 
   const deduped = [...seen.values(), ...nonMain];
