@@ -215,6 +215,7 @@ export default function VttCanvas({
   // Context menu
   const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
+  const [editHpFortification, setEditHpFortification] = useState(null);
   const [renameToken, setRenameToken] = useState(null);
   const [linkToken, setLinkToken] = useState(null);
   const [noLinkWarning, setNoLinkWarning] = useState(null);
@@ -364,6 +365,8 @@ export default function VttCanvas({
       : fortLines;
     allFortLines.forEach((line) => {
       if (!line.points || line.points.length < 2) return;
+      const currentHp = line.current_hp ?? 25;
+      const maxHp = 25;
       ctx.strokeStyle = 'rgba(255,200,0,0.85)';
       ctx.lineWidth = 5;
       ctx.lineCap = 'round';
@@ -377,6 +380,31 @@ export default function VttCanvas({
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
       ctx.stroke();
+      
+      // HP bar at line midpoint
+      if (line.points.length > 0) {
+        const mid = Math.floor(line.points.length / 2);
+        const { x: midX, y: midY } = line.points[mid];
+        const barW = 40;
+        const barX = midX - barW / 2;
+        const barY = midY - 20;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(barX, barY, barW, 4);
+        const pct = Math.max(0, Math.min(1, currentHp / maxHp));
+        ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
+        ctx.fillRect(barX, barY, barW * pct, 4);
+        
+        // Defense badge
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.beginPath();
+        ctx.roundRect(midX + 22, barY - 2, 22, 10, 3);
+        ctx.fill();
+        ctx.fillStyle = '#60a5fa';
+        ctx.font = `bold ${Math.max(7, gs * 0.12)}px Inter, sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`🛡13`, midX + 24, barY + 3);
+      }
     });
 
     // Movement trails
@@ -677,6 +705,14 @@ export default function VttCanvas({
           cells: w.cells?.filter((c) => !(c.col === col && c.row === row)),
         })).filter((w) => w.cells?.length > 0);
       });
+    } else if (activeTool === 'erase_fort' && isGM) {
+      const world = { x: col * gs + ox + gs / 2, y: row * gs + oy + gs / 2 };
+      setFortLines((prev) => {
+        return prev.filter((line) => {
+          if (!line.points || line.points.length === 0) return true;
+          return !line.points.some((p) => Math.hypot(world.x - p.x, world.y - p.y) < 15);
+        });
+      });
     }
   };
 
@@ -709,8 +745,10 @@ export default function VttCanvas({
         onUpdateMap?.({ walls: cleaned });
         return cleaned;
       });
+    } else if (activeTool === 'erase_fort') {
+      onUpdateMap?.({ fort_lines: fortLines });
     }
-  }, [activeTool, onUpdateMap]);
+  }, [activeTool, onUpdateMap, fortLines]);
 
   // ── Wheel zoom (mouse-centered) ───────────────────────────────────────────
   // Attach on the container with passive:false so we can preventDefault on
@@ -756,7 +794,7 @@ export default function VttCanvas({
       return;
     }
 
-    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'erase_fort' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       isPainting.current = true;
       paintedCells.current = new Set();
       if (activeTool === 'fortification') {
@@ -785,7 +823,7 @@ export default function VttCanvas({
       setMeasureEnd(worldToCell(world.x, world.y, gs, ox, oy));
       return;
     }
-    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'erase_fort' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       applyPaint(e);
       return;
     }
@@ -867,6 +905,19 @@ export default function VttCanvas({
       setContextMenu({ token, screenX: e.clientX, screenY: e.clientY });
       return;
     }
+    // Check fortifications for HP editing
+    if (isGM) {
+      const fort = fortLines.find((line) => {
+        if (!line.points || line.points.length === 0) return false;
+        const mid = Math.floor(line.points.length / 2);
+        const { x, y } = line.points[mid];
+        return Math.hypot(world.x - x, world.y - y) < 30;
+      });
+      if (fort) {
+        setEditHpFortification(fort);
+        return;
+      }
+    }
     // Check wall cells for door toggling
     if (isGM) {
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
@@ -915,6 +966,13 @@ export default function VttCanvas({
   const handleSaveHP = ({ current_hp, max_hp }) => {
     const updated = localTokens.map((t) => t.id === editHpToken.id ? { ...t, current_hp, max_hp } : t);
     setLocalTokens(updated); onUpdateTokens(updated); setEditHpToken(null);
+  };
+
+  const handleSaveFortificationHP = ({ current_hp }) => {
+    const updated = fortLines.map((f) => f.id === editHpFortification.id ? { ...f, current_hp } : f);
+    setFortLines(updated);
+    onUpdateMap?.({ fort_lines: updated });
+    setEditHpFortification(null);
   };
 
   const handleSaveName = (name) => {
@@ -1201,6 +1259,13 @@ export default function VttCanvas({
 
       {editHpToken && (
         <EditHpModal token={editHpToken} onSave={handleSaveHP} onClose={() => setEditHpToken(null)} />
+      )}
+      {editHpFortification && (
+        <EditHpModal
+          token={{ name: 'Fortification', max_hp: 25, current_hp: editHpFortification.current_hp ?? 25 }}
+          onSave={handleSaveFortificationHP}
+          onClose={() => setEditHpFortification(null)}
+        />
       )}
       {renameToken && (
         <RenameTokenModal token={renameToken} onSave={handleSaveName} onClose={() => setRenameToken(null)} />
