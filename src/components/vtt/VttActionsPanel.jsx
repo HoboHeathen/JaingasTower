@@ -110,8 +110,8 @@ function MiniSkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool, charg
         ) : null}
       </div>
       {rollResult && (
-        <div className="absolute left-0 right-0 -bottom-6 text-center text-xs text-primary font-bold pointer-events-none z-10">
-          🎲 {rollResult.total}
+        <div className="w-full mt-1 text-xs text-primary font-bold text-right">
+          🎲 [{rollResult.rolls.join(', ')}] = <span className="text-base">{rollResult.total}</span>
         </div>
       )}
     </div>
@@ -186,79 +186,71 @@ export default function VttActionsPanel({ character, trees = [], racialTrees = [
     }
   };
 
+  const skillList = skills.map((skill) => (
+    <MiniSkillCard key={skill.id} skill={skill} isUsed={usedSingleUseSkills.includes(skill.id)}
+      onMarkUsed={handleMarkUsed} magicDice={magicDice} chargePool={chargePool} chargeLimit={chargeLimit}
+      onCharge={handleCharge} onDeplete={handleDeplete} />
+  ));
+
   return (
-    <>
-      {/* Trigger button — fixed over the canvas bottom-left */}
+    <div className="relative">
+      {/* Trigger button */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 bg-card/90 border border-border/60 text-foreground text-xs font-medium px-3 py-2 rounded-full shadow-lg backdrop-blur-sm hover:bg-secondary/80 transition-all active:scale-95"
+        className="flex items-center gap-1.5 bg-card/95 border border-border/60 text-foreground text-xs font-medium px-3 py-2 rounded-full shadow-lg backdrop-blur-sm hover:bg-secondary/80 transition-all active:scale-95"
       >
         <Swords className="w-3.5 h-3.5 text-primary" />
         Actions
         {open ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronUp className="w-3 h-3 text-muted-foreground" />}
       </button>
 
-      {/* Panel — shown when open */}
       {open && (
         <>
-          {/* Mobile: bottom sheet overlay */}
-          <div
-            className="fixed inset-0 z-40 sm:hidden"
-            onClick={() => setOpen(false)}
-          />
-          <div
-            className={cn(
-              // Mobile: full-width bottom sheet
-              'fixed bottom-0 left-0 right-0 z-50 sm:hidden',
-              'bg-card border-t border-border rounded-t-2xl shadow-2xl',
-              'max-h-[75vh] flex flex-col'
-            )}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-border rounded-full" />
-            </div>
-            <div className="flex items-center justify-between px-4 pb-2">
-              <h3 className="font-heading text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <Swords className="w-3.5 h-3.5 text-primary" /> {character.name} – Actions
-              </h3>
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="overflow-y-auto px-4 pb-6 space-y-2 flex-1">
-              {skills.length === 0
-                ? <p className="text-xs text-muted-foreground text-center py-6">No actions unlocked.</p>
-                : skills.map((skill) => (
-                  <MiniSkillCard key={skill.id} skill={skill} isUsed={usedSingleUseSkills.includes(skill.id)}
-                    onMarkUsed={handleMarkUsed} magicDice={magicDice} chargePool={chargePool} chargeLimit={chargeLimit}
-                    onCharge={handleCharge} onDeplete={handleDeplete} />
-                ))}
+          {/* Mobile: backdrop + bottom sheet */}
+          <div className="sm:hidden">
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <div
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border rounded-t-2xl shadow-2xl max-h-[75vh] flex flex-col"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              <div className="flex justify-center pt-3 pb-1 cursor-grab">
+                <div className="w-10 h-1 bg-border rounded-full" />
+              </div>
+              <div className="flex items-center justify-between px-4 pb-2">
+                <h3 className="font-heading text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Swords className="w-3.5 h-3.5 text-primary" /> {character.name} – Actions
+                </h3>
+                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground p-1">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-4 pb-8 space-y-2 flex-1">
+                {skills.length === 0
+                  ? <p className="text-xs text-muted-foreground text-center py-6">No actions unlocked.</p>
+                  : skillList}
+              </div>
             </div>
           </div>
 
-          {/* Desktop: inline collapsible panel */}
-          <div className="hidden sm:block absolute bottom-full mb-2 left-0 w-80 max-h-96 overflow-y-auto bg-card/95 backdrop-blur-sm border border-border/60 rounded-xl shadow-2xl z-50 p-3 space-y-2">
-            <div className="flex items-center justify-between mb-2">
+          {/* Desktop: popover above the button */}
+          <div className="hidden sm:flex flex-col absolute bottom-full left-0 mb-2 w-80 max-h-96 bg-card/95 backdrop-blur-sm border border-border/60 rounded-xl shadow-2xl z-50">
+            <div className="flex items-center justify-between px-3 pt-3 pb-2 border-b border-border/40">
               <h3 className="font-heading text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <Swords className="w-3 h-3 text-primary" /> {character.name} – Actions
               </h3>
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground p-0.5">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            {skills.length === 0
-              ? <p className="text-xs text-muted-foreground text-center py-4">No actions unlocked.</p>
-              : skills.map((skill) => (
-                <MiniSkillCard key={skill.id} skill={skill} isUsed={usedSingleUseSkills.includes(skill.id)}
-                  onMarkUsed={handleMarkUsed} magicDice={magicDice} chargePool={chargePool} chargeLimit={chargeLimit}
-                  onCharge={handleCharge} onDeplete={handleDeplete} />
-              ))}
+            <div className="overflow-y-auto p-3 space-y-2">
+              {skills.length === 0
+                ? <p className="text-xs text-muted-foreground text-center py-4">No actions unlocked.</p>
+                : skillList}
+            </div>
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
