@@ -76,16 +76,7 @@ export default function VttToolbar({
               <span className="hidden sm:inline">Clear Fog</span>
             </button>
           )}
-          {wallCount > 0 && (
-            <button
-              onClick={onClearWalls}
-              title="Clear all walls"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-transparent text-destructive hover:bg-destructive/10 transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Clear Walls</span>
-            </button>
-          )}
+
           <button
             onClick={onToggleSurvivalMode}
             title="Toggle Survival Mode"
