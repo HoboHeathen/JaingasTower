@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+const LAST_GROUP_KEY = 'lastViewedGroupId';
+
 const PLAYER_TABS = [
   { key: 'party', label: 'Party', icon: Users },
   { key: 'rolls', label: 'Rolls', icon: Dices },
@@ -70,9 +72,26 @@ export default function Group() {
     enabled: !!user?.email,
   });
 
-  // Active group = first group user is GM of, OR character's group
+  // Get all groups (GM or member)
   const myCharactersInGroup = myCharacters.filter((c) => c.group_id);
-  const activeGroupId = myGroups[0]?.id || myCharactersInGroup[0]?.group_id || null;
+  const allMyGroups = [
+    ...myGroups,
+    ...Array.from(new Map(myCharactersInGroup.map((c) => [c.group_id, c.group_id])).keys())
+      .map((gid) => ({ id: gid }))
+  ];
+
+  // Preload last group or use first available
+  React.useEffect(() => {
+    const saved = localStorage.getItem(LAST_GROUP_KEY);
+    if (!saved && allMyGroups.length > 0) {
+      localStorage.setItem(LAST_GROUP_KEY, allMyGroups[0].id);
+    }
+  }, [allMyGroups]);
+
+  const lastGroupId = localStorage.getItem(LAST_GROUP_KEY);
+  const activeGroupId = lastGroupId && allMyGroups.some((g) => g.id === lastGroupId)
+    ? lastGroupId
+    : myGroups[0]?.id || myCharactersInGroup[0]?.group_id || null;
 
   const { data: activeGroup } = useQuery({
     queryKey: ['group', activeGroupId],
@@ -247,8 +266,23 @@ export default function Group() {
       {/* Group Header */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-heading text-2xl font-bold text-foreground">{activeGroup?.name || 'My Group'}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <select
+                value={activeGroupId || ''}
+                onChange={(e) => {
+                  localStorage.setItem(LAST_GROUP_KEY, e.target.value);
+                  window.location.reload();
+                }}
+                className="appearance-none bg-transparent border-b-2 border-primary px-1 py-1 text-2xl font-bold font-heading text-foreground cursor-pointer focus:outline-none focus:border-primary/60 transition-colors"
+              >
+                {allMyGroups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {myGroups.find((mg) => mg.id === g.id)?.name || myCharacters.find((c) => c.group_id === g.id)?.group_name || `Group ${g.id.slice(0, 5)}`}
+                  </option>
+                ))}
+              </select>
+            </div>
             {isGM && <Badge className="bg-primary/10 text-primary border-primary/30 text-xs gap-1"><Crown className="w-3 h-3" />GM</Badge>}
           </div>
           {activeGroup?.description && <p className="text-sm text-muted-foreground mt-0.5">{activeGroup.description}</p>}
@@ -262,9 +296,14 @@ export default function Group() {
             </div>
           )}
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowJoinGroup(true)}>
-          <Plus className="w-3 h-3" /> Add Character
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowCreateGroup(true)}>
+            <Plus className="w-3 h-3" /> New Group
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowJoinGroup(true)}>
+            <Plus className="w-3 h-3" /> Add Character
+          </Button>
+        </div>
       </div>
 
       {/* Tabs — dropdown on mobile, pills on desktop */}
