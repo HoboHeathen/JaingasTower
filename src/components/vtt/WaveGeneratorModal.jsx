@@ -61,10 +61,12 @@ function spreadAroundSpawnPoints(spawnCells, count) {
   if (!spawnCells.length) {
     return Array.from({ length: count }, (_, i) => ({ x: 5 + (i % 5), y: 4 + Math.floor(i / 5) }));
   }
+  // Shuffle spawn cells so each wave distributes randomly
+  const shuffled = [...spawnCells].sort(() => Math.random() - 0.5);
   const positions = [];
   for (let i = 0; i < count; i++) {
-    const base = spawnCells[i % spawnCells.length];
-    const offset = Math.floor(i / spawnCells.length);
+    const base = shuffled[i % shuffled.length];
+    const offset = Math.floor(i / shuffled.length);
     positions.push({ x: base.col + (offset % 3), y: base.row + Math.floor(offset / 3) });
   }
   return positions;
@@ -168,14 +170,17 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
         <div className="space-y-2">
           {entries.map(({ monster, count }) => {
             const diceCount = getDiceCount(monster.hp_type || 'standard', waveNumber);
+            const dieFaces = getDieFaces(dieType);
+            const avgHp = diceCount * Math.floor(dieFaces / 2);
+            const hpFormula = `${diceCount}${dieType}`;
             const hpLabel = hpAveraged
-              ? `~${diceCount * Math.floor(getDieFaces(dieType) / 2)} HP`
-              : `${diceCount}${dieType} HP`;
+              ? `${hpFormula} = ~${avgHp} HP (avg)`
+              : `${hpFormula} (avg ~${avgHp})`;
             return (
               <div key={monster.id} className="flex items-center gap-2 bg-secondary/30 rounded-lg px-3 py-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{monster.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{monster.category} · {hpLabel} each</p>
+                  <p className="text-[10px] text-muted-foreground">{monster.category} · <span className="text-primary/80 font-mono">{hpLabel}</span> each</p>
                 </div>
                 <input
                   type="number"
