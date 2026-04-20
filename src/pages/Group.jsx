@@ -52,12 +52,14 @@ export default function Group() {
   const [tab, setTab] = useState('party');
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
+  const [showGroupMenu, setShowGroupMenu] = useState(false);
   const [groupForm, setGroupForm] = useState({ name: '', description: '' });
   const [joinCode, setJoinCode] = useState('');
   const [joinCharacterId, setJoinCharacterId] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [copied, setCopied] = useState(false);
   const chatEndRef = useRef(null);
+  const groupMenuRef = useRef(null);
 
   const { data: myGroups = [] } = useQuery({
     queryKey: ['my-groups', user?.email],
@@ -127,6 +129,16 @@ export default function Group() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (groupMenuRef.current && !groupMenuRef.current.contains(e.target)) {
+        setShowGroupMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const createGroupMutation = useMutation({
     mutationFn: (data) => base44.entities.Group.create(data),
@@ -265,13 +277,17 @@ export default function Group() {
     <div>
       {/* Group Selector Dropdown */}
       <div className="mb-6">
-        <div className="relative inline-block">
-          <button className="flex items-center gap-2 px-4 py-2 bg-secondary/40 hover:bg-secondary/60 border border-border/50 rounded-xl transition-colors">
+        <div className="relative inline-block" ref={groupMenuRef}>
+          <button
+            onClick={() => setShowGroupMenu(!showGroupMenu)}
+            className="flex items-center gap-2 px-4 py-2 bg-secondary/40 hover:bg-secondary/60 border border-border/50 rounded-xl transition-colors"
+          >
             <Users className="w-4 h-4 text-primary" />
             <span className="font-medium text-foreground">{activeGroup?.name || 'Select Group'}</span>
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showGroupMenu && "rotate-180")} />
           </button>
-          <div className="absolute left-0 mt-2 w-56 bg-card border border-border/50 rounded-xl shadow-lg z-50 overflow-hidden">
+          {showGroupMenu && (
+            <div className="absolute left-0 mt-2 w-56 bg-card border border-border/50 rounded-xl shadow-lg z-50 overflow-hidden">
             <div className="max-h-64 overflow-y-auto">
               {allMyGroups.length === 0 ? (
                 <div className="p-3 text-sm text-muted-foreground text-center">No groups yet</div>
@@ -283,6 +299,7 @@ export default function Group() {
                     <button
                       key={g.id}
                       onClick={() => {
+                        setShowGroupMenu(false);
                         localStorage.setItem(LAST_GROUP_KEY, g.id);
                         window.location.reload();
                       }}
@@ -299,19 +316,26 @@ export default function Group() {
             </div>
             <div className="border-t border-border/30 p-2 space-y-1">
               <button
-                onClick={() => setShowCreateGroup(true)}
+                onClick={() => {
+                  setShowGroupMenu(false);
+                  setShowCreateGroup(true);
+                }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> Create Group
               </button>
               <button
-                onClick={() => setShowJoinGroup(true)}
+                onClick={() => {
+                  setShowGroupMenu(false);
+                  setShowJoinGroup(true);
+                }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> Join Group
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -352,14 +376,16 @@ export default function Group() {
           </select>
         </div>
         {/* Desktop pills */}
-        <div className="hidden sm:flex gap-1 bg-secondary/30 rounded-xl p-1">
+        <div className="hidden sm:flex gap-1 bg-secondary/20 rounded-xl p-1.5">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={cn(
                 'flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all',
-                tab === key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                tab === key 
+                  ? 'bg-primary/20 text-primary border border-primary/40 shadow-md' 
+                  : 'text-foreground hover:bg-secondary/40 hover:text-primary'
               )}
             >
               <Icon className="w-4 h-4" />
