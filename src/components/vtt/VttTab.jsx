@@ -10,6 +10,7 @@ import VttMapSettings from '@/components/vtt/VttMapSettings';
 import AddTokenModal from '@/components/vtt/AddTokenModal';
 import InitiativePanel from '@/components/vtt/InitiativePanel';
 import VttToolbar from '@/components/vtt/VttToolbar';
+import VttActionsPanel from '@/components/vtt/VttActionsPanel';
 
 export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const queryClient = useQueryClient();
@@ -28,6 +29,21 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [round, setRound] = useState(1);
 
+  // Skill trees for actions panel
+  const { data: allTrees = [] } = useQuery({
+    queryKey: ['skill-trees'],
+    queryFn: () => base44.entities.SkillTree.list(),
+    enabled: !isGM,
+  });
+  const { data: racialTrees = [] } = useQuery({
+    queryKey: ['racial-trees'],
+    queryFn: () => base44.entities.RacialTree.list(),
+    enabled: !isGM,
+  });
+
+  // The current player's character in this group
+  const playerCharacter = !isGM ? (groupCharacters.find((c) => c.created_by === user?.email) ?? null) : null;
+
   const { data: maps = [] } = useQuery({
     queryKey: ['vtt-maps', activeGroup?.id],
     queryFn: () => base44.entities.VttMap.filter({ group_id: activeGroup.id }),
@@ -37,6 +53,11 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
 
   // If selectedMapId is set, use that map; otherwise show list view
   const activeMap = selectedMapId ? (maps.find((m) => m.id === selectedMapId) || null) : null;
+
+  const updateCharacterMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Character.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['group-characters'] }),
+  });
 
   const updateMapMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.VttMap.update(id, data),
@@ -279,6 +300,20 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         onClearFog={() => handleUpdateMap({ fog_cells: [] })}
         onClearWalls={() => handleUpdateMap({ walls: [] })}
       />
+
+      {/* Player actions panel — floats at bottom-left of canvas area */}
+      {!isGM && playerCharacter && (
+        <div className="relative -mt-14 ml-3 mb-4 z-30 flex items-end pointer-events-none">
+          <div className="pointer-events-auto">
+            <VttActionsPanel
+              character={playerCharacter}
+              trees={allTrees}
+              racialTrees={racialTrees}
+              onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
+            />
+          </div>
+        </div>
+      )}
 
       {showAddToken && (
         <AddTokenModal
