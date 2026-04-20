@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 export default function RenameTokenModal({ token, onSave, onClose }) {
   const [name, setName] = useState(token.name || '');
@@ -13,18 +11,29 @@ export default function RenameTokenModal({ token, onSave, onClose }) {
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-xs">
-        <DialogHeader>
-          <DialogTitle className="font-heading">Rename Token</DialogTitle>
-        </DialogHeader>
-        <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus
-          onKeyDown={(e) => e.key === 'Enter' && handleSave()} />
-        <DialogFooter>
+    <div
+      className="absolute inset-0 flex items-center justify-center z-50"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-card border border-border rounded-xl shadow-2xl p-5 w-[280px] flex flex-col gap-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="font-heading text-sm font-semibold text-foreground">Rename Token</h2>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          autoFocus
+          className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+        <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSave} disabled={!name.trim()}>Rename</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }

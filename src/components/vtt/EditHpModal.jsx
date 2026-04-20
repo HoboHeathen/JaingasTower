@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
 export default function EditHpModal({ token, onSave, onClose }) {
@@ -22,66 +21,66 @@ export default function EditHpModal({ token, onSave, onClose }) {
   const deltaVal = parseInt(delta) || 0;
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="w-[280px] max-w-[calc(100vw-2rem)]">
-        <DialogHeader>
-          <DialogTitle className="font-heading text-sm">HP — {token.name}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          {/* Current HP display */}
-          <div className="text-center">
-            <p className="text-4xl font-heading font-bold text-primary">{currentHp}</p>
-            <p className="text-xs text-muted-foreground">/ {newMax} HP</p>
-          </div>
+    <div
+      className="absolute inset-0 flex items-center justify-center z-50"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-card border border-border rounded-xl shadow-2xl p-5 w-[280px] flex flex-col gap-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="font-heading text-sm font-semibold text-foreground">HP — {token.name}</h2>
 
-          {/* Delta input */}
-          <input
-            type="number"
-            value={delta}
-            onChange={(e) => setDelta(e.target.value)}
-            placeholder="Amount"
-            className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm text-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            autoFocus
-            min="0"
-          />
+        <div className="text-center">
+          <p className="text-4xl font-heading font-bold text-primary">{currentHp}</p>
+          <p className="text-xs text-muted-foreground">/ {newMax} HP</p>
+        </div>
 
-          {/* Heal / Damage buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              className="border-green-500/40 text-green-400 hover:bg-green-500/10 text-sm"
-              onClick={() => applyDelta(deltaVal)}
-              disabled={deltaVal <= 0}
-            >
-              + Heal
+        <input
+          type="number"
+          value={delta}
+          onChange={(e) => setDelta(e.target.value)}
+          placeholder="Amount"
+          className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm text-center text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          autoFocus
+          min="0"
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            className="border-green-500/40 text-green-400 hover:bg-green-500/10 text-sm"
+            onClick={() => applyDelta(deltaVal)}
+            disabled={deltaVal <= 0}
+          >
+            + Heal
+          </Button>
+          <Button
+            variant="outline"
+            className="border-red-500/40 text-red-400 hover:bg-red-500/10 text-sm"
+            onClick={() => applyDelta(-deltaVal)}
+            disabled={deltaVal <= 0}
+          >
+            − Damage
+          </Button>
+        </div>
+
+        <div className="border-t border-border/40 pt-3">
+          <label className="text-xs text-muted-foreground block mb-1">Max HP</label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={newMax}
+              onChange={(e) => setNewMax(e.target.value)}
+              className="w-full h-8 rounded-md border border-input bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={handleFullHeal}>
+              Full Heal
             </Button>
-            <Button
-              variant="outline"
-              className="border-red-500/40 text-red-400 hover:bg-red-500/10 text-sm"
-              onClick={() => applyDelta(-deltaVal)}
-              disabled={deltaVal <= 0}
-            >
-              − Damage
-            </Button>
-          </div>
-
-          {/* Max HP edit */}
-          <div className="border-t border-border/40 pt-3">
-            <label className="text-xs text-muted-foreground block mb-1">Max HP</label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={newMax}
-                onChange={(e) => setNewMax(e.target.value)}
-                className="w-full h-8 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={handleFullHeal}>
-                Full Heal
-              </Button>
-            </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
