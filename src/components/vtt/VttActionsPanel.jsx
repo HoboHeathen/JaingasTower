@@ -113,6 +113,7 @@ function MiniSkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool, charg
 // ── Main panel ─────────────────────────────────────────────────────────────────
 export default function VttActionsPanel({ character, trees = [], racialTrees = [], onUpdateCharacter }) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState('actions'); // 'actions', 'augments', 'other'
   // For mobile sheet drag
   const dragStartY = useRef(null);
 
@@ -125,21 +126,39 @@ export default function VttActionsPanel({ character, trees = [], racialTrees = [
   const racialTreeMap = {}; racialTrees.forEach((t) => { racialTreeMap[t.id] = t; });
 
   const allActions = [];
+  const augments = [];
+  const otherSkills = [];
+
   unlockedSkills.forEach(({ tree_id, node_id }) => {
     const tree = treeMap[tree_id]; if (!tree) return;
     const node = (tree.nodes || []).find((n) => n.id === node_id); if (!node) return;
-    if (node.node_type === 'stat_increase' || node.node_type === 'augment') return;
+
+    if (node.node_type === 'stat_increase') return;
+
+    if (node.node_type === 'augment') {
+      augments.push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
+      return;
+    }
+
+    if (node.node_type === 'skill') {
+      otherSkills.push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
+      return;
+    }
+
     allActions.push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
   });
+
   // Racial skills
   (character.unlocked_racial_skills || []).forEach(({ racial_tree_id, node_id }) => {
     const tree = racialTreeMap[racial_tree_id]; if (!tree) return;
     const node = (tree.nodes || []).find((n) => n.id === node_id); if (!node) return;
-    if (node.category === 'passive') return;
+    if (node.category === 'passive') {
+      otherSkills.push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
+      return;
+    }
     allActions.push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
   });
 
-  // No deduplication — show all unlocked actions as-is
   const skills = allActions;
 
   const magicDice = {
@@ -207,28 +226,38 @@ export default function VttActionsPanel({ character, trees = [], racialTrees = [
                   <X className="w-4 h-4" />
                 </button>
               </div>
+              <div className="border-b border-border/40 px-4 flex gap-1.5 pt-2 pb-0 text-xs">
+                <button onClick={() => setTab('actions')} className={`px-2 py-1 rounded-t ${tab === 'actions' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>Actions</button>
+                {augments.length > 0 && <button onClick={() => setTab('augments')} className={`px-2 py-1 rounded-t ${tab === 'augments' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>Augments</button>}
+                {otherSkills.length > 0 && <button onClick={() => setTab('other')} className={`px-2 py-1 rounded-t ${tab === 'other' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>Other Skills</button>}
+              </div>
               <div className="overflow-y-auto px-4 pb-8 space-y-2 flex-1">
-                {skills.length === 0
-                  ? <p className="text-xs text-muted-foreground text-center py-6">No actions unlocked.</p>
-                  : skillList}
+                {tab === 'actions' && (skills.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">No actions unlocked.</p> : skillList)}
+                {tab === 'augments' && (augments.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">No augments.</p> : augments.map((aug) => <MiniSkillCard key={aug.id} skill={aug} isUsed={false} magicDice={magicDice} />))}
+                {tab === 'other' && (otherSkills.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">No other skills.</p> : otherSkills.map((skill) => <div key={skill.id} className="flex flex-col px-3 py-2 rounded-lg border border-border/40 bg-secondary/20"><p className="text-sm font-medium text-foreground">{skill.name}</p>{skill.treeName && <p className="text-[10px] text-muted-foreground mt-0.5">{skill.treeName}</p>}{skill.description && <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{skill.description}</p>}</div>))}
               </div>
             </div>
           </div>
 
           {/* Desktop: popover above the button */}
-          <div className="hidden sm:flex flex-col absolute bottom-full left-0 mb-2 w-80 max-h-96 bg-card/95 backdrop-blur-sm border border-border/60 rounded-xl shadow-2xl z-50">
+          <div className="hidden sm:flex flex-col absolute bottom-full left-0 mb-2 w-80 max-h-96 bg-card/95 backdrop-blur-sm border border-border/60 rounded-xl shadow-2xl z-50 overflow-hidden">
             <div className="flex items-center justify-between px-3 pt-3 pb-2 border-b border-border/40">
               <h3 className="font-heading text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Swords className="w-3 h-3 text-primary" /> {character.name} – Actions
+                <Swords className="w-3 h-3 text-primary" /> {character.name}
               </h3>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground p-0.5">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
+            <div className="border-b border-border/40 px-3 flex gap-1.5 text-[11px]">
+              <button onClick={() => setTab('actions')} className={`px-2 py-1 rounded-t ${tab === 'actions' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>Actions</button>
+              {augments.length > 0 && <button onClick={() => setTab('augments')} className={`px-2 py-1 rounded-t ${tab === 'augments' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>Augments</button>}
+              {otherSkills.length > 0 && <button onClick={() => setTab('other')} className={`px-2 py-1 rounded-t ${tab === 'other' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}>Other</button>}
+            </div>
             <div className="overflow-y-auto p-3 space-y-2">
-              {skills.length === 0
-                ? <p className="text-xs text-muted-foreground text-center py-4">No actions unlocked.</p>
-                : skillList}
+              {tab === 'actions' && (skills.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">No actions unlocked.</p> : skillList)}
+              {tab === 'augments' && (augments.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">No augments.</p> : augments.map((aug) => <MiniSkillCard key={aug.id} skill={aug} isUsed={false} magicDice={magicDice} />))}
+              {tab === 'other' && (otherSkills.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">No other skills.</p> : otherSkills.map((skill) => <div key={skill.id} className="flex flex-col px-3 py-2 rounded-lg border border-border/40 bg-secondary/20"><p className="text-xs font-medium text-foreground">{skill.name}</p>{skill.treeName && <p className="text-[9px] text-muted-foreground mt-0.5">{skill.treeName}</p>}{skill.description && <p className="text-[9px] text-muted-foreground mt-1 leading-relaxed">{skill.description}</p>}</div>))}
             </div>
           </div>
         </>
