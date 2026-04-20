@@ -147,18 +147,18 @@ export default function VttActionsPanel({ character, trees = [], racialTrees = [
     allActions.push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
   });
 
-  // Deduplicate main chain weapon skills
-  const mainChain = allActions.filter(isMainChainSkill);
-  const nonMain = allActions.filter((s) => !isMainChainSkill(s));
+  // Deduplicate: for each (weapon, weight) combo keep only the highest-tier node
   const seen = new Map();
-  mainChain.forEach((skill) => {
-    const key = skill.weapon_required || 'any';
+  allActions.forEach((skill) => {
+    if (!isMainChainSkill(skill)) return;
+    const key = `${skill.weapon_required || 'any'}__${skill.attack_sub_category || ''}`;
     const existing = seen.get(key);
-    const cw = weightOrder[skill.attack_sub_category] || 0;
-    const ew = existing ? (weightOrder[existing.attack_sub_category] || 0) : -1;
-    if (!existing || cw > ew) seen.set(key, skill);
+    // Keep the one with the higher tier number (more advanced version)
+    const ct = skill.tier ?? 0;
+    const et = existing?.tier ?? -1;
+    if (!existing || ct > et) seen.set(key, skill);
   });
-  const skills = [...seen.values(), ...nonMain];
+  const skills = [...seen.values(), ...allActions.filter((s) => !isMainChainSkill(s))];
 
   const magicDice = {
     fire: character.fire_dice_index ?? 0, frost: character.frost_dice_index ?? 0,
