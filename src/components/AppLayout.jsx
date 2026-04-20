@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ScrollText, TreePine, User, Swords, BookOpen, Users, Dices, Menu, X } from 'lucide-react';
+import { ScrollText, TreePine, User, Swords, BookOpen, Users, Dices, Menu, X, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
+import { base44 } from '@/api/base44Client';
 
 const ALL_NAV_ITEMS = [
   { path: '/', label: 'Characters', icon: User },
@@ -48,6 +49,13 @@ export default function AppLayout() {
                   </Link>
                 );
               })}
+              <button
+                onClick={() => base44.auth.logout()}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Mobile hamburger */}
@@ -79,6 +87,13 @@ export default function AppLayout() {
                 </Link>
               );
             })}
+            <button
+              onClick={() => base44.auth.logout()}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         )}
       </nav>
