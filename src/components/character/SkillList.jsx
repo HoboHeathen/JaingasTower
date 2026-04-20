@@ -222,27 +222,11 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, charg
   );
 }
 
-// Main-chain skills are named like "Polearm I", "Axe III", "Hammer V" etc.
-// They are the basic weapon attacks that get deduplicated (keep highest weight per weapon).
-// Augments (Sweep, Chasedown, Dazed, etc.) always show.
-const WEAPON_TREE_NAMES = ['polearm', 'axe', 'hammer', 'greataxe', 'greatsword', 'greathammer', 'sword', 'dagger', 'shortbow', 'longbow', 'light crossbow', 'heavy crossbow'];
-
-function isMainChainSkill(skill) {
-  if (skill.node_type === 'skill') return false;
-  const nameLower = skill.name.toLowerCase();
-  return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
-}
-
-
 export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, chargeLimit = 0, onCharge, onDeplete, onShareRoll }) {
-  const weightOrder = { heavy: 3, medium: 2, light: 1 };
-
-  const mainChain = skills.filter(isMainChainSkill);
-  const nonMain = skills.filter((s) => !isMainChainSkill(s) && s.node_type !== 'augment');
-
-  // Deduplicate main-chain: per (weapon, weight) keep only the highest tier node
+  // Deduplicate: for same (weapon, weight) in this category, keep only the highest tier node
   const seen = new Map();
-  mainChain.forEach((skill) => {
+  skills.forEach((skill) => {
+    if (skill.node_type !== 'attack') return; // non-attack skills always show; handled below
     const key = `${skill.weapon_required || 'any'}__${skill.attack_sub_category || ''}`;
     const existing = seen.get(key);
     const currentTier = skill.tier ?? 0;
@@ -250,7 +234,8 @@ export default function SkillList({ category, skills, usedSkills = [], onMarkUse
     if (!existing || currentTier > existingTier) seen.set(key, skill);
   });
 
-  const deduped = [...seen.values(), ...nonMain];
+  const nonAttack = skills.filter((s) => s.node_type !== 'attack');
+  const deduped = [...seen.values(), ...nonAttack];
 
   return (
     <div className="bg-card border border-border/50 rounded-xl p-4">
