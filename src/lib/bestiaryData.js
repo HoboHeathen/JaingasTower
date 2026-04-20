@@ -52,6 +52,12 @@ export function formatDamage(damageType, floorWave, dieType) {
   return `${count}${dieType}`;
 }
 
+// Returns the average HP of a monster calculated using d6 only (for wave budget calculations)
+export function getAverageHpD6(monster, waveNumber) {
+  const diceCount = getDiceCount(monster.hp_type || 'standard', waveNumber);
+  return diceCount * 3; // d6 average = 3 (floor(6/2))
+}
+
 export const BESTIARY = [
   // ─── ZOMBIES ─────────────────────────────────────────────────────────────
   {
