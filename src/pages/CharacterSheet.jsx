@@ -121,6 +121,9 @@ export default function CharacterSheet() {
     const cat = isReactionary ? 'reactionary' : (node.category || 'primary');
     if (categorizedSkills[cat] !== undefined) {
       categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
+    } else {
+      // Doesn't fit any action bucket — treat as a passive/other skill
+      otherSkills.push({ ...node, treeId: tree.id, treeName: tree.name, treeCategory: tree.tree_category });
     }
   });
 
@@ -132,7 +135,10 @@ export default function CharacterSheet() {
     const node = (tree.nodes || []).find((n) => n.id === node_id);
     if (!node) return;
     const cat = node.category;
-    if (cat === 'passive' || !categorizedSkills[cat]) return;
+    if (cat === 'passive' || !categorizedSkills[cat]) {
+      otherSkills.push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
+      return;
+    }
     categorizedSkills[cat].push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
   });
 
