@@ -49,7 +49,7 @@
     },
     "walls": {
       "type": "array",
-      "description": "Wall segments stored as {id, type, cells:[{col,row}]} where type is wall|door|window|obstacle|fortification|spawn_point",
+      "description": "Wall segments stored as {id, type, cells:[{col,row}]} where type is wall|door|window|obstacle|spawn_point",
       "items": {
         "type": "object",
         "properties": {
@@ -63,7 +63,6 @@
               "door",
               "window",
               "obstacle",
-              "fortification",
               "spawn_point"
             ]
           },
@@ -80,6 +79,32 @@
                   "type": "number"
                 },
                 "row": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fort_lines": {
+      "type": "array",
+      "description": "Free-draw fortification lines stored as {id, points:[{x,y}]} in world pixel coordinates",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
                   "type": "number"
                 }
               }

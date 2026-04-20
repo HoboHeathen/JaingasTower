@@ -91,7 +91,7 @@ export default function SurvivalToolbar({
 
       {/* Active tool hint */}
       <div className="ml-auto text-[10px] text-muted-foreground italic hidden md:block">
-        {activeTool === 'fortification' && 'Click/drag cells to place fortifications'}
+        {activeTool === 'fortification' && 'Click and drag to draw a fortification line'}
         {activeTool === 'spawn_point' && 'Click/drag cells to place spawn points (GM only)'}
       </div>
     </div>

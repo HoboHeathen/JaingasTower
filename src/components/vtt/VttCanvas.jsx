@@ -22,7 +22,6 @@ const WALL_COLORS = {
   door: 'rgba(180,100,30,0.9)',
   window: 'rgba(80,180,220,0.8)',
   obstacle: 'rgba(150,60,200,0.85)',
-  fortification: 'rgba(255,200,0,0.6)',
   spawn_point: 'rgba(100,200,100,0.4)',
 };
 
@@ -186,6 +185,9 @@ export default function VttCanvas({
 
   // Walls: array of {id, type, is_open, cells:[{col,row}]}
   const [walls, setWalls] = useState(() => map.walls || []);
+  // Fort lines: array of {id, points:[{x,y}]} — free-draw, not snapped to grid
+  const [fortLines, setFortLines] = useState(() => map.fort_lines || []);
+  const currentFortLine = useRef(null); // {id, points:[]} being drawn
   // Current stroke being painted
   const paintedCells = useRef(new Set());
 
@@ -220,6 +222,7 @@ export default function VttCanvas({
   useEffect(() => { setLocalTokens(map.tokens || []); }, [map.tokens]);
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
   useEffect(() => { setWalls(map.walls || []); }, [map.walls]);
+  useEffect(() => { setFortLines(map.fort_lines || []); }, [map.fort_lines]);
 
   // Clear movement tracking and trails when the turn changes
   useEffect(() => {
@@ -351,9 +354,29 @@ export default function VttCanvas({
         if (wall.type === 'door') ctx.fillText(wall.is_open ? '🚪' : 'D', wx, wy);
         else if (wall.type === 'window') ctx.fillText('W', wx, wy);
         else if (wall.type === 'obstacle') ctx.fillText('O', wx, wy);
-        else if (wall.type === 'fortification') ctx.fillText('⚔', wx, wy);
         else if (wall.type === 'spawn_point' && isGM) ctx.fillText('☠', wx, wy);
       });
+    });
+
+    // Fort lines (free-draw, world coords)
+    const allFortLines = currentFortLine.current
+      ? [...fortLines, currentFortLine.current]
+      : fortLines;
+    allFortLines.forEach((line) => {
+      if (!line.points || line.points.length < 2) return;
+      ctx.strokeStyle = 'rgba(255,200,0,0.85)';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+      ctx.stroke();
+      // Inner highlight
+      ctx.strokeStyle = 'rgba(255,240,120,0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+      ctx.stroke();
     });
 
     // Movement trails
@@ -580,7 +603,7 @@ export default function VttCanvas({
     });
 
     ctx.restore();
-  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, measureStart, measureEnd, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
+  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, fortLines, measureStart, measureEnd, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
 
   useEffect(() => { draw(); }, [draw, imgLoaded, canvasSize, portraitTick]);
 
@@ -616,25 +639,35 @@ export default function VttCanvas({
   // ── Painting helpers ──────────────────────────────────────────────────────
   const applyPaint = (e) => {
     const world = getWorldPos(e);
+
+    // Fortification: free-draw line (appends to currentFortLine)
+    if (activeTool === 'fortification') {
+      if (currentFortLine.current) {
+        currentFortLine.current = {
+          ...currentFortLine.current,
+          points: [...currentFortLine.current.points, { x: world.x, y: world.y }],
+        };
+        draw(); // force redraw to show in-progress line
+      }
+      return;
+    }
+
     const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
     const key = fogKey(col, row);
-    if (paintedCells.current.has(key)) return; // avoid re-painting same cell in one stroke
+    if (paintedCells.current.has(key)) return;
     paintedCells.current.add(key);
 
     if (activeTool === 'fog_add') {
       setFogCells((prev) => { const n = new Set(prev); n.add(key); return n; });
     } else if (activeTool === 'fog_erase') {
       setFogCells((prev) => { const n = new Set(prev); n.delete(key); return n; });
-    } else if (['wall', 'door', 'window', 'obstacle', 'fortification', 'spawn_point'].includes(activeTool)) {
+    } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool)) {
       setWalls((prev) => {
-        // Check if cell is already occupied by another wall — skip
         if (prev.some((w) => w.cells?.some((c) => c.col === col && c.row === row))) return prev;
-        // Try to extend the current stroke's segment (last wall if same type from this stroke)
         const last = prev[prev.length - 1];
         if (last && last.type === activeTool && last._stroke === 'current') {
           return [...prev.slice(0, -1), { ...last, cells: [...last.cells, { col, row }] }];
         }
-        // New wall segment
         return [...prev, { id: crypto.randomUUID(), type: activeTool, is_open: false, cells: [{ col, row }], _stroke: 'current' }];
       });
     } else if (activeTool === 'erase_wall') {
@@ -652,14 +685,26 @@ export default function VttCanvas({
     isPainting.current = false;
     paintedCells.current = new Set();
 
+    if (activeTool === 'fortification') {
+      const line = currentFortLine.current;
+      currentFortLine.current = null;
+      if (line && line.points.length >= 2) {
+        setFortLines((prev) => {
+          const updated = [...prev, line];
+          onUpdateMap?.({ fort_lines: updated });
+          return updated;
+        });
+      }
+      return;
+    }
+
     if (activeTool === 'fog_add' || activeTool === 'fog_erase') {
       setFogCells((prev) => {
         onUpdateMap?.({ fog_cells: [...prev] });
         return prev;
       });
-    } else if (['wall', 'door', 'window', 'obstacle', 'fortification', 'spawn_point', 'erase_wall'].includes(activeTool)) {
+    } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point', 'erase_wall'].includes(activeTool)) {
       setWalls((prev) => {
-        // Clean up _stroke marker
         const cleaned = prev.map(({ _stroke, ...w }) => w);
         onUpdateMap?.({ walls: cleaned });
         return cleaned;
@@ -711,10 +756,15 @@ export default function VttCanvas({
       return;
     }
 
-    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || (isSurvivalMode && ['fortification', 'spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       isPainting.current = true;
       paintedCells.current = new Set();
-      applyPaint(e);
+      if (activeTool === 'fortification') {
+        // Start a new free-draw line at the mouse position
+        currentFortLine.current = { id: crypto.randomUUID(), points: [{ x: world.x, y: world.y }] };
+      } else {
+        applyPaint(e);
+      }
       return;
     }
 
@@ -735,7 +785,7 @@ export default function VttCanvas({
       setMeasureEnd(worldToCell(world.x, world.y, gs, ox, oy));
       return;
     }
-    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || (isSurvivalMode && ['fortification', 'spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       applyPaint(e);
       return;
     }
@@ -885,13 +935,12 @@ export default function VttCanvas({
 
   const clearTrails = () => setTrails({});
 
-  const fortificationCount = walls.filter((w) => w.type === 'fortification').reduce((sum, w) => sum + w.cells.length, 0);
+  const fortificationCount = fortLines.length;
   const spawnPointCount = walls.filter((w) => w.type === 'spawn_point').reduce((sum, w) => sum + w.cells.length, 0);
 
   const clearFortifications = () => {
-    const updated = walls.filter((w) => w.type !== 'fortification');
-    setWalls(updated);
-    onUpdateMap?.({ walls: updated });
+    setFortLines([]);
+    onUpdateMap?.({ fort_lines: [] });
   };
 
   const clearSpawnPoints = () => {
