@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Skull, Zap, Trash2 } from 'lucide-react';
+import { Shield, Skull, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SURVIVAL_TOOLS = [
@@ -64,30 +64,7 @@ export default function SurvivalToolbar({
       )}
 
       {/* Clear buttons */}
-      {isGM && (
-        <>
-          {fortificationCount > 0 && (
-            <button
-              onClick={onClearFortifications}
-              title="Clear all fortifications"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-transparent text-destructive hover:bg-destructive/10 transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Clear Forts</span>
-            </button>
-          )}
-          {spawnPointCount > 0 && (
-            <button
-              onClick={onClearSpawnPoints}
-              title="Clear all spawn points"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-transparent text-destructive hover:bg-destructive/10 transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Clear Spawns</span>
-            </button>
-          )}
-        </>
-      )}
+
 
       {/* Active tool hint */}
       <div className="ml-auto text-[10px] text-muted-foreground italic hidden md:block">
