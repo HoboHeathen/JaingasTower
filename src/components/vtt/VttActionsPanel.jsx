@@ -47,14 +47,6 @@ function rollDice(diceStr) {
 const isPowerAttack = (skill) => /^power attack/i.test(skill.name);
 const isCharge = (skill) => /^charge (i|ii|iii)$/i.test(skill.name);
 
-const weightOrder = { heavy: 3, medium: 2, light: 1 };
-const WEAPON_TREE_NAMES = ['polearm', 'axe', 'hammer', 'greataxe', 'greatsword', 'greathammer', 'sword', 'dagger', 'shortbow', 'longbow', 'light crossbow', 'heavy crossbow'];
-function isMainChainSkill(skill) {
-  if (skill.node_type === 'skill') return false;
-  const nameLower = skill.name.toLowerCase();
-  return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
-}
-
 // ── Mini skill card ────────────────────────────────────────────────────────────
 function MiniSkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool, chargeLimit, onCharge, onDeplete, onShareRoll }) {
   const [rollResult, setRollResult] = useState(null);
@@ -147,18 +139,8 @@ export default function VttActionsPanel({ character, trees = [], racialTrees = [
     allActions.push({ ...node, treeId: tree.id, treeName: tree.tree_name, treeCategory: 'racial' });
   });
 
-  // Deduplicate: for each (weapon, weight) combo keep only the highest-tier node
-  const seen = new Map();
-  allActions.forEach((skill) => {
-    if (!isMainChainSkill(skill)) return;
-    const key = `${skill.weapon_required || 'any'}__${skill.attack_sub_category || ''}`;
-    const existing = seen.get(key);
-    // Keep the one with the higher tier number (more advanced version)
-    const ct = skill.tier ?? 0;
-    const et = existing?.tier ?? -1;
-    if (!existing || ct > et) seen.set(key, skill);
-  });
-  const skills = [...seen.values(), ...allActions.filter((s) => !isMainChainSkill(s))];
+  // No deduplication — show all unlocked actions as-is
+  const skills = allActions;
 
   const magicDice = {
     fire: character.fire_dice_index ?? 0, frost: character.frost_dice_index ?? 0,

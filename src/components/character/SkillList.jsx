@@ -223,19 +223,9 @@ function SkillCard({ skill, isUsed, onMarkUsed, magicDice, chargePool = 0, charg
 }
 
 export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, chargeLimit = 0, onCharge, onDeplete, onShareRoll }) {
-  // Deduplicate: for same (weapon, weight) in this category, keep only the highest tier node
-  const seen = new Map();
-  skills.forEach((skill) => {
-    if (skill.node_type !== 'attack') return; // non-attack skills always show; handled below
-    const key = `${skill.weapon_required || 'any'}__${skill.attack_sub_category || ''}`;
-    const existing = seen.get(key);
-    const currentTier = skill.tier ?? 0;
-    const existingTier = existing?.tier ?? -1;
-    if (!existing || currentTier > existingTier) seen.set(key, skill);
-  });
-
-  const nonAttack = skills.filter((s) => s.node_type !== 'attack');
-  const deduped = [...seen.values(), ...nonAttack];
+  // Show all skills as-is — no deduplication needed since CharacterSheet already
+  // routes each node to the correct category bucket by node.category
+  const deduped = skills;
 
   return (
     <div className="bg-card border border-border/50 rounded-xl p-4">
