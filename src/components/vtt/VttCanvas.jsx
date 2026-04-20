@@ -695,7 +695,6 @@ export default function VttCanvas({
       setDraggingId(token.id);
       if (isGM) setGmSelectedTokenId(token.id);
     } else {
-      if (isGM) setGmSelectedTokenId(null);
       setIsPanning(true);
       panStart.current = { x: e.clientX / zoom - pan.x, y: e.clientY / zoom - pan.y };
     }
@@ -756,6 +755,12 @@ export default function VttCanvas({
   const onMouseUp = (e) => {
     if (activeTool === 'measure') return; // keep measure line until tool switch
     if (isPainting.current) { finishPaint(); return; }
+    // Clear GM LOS selection on empty click (no drag, no pan movement)
+    if (isGM && !draggingId && isPanning) {
+      const movedX = Math.abs(e.clientX / zoom - panStart.current?.x - pan.x);
+      const movedY = Math.abs(e.clientY / zoom - panStart.current?.y - pan.y);
+      if (movedX < 2 && movedY < 2) setGmSelectedTokenId(null);
+    }
     if (draggingId) {
       const movedToken = localTokens.find((t) => t.id === draggingId);
       if (movedToken && dragStart.current) {
