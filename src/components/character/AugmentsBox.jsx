@@ -2,9 +2,9 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 const borderColor = {
-  light: 'border-yellow-400/50',
-  medium: 'border-orange-400/50',
-  heavy: 'border-red-400/50',
+  light: 'border-yellow-400/60',
+  medium: 'border-orange-400/60',
+  heavy: 'border-red-400/60',
   any: 'border-border',
 };
 
