@@ -18,8 +18,11 @@ export default function CharacterCard({ character, onDelete }) {
     <div className="group relative bg-card border border-border/50 rounded-xl p-5 hover:border-primary/30 hover:bg-card/80 transition-all">
       <Link to={`/character?id=${character.id}`} className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <User className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+            {character.portrait_url
+              ? <img src={character.portrait_url} alt="Portrait" className="w-full h-full object-cover" />
+              : <User className="w-6 h-6 text-primary" />
+            }
           </div>
           <div>
             <h3 className="font-heading text-lg font-semibold text-foreground group-hover:text-primary transition-colors">

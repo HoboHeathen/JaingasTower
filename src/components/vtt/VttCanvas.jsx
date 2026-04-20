@@ -270,6 +270,21 @@ export default function VttCanvas({
     img.onload = () => { imgRef.current = img; setImgLoaded(true); };
   }, [map.image_url]);
 
+  // Portrait image cache: { [characterId]: HTMLImageElement }
+  const portraitCache = useRef({});
+  const [portraitTick, setPortraitTick] = useState(0);
+  useEffect(() => {
+    if (!groupCharacters) return;
+    groupCharacters.forEach((c) => {
+      if (!c.portrait_url) return;
+      if (portraitCache.current[c.id]) return;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = c.portrait_url;
+      img.onload = () => { portraitCache.current[c.id] = img; setPortraitTick((t) => t + 1); };
+    });
+  }, [groupCharacters]);
+
   // Ping cleanup
   useEffect(() => {
     if (pings.length === 0) return;
@@ -373,6 +388,17 @@ export default function VttCanvas({
       ctx.fillStyle = token.color || TOKEN_COLORS[token.type] || '#888';
       ctx.fill();
 
+      // Draw portrait if available
+      const portraitImg = token.character_id ? portraitCache.current[token.character_id] : null;
+      if (portraitImg) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(tx, ty, radius, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(portraitImg, tx - radius, ty - radius, radius * 2, radius * 2);
+        ctx.restore();
+      }
+
       if (isActive) {
         ctx.strokeStyle = '#facc15'; ctx.lineWidth = 3; ctx.stroke(); ctx.shadowBlur = 0;
       } else {
@@ -410,11 +436,13 @@ export default function VttCanvas({
       }
 
       ctx.shadowBlur = 0;
-      ctx.fillStyle = '#fff';
-      ctx.font = `bold ${Math.max(10, gs * 0.22)}px Inter, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText((token.name || '?').slice(0, 2).toUpperCase(), tx, ty);
+      if (!portraitImg) {
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.max(10, gs * 0.22)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((token.name || '?').slice(0, 2).toUpperCase(), tx, ty);
+      }
       ctx.font = `${Math.max(9, gs * 0.16)}px Inter, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.fillText(token.name, tx, ty + radius + (token.max_hp ? 16 : 6));
@@ -553,7 +581,7 @@ export default function VttCanvas({
     ctx.restore();
   }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, measureStart, measureEnd, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
 
-  useEffect(() => { draw(); }, [draw, imgLoaded, canvasSize]);
+  useEffect(() => { draw(); }, [draw, imgLoaded, canvasSize, portraitTick]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getWorldPos = (e) => {

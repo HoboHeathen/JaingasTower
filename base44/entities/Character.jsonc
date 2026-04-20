@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Character name"
     },
+    "portrait_url": {
+      "type": "string",
+      "description": "URL of the character's portrait image"
+    },
     "race_id": {
       "type": "string",
       "description": "ID of the chosen Race (legacy single-race field)"

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, TreePine, Plus, Minus, Dices, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatBlock from '@/components/character/StatBlock';
+import PortraitUpload from '@/components/character/PortraitUpload';
 import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
 import AugmentsBox from '@/components/character/AugmentsBox';
@@ -182,6 +183,11 @@ export default function CharacterSheet() {
           <Button variant="ghost" size="icon" onClick={() => { localStorage.removeItem(LAST_CHAR_KEY); window.location.href = '/'; }}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
+          <PortraitUpload
+            size="lg"
+            portraitUrl={character.portrait_url}
+            onUpload={(url) => updateMutation.mutate({ portrait_url: url })}
+          />
           <div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">{character.name}</h1>
             {character.race_selections?.length > 0 && (
