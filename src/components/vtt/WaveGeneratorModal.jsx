@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BESTIARY, getDiceCount, getDieFaces } from '@/lib/bestiaryData';
 
 const TOKEN_COLORS = { player: '#4ade80', enemy: '#f87171', friendly: '#60a5fa', neutral: '#facc15', innocent: '#9333ea' };
 
-// Spread tokens around spawn points
 function spreadAroundSpawnPoints(spawnCells, count) {
   if (!spawnCells.length) {
-    // No spawn points: place in a grid near 5,5
     return Array.from({ length: count }, (_, i) => ({ x: 5 + (i % 5), y: 4 + Math.floor(i / 5) }));
   }
   const positions = [];
@@ -23,7 +19,7 @@ function spreadAroundSpawnPoints(spawnCells, count) {
   return positions;
 }
 
-export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, onClose, container }) {
+export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, onClose }) {
   const [selectedMonsters, setSelectedMonsters] = useState([]);
   const [search, setSearch] = useState('');
   const [counts, setCounts] = useState({});
@@ -79,7 +75,6 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
       }
     });
 
-    // Assign positions around spawn points
     const positions = spreadAroundSpawnPoints(spawnCells, allTokens.length);
     allTokens.forEach((t, i) => {
       t.x = positions[i]?.x ?? 5;
@@ -91,12 +86,18 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
   };
 
   return (
-    <DialogPrimitive.Root open onOpenChange={onClose}>
-      <DialogPrimitive.Portal container={container || document.body}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-heading">Wave Generator</DialogTitle>
-        </DialogHeader>
+    // Inset overlay — works inside any fullscreen container
+    <div
+      className="absolute inset-0 flex items-center justify-center z-50"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-card border border-border rounded-xl shadow-2xl p-5 w-full max-w-md mx-4 flex flex-col gap-3"
+        style={{ maxHeight: '80%', overflowY: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="font-heading text-lg font-semibold text-foreground">Wave Generator</h2>
 
         <p className="text-xs text-muted-foreground">
           {spawnCells.length > 0
@@ -104,17 +105,15 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
             : 'No spawn points placed — tokens will appear near the center.'}
         </p>
 
-        {/* Search */}
         <input
           type="text"
           placeholder="Search monsters..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground"
         />
 
-        {/* Monster list */}
-        <div className="max-h-52 overflow-y-auto space-y-1">
+        <div className="flex-1 overflow-y-auto space-y-1" style={{ maxHeight: '240px' }}>
           {filteredMonsters.map((m) => {
             const selected = !!selectedMonsters.find((s) => s.id === m.id);
             return (
@@ -132,7 +131,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
                     value={counts[m.id] || 1}
                     onClick={(e) => e.stopPropagation()}
                     onChange={(e) => setCounts((c) => ({ ...c, [m.id]: Math.max(1, parseInt(e.target.value) || 1) }))}
-                    className="w-14 h-7 rounded border border-input bg-background px-2 text-xs text-center"
+                    className="w-14 h-7 rounded border border-input bg-background px-2 text-xs text-center text-foreground"
                   />
                 )}
               </div>
@@ -140,19 +139,17 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
           })}
         </div>
 
-        {/* Summary */}
         {totalCount > 0 && (
           <p className="text-xs text-muted-foreground">
             Spawning <span className="text-primary font-semibold">{totalCount}</span> token{totalCount !== 1 ? 's' : ''}: {selectedMonsters.map((m) => `${counts[m.id] || 1}× ${m.name}`).join(', ')}
           </p>
         )}
 
-        <DialogFooter>
+        <div className="flex justify-end gap-2 pt-1">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSpawn} disabled={totalCount === 0}>Spawn Wave</Button>
-        </DialogFooter>
-      </DialogContent>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+        </div>
+      </div>
+    </div>
   );
 }

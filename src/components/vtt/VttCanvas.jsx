@@ -1123,7 +1123,6 @@ export default function VttCanvas({
         <WaveGeneratorModal
           walls={walls}
           activeGroup={activeGroup}
-          container={containerRef.current}
           onSpawnTokens={(newTokens) => {
             const updated = [...localTokens, ...newTokens];
             setLocalTokens(updated);
