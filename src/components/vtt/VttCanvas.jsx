@@ -206,6 +206,9 @@ export default function VttCanvas({
   const [measureStart, setMeasureStart] = useState(null); // {col, row}
   const [measureEnd, setMeasureEnd] = useState(null);     // {col, row}
 
+  // GM selected token for LOS preview
+  const [gmSelectedTokenId, setGmSelectedTokenId] = useState(null);
+
   // Context menu
   const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
@@ -453,9 +456,9 @@ export default function VttCanvas({
       }
     }
 
-    // GM visualization of token LOS (bright color overlays)
-    if (isGM && Object.keys(gmTokenLOS).length > 0) {
-      localTokens.forEach((token) => {
+    // GM visualization of token LOS (bright color overlays) — only for selected token
+    if (isGM && gmSelectedTokenId && Object.keys(gmTokenLOS).length > 0) {
+      localTokens.filter((t) => t.id === gmSelectedTokenId).forEach((token) => {
         const los = gmTokenLOS[token.id];
         if (!los || los.size === 0) return;
         const color = token.color || TOKEN_COLORS[token.type] || '#888';
@@ -548,7 +551,7 @@ export default function VttCanvas({
     });
 
     ctx.restore();
-  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, measureStart, measureEnd, groupCharacters]);
+  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, measureStart, measureEnd, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
 
   useEffect(() => { draw(); }, [draw, imgLoaded, canvasSize]);
 
@@ -690,7 +693,9 @@ export default function VttCanvas({
     if (token && canMoveToken(token)) {
       dragStart.current = { col: token.x, row: token.y };
       setDraggingId(token.id);
+      if (isGM) setGmSelectedTokenId(token.id);
     } else {
+      if (isGM) setGmSelectedTokenId(null);
       setIsPanning(true);
       panStart.current = { x: e.clientX / zoom - pan.x, y: e.clientY / zoom - pan.y };
     }
