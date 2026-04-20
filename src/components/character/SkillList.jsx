@@ -233,39 +233,12 @@ function isMainChainSkill(skill) {
   return WEAPON_TREE_NAMES.some((w) => nameLower.startsWith(w + ' ') && /\s[ivxlcdm]+$/i.test(skill.name));
 }
 
-const augmentAttackColor = {
-  light: 'text-yellow-400',
-  medium: 'text-orange-400',
-  heavy: 'text-red-400',
-  any: 'text-muted-foreground',
-};
 
-function AugmentCard({ skill }) {
-  return (
-    <div className="rounded-lg border border-orange-400/20 bg-orange-400/5 px-3 py-2">
-      <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-orange-300">{skill.name}</p>
-          {skill.treeName && <p className="text-[10px] text-muted-foreground mt-0.5">{skill.treeName}</p>}
-          {skill.augment_attack_type && (
-            <span className={cn('text-[10px] font-semibold', augmentAttackColor[skill.augment_attack_type])}>
-              {skill.augment_attack_type === 'any' ? 'Any attack' : `${skill.augment_attack_type} attack`}
-            </span>
-          )}
-          {skill.description && (
-            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{skill.description}</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function SkillList({ category, skills, augmentSkills = [], usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, chargeLimit = 0, onCharge, onDeplete, onShareRoll }) {
+export default function SkillList({ category, skills, usedSkills = [], onMarkUsed, magicDice = {}, chargePool = 0, chargeLimit = 0, onCharge, onDeplete, onShareRoll }) {
   const weightOrder = { heavy: 3, medium: 2, light: 1 };
 
   const mainChain = skills.filter(isMainChainSkill);
-  const nonAugmentNonMain = skills.filter((s) => !isMainChainSkill(s) && s.node_type !== 'augment');
+  const nonMain = skills.filter((s) => !isMainChainSkill(s) && s.node_type !== 'augment');
 
   // Deduplicate main-chain: keep only highest attack weight per weapon
   const seen = new Map();
@@ -277,74 +250,31 @@ export default function SkillList({ category, skills, augmentSkills = [], usedSk
     if (!existing || currentWeight > existingWeight) seen.set(key, skill);
   });
 
-  const deduped = [...seen.values(), ...nonAugmentNonMain];
-
-  // Sort augments by attack type
-  const lightAugments = augmentSkills.filter((s) => s.augment_attack_type === 'light');
-  const mediumAugments = augmentSkills.filter((s) => s.augment_attack_type === 'medium');
-  const heavyAugments = augmentSkills.filter((s) => s.augment_attack_type === 'heavy');
-  const anyAugments = augmentSkills.filter((s) => !s.augment_attack_type || s.augment_attack_type === 'any');
+  const deduped = [...seen.values(), ...nonMain];
 
   return (
-    <div className="space-y-3">
-      <div className="bg-card border border-border/50 rounded-xl p-4">
-        <h3 className={cn('text-sm font-heading font-semibold mb-3', categoryColor[category].split(' ')[1])}>
-          {categoryLabel[category]} Actions
-        </h3>
-        {deduped.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No {category} actions unlocked.</p>
-        ) : (
-          <div className="space-y-2">
-            {deduped.map((skill) => (
-              <SkillCard
-                key={skill.id}
-                skill={skill}
-                isUsed={usedSkills.includes(skill.id)}
-                onMarkUsed={onMarkUsed}
-                magicDice={magicDice}
-                chargePool={chargePool}
-                chargeLimit={chargeLimit}
-                onCharge={onCharge}
-                onDeplete={onDeplete}
-                onShareRoll={onShareRoll}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Augments section */}
-      {augmentSkills.length > 0 && (
-        <div className="bg-card border border-orange-400/20 rounded-xl p-4">
-          <h4 className="text-xs font-heading font-semibold text-orange-400 mb-3 uppercase tracking-wide">Augments</h4>
-          <div className="space-y-2">
-            {lightAugments.length > 0 && (
-              <>
-                <p className="text-[10px] text-yellow-400 uppercase tracking-wider font-medium">Light</p>
-                {lightAugments.map((s) => <AugmentCard key={s.id} skill={s} />)}
-              </>
-            )}
-            {mediumAugments.length > 0 && (
-              <>
-                <p className="text-[10px] text-orange-400 uppercase tracking-wider font-medium">Medium</p>
-                {mediumAugments.map((s) => <AugmentCard key={s.id} skill={s} />)}
-              </>
-            )}
-            {heavyAugments.length > 0 && (
-              <>
-                <p className="text-[10px] text-red-400 uppercase tracking-wider font-medium">Heavy</p>
-                {heavyAugments.map((s) => <AugmentCard key={s.id} skill={s} />)}
-              </>
-            )}
-            {anyAugments.length > 0 && (
-              <>
-                {(lightAugments.length > 0 || mediumAugments.length > 0 || heavyAugments.length > 0) && (
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Any</p>
-                )}
-                {anyAugments.map((s) => <AugmentCard key={s.id} skill={s} />)}
-              </>
-            )}
-          </div>
+    <div className="bg-card border border-border/50 rounded-xl p-4">
+      <h3 className={cn('text-sm font-heading font-semibold mb-3', categoryColor[category].split(' ')[1])}>
+        {categoryLabel[category]} Actions
+      </h3>
+      {deduped.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-4">No {category} actions unlocked.</p>
+      ) : (
+        <div className="space-y-2">
+          {deduped.map((skill) => (
+            <SkillCard
+              key={skill.id}
+              skill={skill}
+              isUsed={usedSkills.includes(skill.id)}
+              onMarkUsed={onMarkUsed}
+              magicDice={magicDice}
+              chargePool={chargePool}
+              chargeLimit={chargeLimit}
+              onCharge={onCharge}
+              onDeplete={onDeplete}
+              onShareRoll={onShareRoll}
+            />
+          ))}
         </div>
       )}
     </div>
