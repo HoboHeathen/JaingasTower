@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import StatBlock from '@/components/character/StatBlock';
 import AbilityScores from '@/components/character/AbilityScores';
 import SkillList from '@/components/character/SkillList';
-import AugmentsBox from '@/components/character/AugmentsBox.jsx';
+import AugmentsBox from '@/components/character/AugmentsBox';
 import DiceRollerModal from '@/components/dice/DiceRollerModal';
 import ChargeDicePool from '@/components/character/ChargeDicePool';
 import InventoryActionsBlock from '@/components/character/InventoryActionsBlock';
