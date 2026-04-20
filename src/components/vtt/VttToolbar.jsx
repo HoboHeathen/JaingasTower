@@ -11,7 +11,8 @@ const TOOLS = [
   { key: 'door', label: 'Door', icon: DoorOpen, gmOnly: true },
   { key: 'window', label: 'Window', icon: Square, gmOnly: true },
   { key: 'obstacle', label: 'Obstacle', icon: Square, gmOnly: true },
-  { key: 'erase_wall', label: 'Eraser', icon: Eraser, gmOnly: true },
+  { key: 'erase_wall', label: 'Erase Wall', icon: Eraser, gmOnly: true },
+  { key: 'erase_fort', label: 'Erase Fort', icon: Eraser, gmOnly: true },
 ];
 
 const TOOL_COLORS = {
@@ -22,6 +23,7 @@ const TOOL_COLORS = {
   window: 'bg-cyan-800 text-white border-cyan-600',
   obstacle: 'bg-purple-800 text-white border-purple-600',
   erase_wall: 'bg-red-900 text-white border-red-700',
+  erase_fort: 'bg-orange-900 text-white border-orange-700',
   select: 'bg-secondary text-foreground border-border',
 };
 
@@ -103,7 +105,8 @@ export default function VttToolbar({
         {activeTool === 'door' && 'Click/drag cells to place doors • Right-click door to open/close'}
         {activeTool === 'window' && 'Click/drag cells to place windows'}
         {activeTool === 'obstacle' && 'Click/drag cells to place obstacles'}
-        {activeTool === 'erase_wall' && 'Click/drag to erase cells'}
+        {activeTool === 'erase_wall' && 'Click/drag to erase wall cells'}
+        {activeTool === 'erase_fort' && 'Click/drag to erase fortification lines'}
       </div>
     </div>
   );
