@@ -5,6 +5,7 @@ import RenameTokenModal from '@/components/vtt/RenameTokenModal';
 import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
 import VttToolbar from '@/components/vtt/VttToolbar';
 import SurvivalToolbar from '@/components/vtt/SurvivalToolbar';
+import WaveGeneratorModal from '@/components/vtt/WaveGeneratorModal';
 
 const TOKEN_COLORS = {
   player: '#4ade80',
@@ -147,6 +148,7 @@ export default function VttCanvas({
   isGM,
   user,
   groupCharacters,
+  activeGroup,
   onUpdateTokens,
   onUpdateMap,
   initiativeOrder,
@@ -198,6 +200,7 @@ export default function VttCanvas({
   const [zoom, setZoom] = useState(1);
   const [losEnabled, setLosEnabled] = useState(true);
   const [isSurvivalMode, setIsSurvivalMode] = useState(false);
+  const [showWaveGenerator, setShowWaveGenerator] = useState(false);
 
   // Measurement tool
   const [measureStart, setMeasureStart] = useState(null); // {col, row}
@@ -1030,7 +1033,7 @@ export default function VttCanvas({
                       activeTool={activeTool}
                       onToolChange={(t) => { onToolChange(t); }}
                       isGM={isGM}
-                      onOpenWaveGenerator={() => {}} // Placeholder for wave generator
+                      onOpenWaveGenerator={() => setShowWaveGenerator(true)}
                       onClearFortifications={clearFortifications}
                       onClearSpawnPoints={clearSpawnPoints}
                       fortificationCount={fortificationCount}
@@ -1112,6 +1115,18 @@ export default function VttCanvas({
           groupCharacters={groupCharacters}
           onSave={handleLinkSave}
           onClose={() => setLinkToken(null)}
+        />
+      )}
+      {showWaveGenerator && (
+        <WaveGeneratorModal
+          walls={walls}
+          activeGroup={activeGroup}
+          onSpawnTokens={(newTokens) => {
+            const updated = [...localTokens, ...newTokens];
+            setLocalTokens(updated);
+            onUpdateTokens(updated);
+          }}
+          onClose={() => setShowWaveGenerator(false)}
         />
       )}
     </div>

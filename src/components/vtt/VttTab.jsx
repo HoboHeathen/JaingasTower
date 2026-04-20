@@ -264,6 +264,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         isGM={isGM}
         user={user}
         groupCharacters={groupCharacters}
+        activeGroup={activeGroup}
         onUpdateTokens={handleUpdateTokens}
         onUpdateMap={handleUpdateMap}
         initiativeOrder={initiativeOrder}
