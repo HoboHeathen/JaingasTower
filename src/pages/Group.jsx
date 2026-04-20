@@ -74,10 +74,10 @@ export default function Group() {
 
   // Get all groups (GM or member)
   const myCharactersInGroup = myCharacters.filter((c) => c.group_id);
+  const memberGroupIds = [...new Set(myCharactersInGroup.map((c) => c.group_id))];
   const allMyGroups = [
     ...myGroups,
-    ...Array.from(new Map(myCharactersInGroup.map((c) => [c.group_id, c.group_id])).keys())
-      .map((gid) => ({ id: gid }))
+    ...memberGroupIds.filter((gid) => !myGroups.find((g) => g.id === gid)).map((gid) => ({ id: gid }))
   ];
 
   // Preload last group or use first available
