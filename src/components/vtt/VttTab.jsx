@@ -299,21 +299,15 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         wallCount={activeMap?.walls?.length || 0}
         onClearFog={() => handleUpdateMap({ fog_cells: [] })}
         onClearWalls={() => handleUpdateMap({ walls: [] })}
+        actionsPanel={!isGM && playerCharacter ? (
+          <VttActionsPanel
+            character={playerCharacter}
+            trees={allTrees}
+            racialTrees={racialTrees}
+            onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
+          />
+        ) : null}
       />
-
-      {/* Player actions panel — floats at bottom-left of canvas area */}
-      {!isGM && playerCharacter && (
-        <div className="relative -mt-14 ml-3 mb-4 z-30 flex items-end pointer-events-none">
-          <div className="pointer-events-auto">
-            <VttActionsPanel
-              character={playerCharacter}
-              trees={allTrees}
-              racialTrees={racialTrees}
-              onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
-            />
-          </div>
-        </div>
-      )}
 
       {showAddToken && (
         <AddTokenModal

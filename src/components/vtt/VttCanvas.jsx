@@ -162,6 +162,7 @@ export default function VttCanvas({
   onClearFog,
   onClearWalls,
   round,
+  actionsPanel,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -1115,6 +1116,13 @@ export default function VttCanvas({
               Next Turn ▶
             </button>
           )}
+        </div>
+      )}
+
+      {/* Player actions panel — lives inside the canvas so it works in fullscreen */}
+      {actionsPanel && (
+        <div className="absolute bottom-3 left-3 z-30">
+          {actionsPanel}
         </div>
       )}
 
