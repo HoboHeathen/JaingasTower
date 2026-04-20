@@ -1118,20 +1118,21 @@ export default function VttCanvas({
           onClose={() => setLinkToken(null)}
         />
       )}
-    </div>
 
-    {showWaveGenerator && (
-      <WaveGeneratorModal
-        walls={walls}
-        activeGroup={activeGroup}
-        onSpawnTokens={(newTokens) => {
-          const updated = [...localTokens, ...newTokens];
-          setLocalTokens(updated);
-          onUpdateTokens(updated);
-        }}
-        onClose={() => setShowWaveGenerator(false)}
-      />
-    )}
+      {showWaveGenerator && (
+        <WaveGeneratorModal
+          walls={walls}
+          activeGroup={activeGroup}
+          container={containerRef.current}
+          onSpawnTokens={(newTokens) => {
+            const updated = [...localTokens, ...newTokens];
+            setLocalTokens(updated);
+            onUpdateTokens(updated);
+          }}
+          onClose={() => setShowWaveGenerator(false)}
+        />
+      )}
+    </div>
     </>
   );
 }

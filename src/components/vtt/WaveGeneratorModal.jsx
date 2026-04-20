@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BESTIARY, getDiceCount, getDieFaces } from '@/lib/bestiaryData';
 
@@ -22,7 +23,7 @@ function spreadAroundSpawnPoints(spawnCells, count) {
   return positions;
 }
 
-export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, onClose }) {
+export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, onClose, container }) {
   const [selectedMonsters, setSelectedMonsters] = useState([]);
   const [search, setSearch] = useState('');
   const [counts, setCounts] = useState({});
@@ -90,7 +91,8 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <DialogPrimitive.Root open onOpenChange={onClose}>
+      <DialogPrimitive.Portal container={container || document.body}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-heading">Wave Generator</DialogTitle>
@@ -150,6 +152,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
           <Button onClick={handleSpawn} disabled={totalCount === 0}>Spawn Wave</Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
