@@ -463,7 +463,7 @@ export default function VttCanvas({
       if (token.max_hp && token.max_hp > 0) {
         const barW = Math.max(radius * 2, 20);
         const barX = tx - barW / 2;
-        const barY = ty - radius - barH - 5;
+        const barY = ty - radius - 5;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(barX, barY, barW, 8);
         const pct = Math.max(0, Math.min(1, (token.current_hp ?? token.max_hp) / token.max_hp));
