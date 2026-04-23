@@ -367,8 +367,8 @@ export default function VttCanvas({
       if (!line.points || line.points.length < 2) return;
       const currentHp = line.current_hp ?? 25;
       const maxHp = 25;
-      ctx.strokeStyle = 'rgba(255,200,0,0.85)';
-      ctx.lineWidth = 10;
+      ctx.strokeStyle = 'rgba(238, 72, 230, 0.5)';
+      ctx.lineWidth = 50;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
