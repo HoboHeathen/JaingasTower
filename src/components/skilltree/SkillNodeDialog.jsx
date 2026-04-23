@@ -92,7 +92,7 @@ export default function SkillNodeDialog({
   };
 
   const STAT_OPTIONS = [
-    { value: '', label: 'None' },
+    { value: 'none', label: 'None' },
     { value: 'str', label: 'STR' },
     { value: 'dex', label: 'DEX' },
     { value: 'con', label: 'CON' },
