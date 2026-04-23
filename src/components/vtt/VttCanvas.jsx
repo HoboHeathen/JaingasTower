@@ -465,10 +465,10 @@ export default function VttCanvas({
         const barX = tx - barW / 2;
         const barY = ty + radius + 3;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(barX, barY, barW, 4);
+        ctx.fillRect(barX, barY, barW, 8);
         const pct = Math.max(0, Math.min(1, (token.current_hp ?? token.max_hp) / token.max_hp));
         ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
-        ctx.fillRect(barX, barY, barW * pct, 4);
+        ctx.fillRect(barX, barY, barW * pct, 8);
 
         // Defense from linked character
         const linkedChar = groupCharacters?.find((c) => c.id === token.character_id);
