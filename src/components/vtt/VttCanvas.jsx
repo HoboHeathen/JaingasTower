@@ -367,15 +367,15 @@ export default function VttCanvas({
       if (!line.points || line.points.length < 2) return;
       const currentHp = line.current_hp ?? 25;
       const maxHp = 25;
-      ctx.strokeStyle = 'rgba(140, 84, 10, 0.83)';
-      ctx.lineWidth = 50;
+      ctx.strokeStyle = 'rgba(255,200,0,0.85)';
+      ctx.lineWidth = 5;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
       ctx.stroke();
       // Inner highlight
-      ctx.strokeStyle = 'rgba(140, 84, 10, 0.5)';
+      ctx.strokeStyle = 'rgba(255,240,120,0.5)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
@@ -400,8 +400,8 @@ export default function VttCanvas({
         ctx.roundRect(midX + 22, barY - 2, 22, 10, 3);
         ctx.fill();
         ctx.fillStyle = '#60a5fa';
-        ctx.font = `bold ${Math.max(7, gs * 0.5)}px Inter, sans-serif`;
-        ctx.textAlign = 'center';
+        ctx.font = `bold ${Math.max(7, gs * 0.12)}px Inter, sans-serif`;
+        ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillText(`🛡13`, midX + 24, barY + 3);
       }
@@ -465,10 +465,10 @@ export default function VttCanvas({
         const barX = tx - barW / 2;
         const barY = ty + radius + 3;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(barX, barY, barW, 8);
+        ctx.fillRect(barX, barY, barW, 4);
         const pct = Math.max(0, Math.min(1, (token.current_hp ?? token.max_hp) / token.max_hp));
         ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
-        ctx.fillRect(barX, barY, barW * pct, 8);
+        ctx.fillRect(barX, barY, barW * pct, 4);
 
         // Defense from linked character
         const linkedChar = groupCharacters?.find((c) => c.id === token.character_id);
@@ -745,30 +745,8 @@ export default function VttCanvas({
         onUpdateMap?.({ walls: cleaned });
         return cleaned;
       });
-    } else if (activeTool === 'erase_fort'&&'isGM') {
-      function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
-  const dx = x2 - x1, dy = y2 - y1;
-  if (dx === 0 && dy === 0) return Math.hypot(px - x1, py - y1);
-  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx*dx + dy*dy)));
-  const cx = x1 + t * dx, cy = y1 + t * dy;
-  return Math.hypot(px - cx, py - cy);
-}
-
-const world = { x: col * gs + ox + gs / 2, y: row * gs + oy + gs / 2 };
-setFortLines((prev) => {
-  const threshold = 15;
-  return prev.filter((line) => {
-    const pts = line.points || [];
-    if (pts.length === 0) return true;
-    // check segments
-    for (let i = 0; i < pts.length - 1; i++) {
-      if (pointToSegmentDistance(world.x, world.y, pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y) < threshold) return false;
-    }
-    // check single-point lines / endpoints
-    return !pts.some((p) => Math.hypot(world.x - p.x, world.y - p.y) < threshold);
-  });
-});
-
+    } else if (activeTool === 'erase_fort') {
+      onUpdateMap?.({ fort_lines: fortLines });
     }
   }, [activeTool, onUpdateMap, fortLines]);
 
