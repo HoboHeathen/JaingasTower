@@ -367,15 +367,15 @@ export default function VttCanvas({
       if (!line.points || line.points.length < 2) return;
       const currentHp = line.current_hp ?? 25;
       const maxHp = 25;
-      ctx.strokeStyle = 'rgba(255,200,0,0.85)';
-      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(200, 136, 26, 0.94)';
+      ctx.lineWidth = 15;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
       ctx.stroke();
       // Inner highlight
-      ctx.strokeStyle = 'rgba(255,240,120,0.5)';
+      ctx.strokeStyle = 'rgba(203, 157, 29, 0.82)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
@@ -400,7 +400,7 @@ export default function VttCanvas({
         ctx.roundRect(midX + 22, barY - 2, 22, 10, 3);
         ctx.fill();
         ctx.fillStyle = '#60a5fa';
-        ctx.font = `bold ${Math.max(7, gs * 0.12)}px Inter, sans-serif`;
+        ctx.font = `bold ${Math.max(7, gs * 0.5)}px Inter, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillText(`🛡13`, midX + 24, barY + 3);
