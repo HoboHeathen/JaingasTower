@@ -745,8 +745,30 @@ export default function VttCanvas({
         onUpdateMap?.({ walls: cleaned });
         return cleaned;
       });
-    } else if (activeTool === 'erase_fort') {
-      onUpdateMap?.({ fort_lines: fortLines });
+    } else if (activeTool === 'erase_fort'&&'isGM') {
+      function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  if (dx === 0 && dy === 0) return Math.hypot(px - x1, py - y1);
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx*dx + dy*dy)));
+  const cx = x1 + t * dx, cy = y1 + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
+const world = { x: col * gs + ox + gs / 2, y: row * gs + oy + gs / 2 };
+setFortLines((prev) => {
+  const threshold = 15;
+  return prev.filter((line) => {
+    const pts = line.points || [];
+    if (pts.length === 0) return true;
+    // check segments
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (pointToSegmentDistance(world.x, world.y, pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y) < threshold) return false;
+    }
+    // check single-point lines / endpoints
+    return !pts.some((p) => Math.hypot(world.x - p.x, world.y - p.y) < threshold);
+  });
+});
+
     }
   }, [activeTool, onUpdateMap, fortLines]);
 
