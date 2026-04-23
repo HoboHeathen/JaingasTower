@@ -367,7 +367,7 @@ export default function VttCanvas({
       if (!line.points || line.points.length < 2) return;
       const currentHp = line.current_hp ?? 25;
       const maxHp = 25;
-      ctx.strokeStyle = 'rgba(238, 72, 230, 0.5)';
+      ctx.strokeStyle = 'rgba(140, 84, 10, 0.5)';
       ctx.lineWidth = 50;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -375,7 +375,7 @@ export default function VttCanvas({
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
       ctx.stroke();
       // Inner highlight
-      ctx.strokeStyle = 'rgba(238, 72, 230, 0.5)';
+      ctx.strokeStyle = 'rgba(140, 84, 10, 0.5)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
