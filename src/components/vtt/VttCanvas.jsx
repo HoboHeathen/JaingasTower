@@ -400,7 +400,7 @@ export default function VttCanvas({
         ctx.roundRect(midX + 22, barY - 2, 22, 10, 3);
         ctx.fill();
         ctx.fillStyle = '#60a5fa';
-        ctx.font = `bold ${Math.max(7, gs * 0.12)}px Inter, sans-serif`;
+        ctx.font = `bold ${Math.max(7, gs * 0.5)}px Inter, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillText(`🛡13`, midX + 24, barY + 3);
