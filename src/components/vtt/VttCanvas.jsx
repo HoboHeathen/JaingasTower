@@ -401,7 +401,7 @@ export default function VttCanvas({
         ctx.fill();
         ctx.fillStyle = '#60a5fa';
         ctx.font = `bold ${Math.max(7, gs * 0.5)}px Inter, sans-serif`;
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`🛡13`, midX + 24, barY + 3);
       }
