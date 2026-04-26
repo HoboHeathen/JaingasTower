@@ -274,6 +274,19 @@ export default function SkillNodeDialog({
                     onChange={(v) => setForm({ ...form, attack_sub_category: v })}
                   />
                 </div>
+                <div>
+                <Label className="mb-1.5 block">Action Category</Label>
+                <ToggleGroup
+                  options={[
+                    { value: 'primary', label: 'Primary', color: 'border-primary/50 bg-primary/10 text-primary' },
+                    { value: 'secondary', label: 'Secondary', color: 'border-accent/50 bg-accent/10 text-accent' },
+                    { value: 'tertiary', label: 'Tertiary', color: 'border-chart-3/50 bg-chart-3/10 text-chart-3' },
+                    { value: 'reactionary', label: '⚡ Reactionary', color: 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400' },
+                  ]}
+                  value={form.category}
+                  onChange={(v) => setForm({ ...form, category: v })}
+                />
+              </div>
 
                 <Separator />
 
