@@ -47,7 +47,7 @@
           },
           "cost": {
             "type": "number"
-"default":1
+"default" : "1"
           },
           "tier": {
             "type": "number",
