@@ -147,6 +147,8 @@ export default function EditMyTree() {
             <Settings className="w-4 h-4" />
             Tree Settings
           </Button>
+        </div>
+        <div>
           <Button onClick={openAddNode} className="gap-2">
             <Plus className="w-4 h-4" />
             Add Skill
