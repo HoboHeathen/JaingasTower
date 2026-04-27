@@ -113,7 +113,7 @@ export default function SkillNodeDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-2 overflow-hidden">
+        <ScrollArea className="h-[80vh] pr-4">
           <form id="node-form" onSubmit={handleSubmit} className="space-y-5 pb-2">
 
             {/* Name + Cost */}
