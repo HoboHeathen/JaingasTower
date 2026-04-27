@@ -47,7 +47,6 @@
           },
           "cost": {
             "type": "number"
-            "default" "1"
           },
           "tier": {
             "type": "number",
@@ -69,8 +68,7 @@
               "primary",
               "secondary",
               "tertiary",
-              "reactionary",
-"none"
+              "reactionary"
             ]
           },
           "attack_sub_category": {
@@ -78,8 +76,7 @@
             "enum": [
               "light",
               "medium",
-              "heavy",
-"none"
+              "heavy"
             ]
           },
           "augment_attack_type": {
@@ -88,9 +85,7 @@
               "light",
               "medium",
               "heavy",
-              "any",
-"none"
-
+              "any"
             ],
             "description": "Which attack weight this augment modifies"
           },
