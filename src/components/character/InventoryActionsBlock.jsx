@@ -89,7 +89,7 @@ export default function InventoryActionsBlock({ characterId }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{entry.item_name}</p>
                   {entry.crafted_description && (
-                    <p className="text-[10px] text-muted-foreground truncate">{entry.crafted_description}</p>
+                    <p className="text-[10px] text-muted-foreground break-words">{entry.crafted_description}</p>
                   )}
                   {entry.max_charges > 0 && (
                     <div className="flex items-center gap-1 mt-1">
