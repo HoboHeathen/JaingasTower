@@ -63,7 +63,7 @@ export default function InventoryActionsBlock({ characterId }) {
             {consumables.map((entry) => (
               <div key={entry.id} className="flex items-center justify-between gap-2 bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">{entry.item_name}</p>
+                  <p className="text-xs font-medium text-foreground break-words">{entry.item_name}</p>
                   {entry.crafted_description && (
                     <p className="text-[10px] text-muted-foreground break-words">{entry.crafted_description}</p>
                   )}
