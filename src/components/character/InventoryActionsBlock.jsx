@@ -65,7 +65,7 @@ export default function InventoryActionsBlock({ characterId }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{entry.item_name}</p>
                   {entry.crafted_description && (
-                    <p className="text-[10px] text-muted-foreground truncate">{entry.crafted_description}</p>
+                    <p className="text-[10px] text-muted-foreground break-words">{entry.crafted_description}</p>
                   )}
                   {entry.quantity > 1 && (
                     <Badge variant="outline" className="text-[10px] mt-0.5">×{entry.quantity}</Badge>
