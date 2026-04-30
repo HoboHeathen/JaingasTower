@@ -1,18 +1,20 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
+
 export const BEGINNINGS = [
-  { id: 'owl',    name: 'The Owl',    str: 8,  dex: 12, con: 10, int: 14, wis: 12, cha: 10 },
-  { id: 'tiger',  name: 'The Tiger',  str: 10, dex: 14, con: 12, int: 8,  wis: 12, cha: 10 },
-  { id: 'bear',   name: 'The Bear',   str: 14, dex: 10, con: 12, int: 8,  wis: 12, cha: 10 },
-  { id: 'ox',     name: 'The Ox',     str: 12, dex: 10, con: 14, int: 8,  wis: 12, cha: 10 },
-  { id: 'monkey', name: 'The Monkey', str: 12, dex: 14, con: 10, int: 8,  wis: 12, cha: 10 },
-  { id: 'hare',   name: 'The Hare',   str: 8,  dex: 14, con: 10, int: 12, wis: 12, cha: 10 },
-  { id: 'elk',    name: 'The Elk',    str: 14, dex: 12, con: 10, int: 8,  wis: 12, cha: 10 },
-  { id: 'badger', name: 'The Badger', str: 14, dex: 10, con: 8,  int: 12, wis: 12, cha: 10 },
-  { id: 'ferret', name: 'The Ferret', str: 10, dex: 10, con: 12, int: 8,  wis: 12, cha: 14 },
-  { id: 'mole',   name: 'The Mole',   str: 8,  dex: 10, con: 12, int: 10, wis: 14, cha: 12 },
-];
+    { id: 'owl', name: 'The Owl', str: -1, dex: +1, con: +0, int: +2, wis: +1, cha: +0 },
+      { id: 'tiger', name: 'The Tiger', str: +0, dex: +2, con: +1, int: -1, wis: +1, cha: +0 },
+        { id: 'bear', name: 'The Bear', str: +2, dex: +0, con: +1, int: -1, wis: +1, cha: +0 },
+          { id: 'ox', name: 'The Ox', str: +1, dex: +0, con: +2, int: -1, wis: +1, cha: +0 },
+            { id: 'monkey', name: 'The Monkey', str: +1, dex: +2, con: +0, int: -1, wis: +1, cha: +0 },
+              { id: 'hare', name: 'The Hare', str: -1, dex: +2, con: +0, int: +1, wis: +1, cha: +0 },
+                { id: 'elk', name: 'The Elk', str: +2, dex: +1, con: +0, int: -1, wis: +1, cha: +0 },
+                  { id: 'badger', name: 'The Badger', str: +2, dex: +0, con: -1, int: +1, wis: +1, cha: +0 },
+                    { id: 'ferret', name: 'The Ferret', str: +0, dex: +0, con: +1, int: -1, wis: +1, cha: +2 },
+                      { id: 'mole', name: 'The Mole', str: -1, dex: +0, con: +1, int: +0, wis: +2, cha: +1 },
+                      ];
+
 
 const STAT_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
 const STATS = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
