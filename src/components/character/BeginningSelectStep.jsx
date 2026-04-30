@@ -11,7 +11,7 @@ export const BEGINNINGS = [
   { id: 'elk',    name: 'The Elk',    str: 14, dex: 12, con: 10, int: 8,  wis: 12, cha: 10 },
   { id: 'badger', name: 'The Badger', str: 14, dex: 10, con: 8,  int: 12, wis: 12, cha: 10 },
   { id: 'ferret', name: 'The Ferret', str: 10, dex: 10, con: 12, int: 8,  wis: 12, cha: 14 },
-  { id: 'mole',   name: 'The Mole',   str: 8,  dex: 10, con, 12, int: 10, wis: 14, cha: 12 },
+  { id: 'mole',   name: 'The Mole',   str: 8,  dex: 10, con: 12, int: 10, wis: 14, cha: 12 },
 ];
 
 const STAT_LABELS = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' };
