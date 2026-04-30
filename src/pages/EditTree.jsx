@@ -30,7 +30,7 @@ const emptyNode = {
   lightning_damage_modifier: 0,
   necrotic_damage_modifier: 0,
   prerequisites: [],
-  stat_bonuses: { health: 0, armor: 0, speed: 0, spell_range: 0 },
+  stat_bonuses: { health: 0, armor: 0, speed: 0, spell_range: 0 }
 };
 
 export default function EditTree() {
@@ -47,7 +47,7 @@ export default function EditTree() {
     queryKey: ['skill-tree', treeId],
     queryFn: () => base44.entities.SkillTree.filter({ id: treeId }),
     select: (data) => data[0],
-    enabled: !!treeId,
+    enabled: !!treeId
   });
 
   const updateNodesMutation = useMutation({
@@ -56,7 +56,7 @@ export default function EditTree() {
       queryClient.invalidateQueries({ queryKey: ['skill-tree', treeId] });
       queryClient.invalidateQueries({ queryKey: ['skill-trees'] });
       toast.success('Saved');
-    },
+    }
   });
 
   const updateTreeMutation = useMutation({
@@ -66,15 +66,15 @@ export default function EditTree() {
       queryClient.invalidateQueries({ queryKey: ['skill-trees'] });
       toast.success('Tree settings saved');
       setShowSettings(false);
-    },
+    }
   });
 
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
-      </div>
-    );
+      </div>);
+
   }
 
   if (!tree) {
@@ -82,8 +82,8 @@ export default function EditTree() {
       <div className="text-center py-20">
         <p className="text-muted-foreground">Skill tree not found.</p>
         <Link to="/skill-trees" className="text-primary hover:underline mt-2 inline-block">Go back</Link>
-      </div>
-    );
+      </div>);
+
   }
 
   const nodes = tree.nodes || [];
@@ -99,27 +99,27 @@ export default function EditTree() {
       ...emptyNode,
       ...node,
       stat_bonuses: node.stat_bonuses || { health: 0, armor: 0, speed: 0, spell_range: 0 },
-      prerequisites: node.prerequisites || [],
+      prerequisites: node.prerequisites || []
     });
     setEditingNodeId(node.id);
     setShowNodeDialog(true);
   };
 
   const saveNode = (form) => {
-    const updatedNodes = editingNodeId
-      ? nodes.map((n) => (n.id === editingNodeId ? { ...form } : n))
-      : [...nodes, { ...form }];
+    const updatedNodes = editingNodeId ?
+    nodes.map((n) => n.id === editingNodeId ? { ...form } : n) :
+    [...nodes, { ...form }];
     updateNodesMutation.mutate(updatedNodes);
     setShowNodeDialog(false);
   };
 
   const deleteNode = (nodeId) => {
-    const updatedNodes = nodes
-      .filter((n) => n.id !== nodeId)
-      .map((n) => ({
-        ...n,
-        prerequisites: (n.prerequisites || []).filter((p) => p !== nodeId),
-      }));
+    const updatedNodes = nodes.
+    filter((n) => n.id !== nodeId).
+    map((n) => ({
+      ...n,
+      prerequisites: (n.prerequisites || []).filter((p) => p !== nodeId)
+    }));
     updateNodesMutation.mutate(updatedNodes);
   };
 
@@ -138,9 +138,9 @@ export default function EditTree() {
           </Link>
           <div>
             <h1 className="font-heading text-2xl font-bold text-foreground">{tree.name}</h1>
-            {tree.description && (
-              <p className="text-muted-foreground text-sm mt-0.5">{tree.description}</p>
-            )}
+            {tree.description &&
+            <p className="text-muted-foreground text-sm mt-0.5">{tree.description}</p>
+            }
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -148,23 +148,23 @@ export default function EditTree() {
             <Settings className="w-4 h-4" />
             Tree Settings
           </Button>
-          <Button onClick={openAddNode} className="gap-2">
+          <Button onClick={openAddNode} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2 gap-2">
             <Plus className="w-4 h-4" />
-            
+            Add Skill
           </Button>
         </div>
       </div>
 
-      {nodes.length === 0 ? (
-        <div className="text-center py-24 bg-card border border-dashed border-border rounded-xl">
+      {nodes.length === 0 ?
+      <div className="text-center py-24 bg-card border border-dashed border-border rounded-xl">
           <p className="text-muted-foreground mb-4">No skills yet. Add your first skill to get started.</p>
           <Button onClick={openAddNode} className="gap-2">
             <Plus className="w-4 h-4" />
             Add First Skill
           </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        </div> :
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Visual tree preview */}
           <div className="xl:col-span-2 bg-card border border-border/50 rounded-xl p-6 overflow-x-auto">
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-4">
@@ -172,25 +172,25 @@ export default function EditTree() {
             </p>
             <div className="flex justify-center min-h-[200px] items-center">
               <SkillTreeViewer
-                tree={tree}
-                unlockedNodeIds={[]}
-                onUnlock={(node) => openEditNode(node)}
-                editMode
-              />
+              tree={tree}
+              unlockedNodeIds={[]}
+              onUnlock={(node) => openEditNode(node)}
+              editMode />
+            
             </div>
           </div>
 
           {/* Node list panel */}
           <div className="xl:col-span-1">
             <SkillNodeList
-              nodes={nodes}
-              onEdit={openEditNode}
-              onDelete={deleteNode}
-              onAdd={openAddNode}
-            />
+            nodes={nodes}
+            onEdit={openEditNode}
+            onDelete={deleteNode}
+            onAdd={openAddNode} />
+          
           </div>
         </div>
-      )}
+      }
 
       <SkillNodeDialog
         open={showNodeDialog}
@@ -199,15 +199,15 @@ export default function EditTree() {
         setForm={setNodeForm}
         isEditing={!!editingNodeId}
         prereqCandidates={prereqCandidates}
-        onSave={saveNode}
-      />
+        onSave={saveNode} />
+      
 
       <TreeSettingsDialog
         open={showSettings}
         onOpenChange={setShowSettings}
         tree={tree}
-        onSave={(data) => updateTreeMutation.mutate(data)}
-      />
-    </div>
-  );
+        onSave={(data) => updateTreeMutation.mutate(data)} />
+      
+    </div>);
+
 }
