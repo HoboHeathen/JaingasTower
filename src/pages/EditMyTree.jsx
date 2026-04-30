@@ -142,7 +142,7 @@ export default function EditMyTree() {
             <p className="text-xs text-accent-foreground/70 mt-0.5">Your personal copy</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center-centerenter-centers-center-centerenter-centerters-center-centerenter-centerters-center-centerenter-centerters-center-centerenter-center gap-2">
           <Button variant="outline" onClick={() => setShowSettings(true)} className="gap-2">
             <Settings className="w-4 h-4" />
             Tree Settings
