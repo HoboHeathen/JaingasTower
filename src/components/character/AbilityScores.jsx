@@ -53,9 +53,7 @@ function AbilityCard({ label, score, onShareRoll }) {
     >
       <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{label}</span>
       <span className="text-xl font-heading font-bold text-foreground">{score}</span>
-      /*<span className={`text-xs font-semibold ${mod >= 0 ? 'text-primary' : 'text-destructive'}`}>
-        {fmtMod(mod)}
-      </span>*/
+      
       <Dices className={`w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors ${rolling ? 'animate-spin' : ''}`} />
       {result !== null && !rolling && (
         isCritical ? (
