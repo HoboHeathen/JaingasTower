@@ -35,7 +35,7 @@ function AbilityCard({ label, score, onShareRoll }) {
     setRolling(true);
     setTimeout(() => {
       const d20 = Math.floor(Math.random() * 20) + 1;
-      const total = d20 + mod;
+      const total = d20 + score;
       setResult(total);
       setIsCritical(d20 === 20);
       setRolling(false);
