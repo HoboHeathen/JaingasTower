@@ -43,8 +43,8 @@ function drawHexGrid(ctx, width, height, gs, ox, oy) {
   ctx.strokeStyle = 'rgba(255,255,255,0.18)';
   ctx.lineWidth = 1;
   const r = gs / 2;
-  const w = 1.5 * r;
-  const v = Math.sqrt(3) * r;
+  const w = 1.5 * r * 1.10;
+  const v = Math.sqrt(3) * r *0.90;
   const cols = Math.ceil(width / w) + 4;
   const rows = Math.ceil(height / v) + 4;
 
