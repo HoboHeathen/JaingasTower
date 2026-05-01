@@ -50,7 +50,7 @@ function drawHexGrid(ctx, width, height, gs, ox, oy) {
   const rows = Math.ceil(height / v) + 3;
 
   for (let col = -2; col < cols; col++) {
-    const rowOffsetX = (row % 2 !== 0) ? w / 2 : 0; // nest into gaps
+    const rowOffsetX = (col % 2 !== 0) ? w / 2 : 0; // nest into gaps
     for (let row = -2; row < rows; row++) {
       const cx = col * w + (row % 2 === 0 ? 0 : w / 2) + ox;
       const cy = row * v + oy;
