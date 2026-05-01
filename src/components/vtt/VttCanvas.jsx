@@ -39,26 +39,24 @@ function drawSquareGrid(ctx, width, height, gs, ox, oy) {
   }
 }
 
-function drawHexGrid(ctx, width, height, gs, ox, oy) {
+function drawHexGrid_pointy(ctx, width, height, gs, ox, oy) {
   ctx.strokeStyle = 'rgba(255,255,255,0.18)';
   ctx.lineWidth = 1;
   const r = gs / 2;
-  const w = r * 1.5;    // horizontal distance between hex centers
-  const v = Math.sqrt(3) * r;            // vertical distance between hex centers
+  const w = 1.5 * r;
+  const v = Math.sqrt(3) * r;
+  const cols = Math.ceil(width / w) + 4;
+  const rows = Math.ceil(height / v) + 4;
 
-  const cols = Math.ceil(width / w) + 3;
-  const rows = Math.ceil(height / v) + 3;
-
-  for (let col = -2; col < cols; col++) {
-    const rowOffsetX = (col % 2 !== 0) ? w / 2 : 0; // nest into gaps
-    for (let row = -2; row < rows; row++) {
-      const cx = col * w + (row % 2 === 0 ? 0 : w / 2) + ox;
+  for (let row = -2; row < rows; row++) {
+    const rowOffsetX = (row % 2 !== 0) ? w / 2 : 0;
+    for (let col = -2; col < cols; col++) {
+      const cx = col * w + rowOffsetX + ox;
       const cy = row * v + oy;
 
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
-        // flat-top hex: angles start at 0° (point to the right) and step 60°
-        const angle = (Math.PI / 180) * (60 * i);
+        const angle = (Math.PI / 180) * (60 * i - 30);
         const px = cx + r * Math.cos(angle);
         const py = cy + r * Math.sin(angle);
         i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
@@ -68,6 +66,7 @@ function drawHexGrid(ctx, width, height, gs, ox, oy) {
     }
   }
 }
+
 
 
 // Cells are centered: cell (col,row) center is at (col*gs + ox + gs/2, row*gs + oy + gs/2)
