@@ -39,7 +39,7 @@ function drawSquareGrid(ctx, width, height, gs, ox, oy) {
   }
 }
 
-function drawHexGrid_pointy(ctx, width, height, gs, ox, oy) {
+function drawHexGrid(ctx, width, height, gs, ox, oy) {
   ctx.strokeStyle = 'rgba(255,255,255,0.18)';
   ctx.lineWidth = 1;
   const r = gs / 2;
