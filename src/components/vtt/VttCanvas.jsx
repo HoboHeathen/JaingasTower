@@ -43,8 +43,8 @@ function drawHexGrid(ctx, width, height, gs, ox, oy) {
   ctx.strokeStyle = 'rgba(255,255,255,0.18)';
   ctx.lineWidth = 1;
   const r = gs / 2;
-  const w = Math.sqrt(3) * r;    // horizontal distance between hex centers
-  const v = r * 1.5;            // vertical distance between hex centers
+  const w = r * 1.5;    // horizontal distance between hex centers
+  const v = Math.sqrt(3) * r;            // vertical distance between hex centers
 
   const cols = Math.ceil(width / w) + 3;
   const rows = Math.ceil(height / v) + 3;
