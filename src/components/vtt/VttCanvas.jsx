@@ -44,7 +44,7 @@ function drawHexGrid(ctx, width, height, gs, ox, oy) {
   ctx.lineWidth = 1;
   const r = gs / 2;
   const w = 1.5 * r * 1.10;
-  const v = Math.sqrt(3) * r *0.85;
+  const v = Math.sqrt(3) * r *0.75;
   const cols = Math.ceil(width / w) + 4;
   const rows = Math.ceil(height / v) + 4;
 
