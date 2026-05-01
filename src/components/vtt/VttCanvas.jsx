@@ -57,7 +57,7 @@ function drawHexGrid(ctx, width, height, gs, ox, oy) {
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         // flat-top hex: angles start at 0° (point to the right) and step 60°
-        const angle = (Math.PI / 180) * (30 * i);
+        const angle = (Math.PI / 180) * (60 * i);
         const px = cx + r * Math.cos(angle);
         const py = cy + r * Math.sin(angle);
         i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
