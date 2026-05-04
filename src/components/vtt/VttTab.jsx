@@ -308,7 +308,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       {/* Encounter Sheet */}
       {isGM && (
         <Sheet open={showEncounterSidebar} onOpenChange={setShowEncounterSidebar}>
-          <SheetContent side="right" className="w-full sm:w-96 p-0 flex flex-col">
+          <SheetContent side="right" className="w-full sm:w-96 p-0 flex flex-col z-50">
             <SheetHeader className="px-4 py-3 border-b border-border/40">
               <SheetTitle className="font-heading">Encounter</SheetTitle>
             </SheetHeader>
