@@ -270,39 +270,39 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       )}
 
       {/* Canvas */}
-      <div className="flex-1 min-w-0">
-      <VttCanvas
-        map={activeMap}
-        tokens={tokens}
-        isGM={isGM}
-        user={user}
-        groupCharacters={groupCharacters}
-        activeGroup={activeGroup}
-        onUpdateTokens={handleUpdateTokens}
-        onUpdateMap={handleUpdateMap}
-        activeTokenId={activeTokenId}
-        initiativeStarted={!!activeEncounterTokenId}
-        activeTool={activeTool}
-        onToolChange={setActiveTool}
-        round={encounterRound}
-        fogCellCount={activeMap?.fog_cells?.length || 0}
-        wallCount={activeMap?.walls?.length || 0}
-        onClearFog={() => handleUpdateMap({ fog_cells: [] })}
-        onClearWalls={() => handleUpdateMap({ walls: [] })}
-        activeEncounter={activeEncounter}
-        onAddEncounterParticipant={(data) => addParticipantRef.current?.(data)}
-        onToggleEncounterSidebar={isGM ? () => setShowEncounterSidebar((v) => !v) : undefined}
-        showEncounterSidebar={showEncounterSidebar}
-        encounterActive={activeEncounter?.is_active || false}
-        actionsPanel={!isGM && playerCharacter ? (
-          <VttActionsPanel
-            character={playerCharacter}
-            trees={allTrees}
-            racialTrees={racialTrees}
-            onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
-          />
-        ) : null}
-      />
+      <div className="relative flex-1 min-w-0">
+        <VttCanvas
+          map={activeMap}
+          tokens={tokens}
+          isGM={isGM}
+          user={user}
+          groupCharacters={groupCharacters}
+          activeGroup={activeGroup}
+          onUpdateTokens={handleUpdateTokens}
+          onUpdateMap={handleUpdateMap}
+          activeTokenId={activeTokenId}
+          initiativeStarted={!!activeEncounterTokenId}
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          round={encounterRound}
+          fogCellCount={activeMap?.fog_cells?.length || 0}
+          wallCount={activeMap?.walls?.length || 0}
+          onClearFog={() => handleUpdateMap({ fog_cells: [] })}
+          onClearWalls={() => handleUpdateMap({ walls: [] })}
+          activeEncounter={activeEncounter}
+          onAddEncounterParticipant={(data) => addParticipantRef.current?.(data)}
+          onToggleEncounterSidebar={isGM ? () => setShowEncounterSidebar((v) => !v) : undefined}
+          showEncounterSidebar={showEncounterSidebar}
+          encounterActive={activeEncounter?.is_active || false}
+          actionsPanel={!isGM && playerCharacter ? (
+            <VttActionsPanel
+              character={playerCharacter}
+              trees={allTrees}
+              racialTrees={racialTrees}
+              onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
+            />
+          ) : null}
+        />
       </div>
 
       {/* Encounter Sheet */}
