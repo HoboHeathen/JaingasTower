@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X } from 'lucide-react';
 import { BESTIARY, getDiceCount, getDieFaces } from '@/lib/bestiaryData';
 
 const TOKEN_TYPES = ['player', 'enemy', 'friendly', 'neutral', 'innocent'];
@@ -92,11 +91,8 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-md">
-        <DialogHeader className="flex items-center justify-between">
+        <DialogHeader>
           <DialogTitle className="font-heading">Add Token</DialogTitle>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X className="w-4 h-4" />
-          </button>
         </DialogHeader>
 
         {/* Mode tabs */}
