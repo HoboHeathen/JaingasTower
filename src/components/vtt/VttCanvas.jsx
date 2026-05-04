@@ -1169,20 +1169,20 @@ export default function VttCanvas({
             {showFsToolbar && (
               <div className="absolute top-full right-0 mt-1 z-50 bg-black/90 rounded-xl p-2 min-w-[220px] shadow-xl space-y-2">
                 <VttToolbar
-                  activeTool={activeTool}
-                  onToolChange={(t) => { onToolChange(t); setShowFsToolbar(false); }}
-                  isGM={isGM}
-                  fogCellCount={fogCellCount || 0}
-                  wallCount={wallCount || 0}
-                  onClearFog={() => { onClearFog?.(); }}
-                  onClearWalls={() => { onClearWalls?.(); }}
-                  isSurvivalMode={isSurvivalMode}
-                  onToggleSurvivalMode={() => setIsSurvivalMode(!isSurvivalMode)}
-                  onToggleEncounterSidebar={onToggleEncounterSidebar}
-                  showEncounterSidebar={showEncounterSidebar}
-                  encounterActive={encounterActive}
-                  forceShowLabels
-                />
+                   activeTool={activeTool}
+                   onToolChange={(t) => { onToolChange(t); setShowFsToolbar(false); }}
+                   isGM={isGM}
+                   fogCellCount={fogCellCount || 0}
+                   wallCount={wallCount || 0}
+                   onClearFog={() => { onClearFog?.(); }}
+                   onClearWalls={() => { onClearWalls?.(); }}
+                   isSurvivalMode={isSurvivalMode}
+                   onToggleSurvivalMode={() => setIsSurvivalMode(!isSurvivalMode)}
+                   onToggleEncounterSidebar={() => { onToggleEncounterSidebar?.(); setShowFsToolbar(false); }}
+                   showEncounterSidebar={showEncounterSidebar}
+                   encounterActive={encounterActive}
+                   forceShowLabels
+                 />
                 {isSurvivalMode && isGM && (
                   <div className="border-t border-border/30 pt-2">
                     <SurvivalToolbar
