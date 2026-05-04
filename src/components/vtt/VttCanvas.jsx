@@ -15,6 +15,7 @@ const TOKEN_COLORS = {
 };
 
 const SIZE_SCALE = { tiny: 0.3, small: 0.5, medium: 0.75, large: 2, huge: 3 };
+const WALL_FORT_TOOLS = new Set(['wall', 'door', 'window', 'obstacle', 'erase_wall', 'fortification', 'erase_fort', 'spawn_point']);
 const FEET_PER_CELL = 5;
 
 const WALL_COLORS = {
@@ -169,7 +170,10 @@ export default function VttCanvas({
   round,
   actionsPanel,
 }) {
-  const canvasRef = useRef(null);
+  const bgCanvasRef = useRef(null);
+  const wallsCanvasRef = useRef(null);
+  const tokensCanvasRef = useRef(null);
+  const canvasRef = tokensCanvasRef; // keep legacy ref for event handlers
   const containerRef = useRef(null);
   const imgRef = useRef(null);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
@@ -310,9 +314,11 @@ export default function VttCanvas({
   const ox = map.grid_offset_x || 0;
   const oy = map.grid_offset_y || 0;
 
-  // ── Draw ──────────────────────────────────────────────────────────────────
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
+
+
+  // ── Draw Background Layer ─────────────────────────────────────────────────
+  const drawBackground = useCallback(() => {
+    const canvas = bgCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -320,7 +326,6 @@ export default function VttCanvas({
     ctx.scale(zoom, zoom);
     ctx.translate(pan.x, pan.y);
 
-    // Map image
     if (imgRef.current) {
       const scale = map.image_scale || 1;
       ctx.drawImage(imgRef.current, 0, 0, imgRef.current.width * scale, imgRef.current.height * scale);
@@ -329,11 +334,27 @@ export default function VttCanvas({
       ctx.fillRect(-pan.x, -pan.y, canvas.width, canvas.height);
     }
 
-    // Grid
     if (map.grid_type && map.grid_type !== 'none') {
       if (map.grid_type === 'square') drawSquareGrid(ctx, canvas.width - pan.x + gs, canvas.height - pan.y + gs, gs, ox, oy);
       if (map.grid_type === 'hex') drawHexGrid(ctx, canvas.width - pan.x + gs * 2, canvas.height - pan.y + gs * 2, gs, ox, oy);
     }
+
+    ctx.restore();
+  }, [pan, zoom, map, gs, ox, oy]);
+
+  // ── Draw Walls / Fortifications Layer ────────────────────────────────────
+  const drawWallsFort = useCallback(() => {
+    const canvas = wallsCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Only draw when a wall/fort tool is active
+    if (!WALL_FORT_TOOLS.has(activeTool)) return;
+
+    ctx.save();
+    ctx.scale(zoom, zoom);
+    ctx.translate(pan.x, pan.y);
 
     // Walls
     walls.forEach((wall) => {
@@ -344,7 +365,6 @@ export default function VttCanvas({
         ctx.fillStyle = color;
         ctx.fillRect(wx - gs / 2, wy - gs / 2, gs, gs);
 
-        // Door open indicator
         if (wall.type === 'door' && wall.is_open) {
           ctx.strokeStyle = 'rgba(255,220,80,0.9)';
           ctx.lineWidth = 2;
@@ -353,7 +373,6 @@ export default function VttCanvas({
           ctx.setLineDash([]);
         }
 
-        // Label/Symbol
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.font = `bold ${Math.max(8, gs * 0.14)}px Inter, sans-serif`;
         ctx.textAlign = 'center';
@@ -365,7 +384,7 @@ export default function VttCanvas({
       });
     });
 
-    // Fort lines (free-draw, world coords)
+    // Fort lines
     const allFortLines = currentFortLine.current
       ? [...fortLines, currentFortLine.current]
       : fortLines;
@@ -380,14 +399,12 @@ export default function VttCanvas({
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
       ctx.stroke();
-      // Inner highlight
       ctx.strokeStyle = 'rgba(203, 157, 29, 0.82)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
       ctx.stroke();
-      
-      // HP bar at line midpoint
+
       if (line.points.length > 0) {
         const mid = Math.floor(line.points.length / 2);
         const { x: midX, y: midY } = line.points[mid];
@@ -399,8 +416,7 @@ export default function VttCanvas({
         const pct = Math.max(0, Math.min(1, currentHp / maxHp));
         ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
         ctx.fillRect(barX, barY, barW * pct, 4);
-        
-        // Defense badge
+
         ctx.fillStyle = 'rgba(0,0,0,0.65)';
         ctx.beginPath();
         ctx.roundRect(midX + 22, barY - 2, 22, 10, 3);
@@ -412,6 +428,19 @@ export default function VttCanvas({
         ctx.fillText(`🛡13`, midX + 24, barY + 3);
       }
     });
+
+    ctx.restore();
+  }, [pan, zoom, walls, fortLines, activeTool, gs, ox, oy, isGM]);
+
+  // ── Draw Tokens Layer ─────────────────────────────────────────────────────
+  const draw = useCallback(() => {
+    const canvas = tokensCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(zoom, zoom);
+    ctx.translate(pan.x, pan.y);
 
     // Movement trails
     Object.entries(trails).forEach(([, path]) => {
@@ -637,9 +666,13 @@ export default function VttCanvas({
     });
 
     ctx.restore();
-  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, walls, fortLines, measureStart, measureEnd, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
+  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, measureStart, measureEnd, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
 
-  useEffect(() => { draw(); }, [draw, imgLoaded, canvasSize, portraitTick]);
+  useEffect(() => {
+    drawBackground();
+    drawWallsFort();
+    draw();
+  }, [drawBackground, drawWallsFort, draw, imgLoaded, canvasSize, portraitTick]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getWorldPos = (e) => {
@@ -1117,22 +1150,37 @@ export default function VttCanvas({
     <div
       ref={containerRef}
       data-vtt-container
-      className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50"
+      className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"
       style={{ height: isFullscreen ? '100vh' : '65vh' }}
     >
+      {/* Background layer: map image + grid */}
       <canvas
-        ref={canvasRef}
+        ref={bgCanvasRef}
         width={canvasSize.w}
         height={canvasSize.h}
-        className="block w-full h-full"
+        className="absolute inset-0 w-full h-full"
+        style={{ pointerEvents: 'none' }}
+      />
+      {/* Walls / Fortifications layer */}
+      <canvas
+        ref={wallsCanvasRef}
+        width={canvasSize.w}
+        height={canvasSize.h}
+        className="absolute inset-0 w-full h-full"
+        style={{ pointerEvents: 'none' }}
+      />
+      {/* Tokens layer — receives all pointer events */}
+      <canvas
+        ref={tokensCanvasRef}
+        width={canvasSize.w}
+        height={canvasSize.h}
+        className="absolute inset-0 w-full h-full"
         style={{ cursor: getCursor(), touchAction: 'none' }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseUp}
         onContextMenu={onContextMenu}
-        // onWheel is handled via useEffect below (non-passive for ctrl+pinch)
-        
         onDoubleClick={(e) => {
           if (activeTool !== 'select') return;
           const world = getWorldPos(e);
@@ -1194,17 +1242,7 @@ export default function VttCanvas({
                     />
                   </div>
                 )}
-                {isGM && (
-                  <div className="border-t border-border/30 pt-2">
-                    <button
-                      onClick={() => setLosEnabled(!losEnabled)}
-                      className={`w-full text-left text-xs px-2 py-1.5 rounded transition-colors ${losEnabled ? 'bg-primary/60 text-primary-foreground' : 'bg-secondary/60 text-foreground hover:bg-secondary/80'}`}
-                      title="Toggle Line of Sight for players"
-                    >
-                      Line of Sight: {losEnabled ? '✓ ON' : '✗ OFF'}
-                    </button>
-                  </div>
-                )}
+
               </div>
             )}
           </div>
@@ -1260,6 +1298,8 @@ export default function VttCanvas({
           onPing={handlePingFromMenu}
           onLinkCharacter={handleLinkChar}
           onToggleVisibility={handleToggleVisibility}
+          losEnabled={losEnabled}
+          onToggleLos={() => { setLosEnabled((v) => !v); setContextMenu(null); }}
         />
       )}
 

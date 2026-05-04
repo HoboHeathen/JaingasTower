@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Trash2, Heart, Pencil, Target, Link, Eye, EyeOff } from 'lucide-react';
+import { Trash2, Heart, Pencil, Target, Link, Eye, EyeOff, Scan } from 'lucide-react';
 
-export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter, onToggleVisibility }) {
+export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter, onToggleVisibility, losEnabled, onToggleLos }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -16,6 +16,7 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
     { label: 'Edit HP', icon: Heart, action: onEditHP, always: false },
     { label: 'Rename', icon: Pencil, action: onRename, always: false },
     { label: token?.is_visible === false ? 'Show Token' : 'Hide Token', icon: token?.is_visible === false ? Eye : EyeOff, action: onToggleVisibility, always: false },
+    { label: losEnabled ? 'Disable LOS' : 'Enable LOS', icon: Scan, action: onToggleLos, always: false },
     { label: 'Remove Token', icon: Trash2, action: onDelete, always: false, danger: true },
   ];
 
