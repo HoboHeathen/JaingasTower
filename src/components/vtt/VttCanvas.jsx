@@ -214,7 +214,7 @@ export default function VttCanvas({
   // Zoom
   const [zoom, setZoom] = useState(1);
   const [wallsVisible, setWallsVisible] = useState(true);
-  const [losEnabled, setLosEnabled] = useState(true);
+  const [losEnabled, setLosEnabled] = useState(!isGM);
   const [isSurvivalMode, setIsSurvivalMode] = useState(false);
   const [showWaveGenerator, setShowWaveGenerator] = useState(false);
 
@@ -260,15 +260,18 @@ export default function VttCanvas({
 
   // Calculate LOS for all tokens on token/wall changes (excluding innocents)
   useEffect(() => {
-    const gmLos = {};
-    localTokens.forEach((t) => {
-      // Skip innocents from LOS calculation
-      if (t.type !== 'innocent') {
-        gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
-      }
-    });
-    setGmTokenLOS(gmLos);
-    
+    if (isGM) {
+      if (!losEnabled) { setGmTokenLOS({}); return; }
+      const gmLos = {};
+      localTokens.forEach((t) => {
+        if (t.type !== 'innocent') {
+          gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
+        }
+      });
+      setGmTokenLOS(gmLos);
+      return;
+    }
+
     // For non-GM players, calculate LOS for their own character tokens (excluding innocents)
     if (!isGM) {
       const playerLos = new Set();
@@ -280,7 +283,7 @@ export default function VttCanvas({
       });
       setVisibleCells(playerLos);
     }
-  }, [localTokens, walls, isGM]);
+  }, [localTokens, walls, isGM, losEnabled]);
 
   // Resize observer
   useEffect(() => {
@@ -555,7 +558,7 @@ export default function VttCanvas({
     }
 
     // GM visualization of token LOS (bright color overlays) — only for selected token
-    if (isGM && gmSelectedTokenId && Object.keys(gmTokenLOS).length > 0) {
+    if (isGM && losEnabled && gmSelectedTokenId && Object.keys(gmTokenLOS).length > 0) {
       localTokens.filter((t) => t.id === gmSelectedTokenId).forEach((token) => {
         const los = gmTokenLOS[token.id];
         if (!los || los.size === 0) return;
@@ -837,8 +840,8 @@ export default function VttCanvas({
         return { ...prev, [draggingId]: [...existing.slice(0, state.waypoints.length - 1), ...state.waypoints] };
       });
 
-      // Update LOS for dragging token (GM only)
-      if (isGM) {
+      // Update LOS for dragging token (GM only, when LOS is enabled)
+      if (isGM && losEnabled) {
         const gmLos = {};
         localTokens.forEach((t) => {
           gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
