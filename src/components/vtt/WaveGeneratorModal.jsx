@@ -1,19 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { BESTIARY, getDiceCount, getDieFaces, getAverageHpD6 } from '@/lib/bestiaryData';
+import { BESTIARY, CATEGORIES, getDiceCount, getDieFaces, getAverageHpD6 } from '@/lib/bestiaryData';
 import { base44 } from '@/api/base44Client';
 
 const TOKEN_COLOR = '#f87171';
 const DIE_TYPES = ['d4', 'd6', 'd8', 'd10', 'd12'];
 
 // Auto-populate monsters to fill a budget of 25 * waveNumber average HP (using d6 baseline)
-function buildDefaultWave(waveNumber) {
+function buildDefaultWave(waveNumber, bestiary = BESTIARY) {
   const budget = 25 * waveNumber;
   let remaining = budget;
   const counts = {}; // monster.id -> count
 
   // Sort monsters by their d6 avg HP ascending so we can fill precisely
-  const monstersWithAvg = BESTIARY.map((m) => ({
+  const monstersWithAvg = bestiary.map((m) => ({
     monster: m,
     avgHp: getAverageHpD6(m, waveNumber),
   })).filter((m) => m.avgHp > 0).sort((a, b) => a.avgHp - b.avgHp);
@@ -33,7 +33,7 @@ function buildDefaultWave(waveNumber) {
   }
 
   return Object.entries(counts).map(([id, count]) => ({
-    monster: BESTIARY.find((m) => m.id === id),
+    monster: bestiary.find((m) => m.id === id),
     count,
   }));
 }
@@ -64,13 +64,32 @@ function spreadAroundSpawnPoints(spawnCells, count) {
 }
 
 export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, onClose }) {
-  const waveNumber = activeGroup?.floor_wave_number || 1;
   const hpAveraged = activeGroup?.hp_averaged || false;
 
+  // ── Step 1: Setup ─────────────────────────────────────────────────────────
+  const [step, setStep] = useState('setup');
+  const defaultWaveNumber = (activeGroup?.floor_wave_number || 0) + 1;
+  const [setupWaveNumber, setSetupWaveNumber] = useState(defaultWaveNumber);
+  const [selectedCategories, setSelectedCategories] = useState([]); // empty = all
+
+  const toggleCategory = (cat) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
+  // ── Step 2: Generate ──────────────────────────────────────────────────────
+  const waveNumber = setupWaveNumber;
   const [currentDieType, setCurrentDieType] = useState(activeGroup?.die_type || 'd6');
 
-  const defaultEntries = useMemo(() => buildDefaultWave(waveNumber), [waveNumber]);
-  const [entries, setEntries] = useState(defaultEntries);
+  const filteredBestiary = useMemo(() =>
+    selectedCategories.length === 0
+      ? BESTIARY
+      : BESTIARY.filter((m) => selectedCategories.includes(m.category)),
+    [selectedCategories]
+  );
+
+  const [entries, setEntries] = useState([]);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
@@ -103,7 +122,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
       prev.map((e) => (e.monster.id === id ? { ...e, count: Math.max(1, parseInt(val) || 1) } : e))
     );
 
-  const filteredMonsters = BESTIARY.filter(
+  const filteredMonsters = filteredBestiary.filter(
     (m) => !search.trim() || m.name.toLowerCase().includes(search.toLowerCase())
   ).slice(0, 30);
 
@@ -133,7 +152,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
 
     if (activeGroup?.id) {
       await base44.entities.Group.update(activeGroup.id, {
-        floor_wave_number: waveNumber + 1,
+        floor_wave_number: waveNumber,
       });
     }
 
@@ -141,6 +160,77 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
     onClose();
   };
 
+  // ── Setup screen ─────────────────────────────────────────────────────────
+  if (step === 'setup') {
+    return (
+      <div
+        className="absolute inset-0 flex items-center justify-center z-50"
+        style={{ background: 'rgba(0,0,0,0.75)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+        <div
+          className="bg-card border border-border rounded-xl shadow-2xl p-5 w-full max-w-sm mx-4 flex flex-col gap-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 className="font-heading text-lg font-semibold text-foreground">Wave Setup</h2>
+
+          {/* Wave number */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm text-muted-foreground font-medium">Wave Number</label>
+            <input
+              type="number"
+              min={1}
+              value={setupWaveNumber}
+              onChange={(e) => setSetupWaveNumber(Math.max(1, parseInt(e.target.value) || 1))}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {/* Monster type filter */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-muted-foreground font-medium">
+              Monster Types <span className="text-xs text-muted-foreground/60">(leave empty for all)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((cat) => {
+                const active = selectedCategories.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => toggleCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                      active
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-secondary/40 text-muted-foreground border-border hover:bg-secondary/70 hover:text-foreground'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedCategories.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Using: <span className="text-primary">{selectedCategories.join(', ')}</span>
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={() => {
+              setEntries(buildDefaultWave(setupWaveNumber, filteredBestiary));
+              setStep('generate');
+            }}>
+              Next →
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Generate screen ───────────────────────────────────────────────────────
   return (
     <div
       className="absolute inset-0 flex items-center justify-center z-50"
@@ -154,7 +244,10 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
       >
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-lg font-semibold text-foreground">Wave {waveNumber}</h2>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setStep('setup')} className="text-muted-foreground hover:text-foreground text-sm">← Back</button>
+            <h2 className="font-heading text-lg font-semibold text-foreground">Wave {waveNumber}</h2>
+          </div>
           <span className="text-xs text-muted-foreground">
             {spawnCells.length > 0 ? `${spawnCells.length} spawn point(s)` : 'No spawn points'}
           </span>
