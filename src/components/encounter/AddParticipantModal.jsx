@@ -229,6 +229,12 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
             <p className="text-center py-8 text-muted-foreground text-sm">No tokens on this map.</p>
           )}
         </div>
+
+        <div className="flex justify-end gap-2 border-t border-border/30 pt-3 mt-3">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
