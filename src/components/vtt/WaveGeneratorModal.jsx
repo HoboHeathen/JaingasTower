@@ -63,7 +63,7 @@ function spreadAroundSpawnPoints(spawnCells, count) {
   return positions;
 }
 
-export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, onClose }) {
+export default function WaveGeneratorModal({ walls, activeGroup, activeEncounter, onAddEncounterParticipant, onSpawnTokens, onClose }) {
   const hpAveraged = activeGroup?.hp_averaged || false;
 
   // ── Step 1: Setup ─────────────────────────────────────────────────────────
@@ -128,12 +128,14 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
 
   const handleSpawn = async () => {
     const allTokens = [];
+    const monsterSnapshots = []; // parallel array for encounter participants
     entries.forEach(({ monster, count }) => {
       for (let i = 0; i < count; i++) {
         const maxHp = rollHp(monster, waveNumber, currentDieType, hpAveraged);
+        const tokenName = count > 1 ? `${monster.name} ${i + 1}` : monster.name;
         allTokens.push({
           id: crypto.randomUUID(),
-          name: count > 1 ? `${monster.name} ${i + 1}` : monster.name,
+          name: tokenName,
           type: 'enemy',
           size: 'medium',
           monster_id: monster.id,
@@ -141,6 +143,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
           max_hp: maxHp,
           current_hp: maxHp,
         });
+        monsterSnapshots.push({ monster, maxHp, name: tokenName });
       }
     });
 
@@ -151,9 +154,28 @@ export default function WaveGeneratorModal({ walls, activeGroup, onSpawnTokens, 
     });
 
     if (activeGroup?.id) {
-      await base44.entities.Group.update(activeGroup.id, {
-        floor_wave_number: waveNumber,
-      });
+      await base44.entities.Group.update(activeGroup.id, { floor_wave_number: waveNumber });
+    }
+
+    // If an active encounter exists, create EncounterParticipants for each spawned monster
+    if (activeEncounter && onAddEncounterParticipant) {
+      for (let i = 0; i < allTokens.length; i++) {
+        const { monster, maxHp, name } = monsterSnapshots[i];
+        await onAddEncounterParticipant({
+          participant_type: 'monster',
+          name,
+          monster_id: monster.id,
+          is_custom_monster: false,
+          monster_snapshot: {
+            defense: monster.defense,
+            speed: monster.speed,
+            actions: monster.actions || [],
+            attributes: monster.attributes || [],
+          },
+          max_hp: maxHp,
+          current_hp: maxHp,
+        });
+      }
     }
 
     onSpawnTokens(allTokens);

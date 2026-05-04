@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,8 @@ export default function EncounterSidebar({
   onToggle,
   onActiveTokenChange,
   onRoundChange,
+  onEncounterChange,
+  onAddParticipantRef,
 }) {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
@@ -50,6 +52,18 @@ export default function EncounterSidebar({
 
   const activeEncounter = encounters.find((e) => e.is_active) || encounters[0] || null;
   const floorWave = activeEncounter?.wave_number || activeGroup?.floor_wave_number || 1;
+
+  // Notify parent of the active encounter so it can pass it to WaveGeneratorModal
+  useEffect(() => {
+    onEncounterChange?.(activeEncounter);
+  }, [activeEncounter?.id, activeEncounter?.is_active]);
+
+  // Expose addParticipant so parent can call it from WaveGeneratorModal
+  useEffect(() => {
+    if (onAddParticipantRef) {
+      onAddParticipantRef.current = (data) => addParticipantMutation.mutate(data);
+    }
+  });
 
   const { data: participants = [] } = useQuery({
     queryKey: ['encounter-participants', activeEncounter?.id],

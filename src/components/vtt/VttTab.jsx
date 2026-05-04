@@ -26,6 +26,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [showEncounterSidebar, setShowEncounterSidebar] = useState(false);
   const [activeEncounterTokenId, setActiveEncounterTokenId] = useState(null);
   const [encounterRound, setEncounterRound] = useState(1);
+  const [activeEncounter, setActiveEncounter] = useState(null);
+  const addParticipantRef = useRef(null);
 
   // Skill trees for actions panel
   const { data: allTrees = [] } = useQuery({
@@ -261,6 +263,9 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         wallCount={activeMap?.walls?.length || 0}
         onClearFog={() => handleUpdateMap({ fog_cells: [] })}
         onClearWalls={() => handleUpdateMap({ walls: [] })}
+        onToggleEncounterSidebar={isGM ? () => setShowEncounterSidebar((v) => !v) : undefined}
+        showEncounterSidebar={showEncounterSidebar}
+        encounterActive={activeEncounter?.is_active || false}
       />
 
       {/* Grid settings */}
@@ -289,6 +294,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         wallCount={activeMap?.walls?.length || 0}
         onClearFog={() => handleUpdateMap({ fog_cells: [] })}
         onClearWalls={() => handleUpdateMap({ walls: [] })}
+        activeEncounter={activeEncounter}
+        onAddEncounterParticipant={(data) => addParticipantRef.current?.(data)}
         actionsPanel={!isGM && playerCharacter ? (
           <VttActionsPanel
             character={playerCharacter}
@@ -312,6 +319,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
             onToggle={() => setShowEncounterSidebar((v) => !v)}
             onActiveTokenChange={setActiveEncounterTokenId}
             onRoundChange={setEncounterRound}
+            onEncounterChange={setActiveEncounter}
+            onAddParticipantRef={addParticipantRef}
           />
         </div>
       )}

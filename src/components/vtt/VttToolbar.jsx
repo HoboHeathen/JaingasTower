@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2, Ruler, Flame } from 'lucide-react';
+import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2, Ruler, Flame, Swords } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TOOLS = [
@@ -35,6 +35,9 @@ export default function VttToolbar({
   wallCount,
   isSurvivalMode,
   onToggleSurvivalMode,
+  onToggleEncounterSidebar,
+  showEncounterSidebar,
+  encounterActive,
 }) {
   const visibleTools = TOOLS.filter((t) => !t.gmOnly || isGM);
 
@@ -90,6 +93,23 @@ export default function VttToolbar({
             <Flame className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Survival</span>
           </button>
+
+          {onToggleEncounterSidebar && (
+            <button
+              onClick={onToggleEncounterSidebar}
+              title="Toggle Encounter Panel"
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                showEncounterSidebar
+                  ? 'bg-primary/10 text-primary border-primary/30 ring-1 ring-primary/40'
+                  : 'bg-transparent text-muted-foreground border-transparent hover:bg-secondary/60 hover:text-foreground'
+              )}
+            >
+              <Swords className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Encounter</span>
+              {encounterActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+            </button>
+          )}
         </>
       )}
 

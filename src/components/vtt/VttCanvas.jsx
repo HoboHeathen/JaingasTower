@@ -105,18 +105,18 @@ export default function VttCanvas({
   activeGroup,
   onUpdateTokens,
   onUpdateMap,
-  initiativeOrder,
   activeTokenId,
   initiativeStarted,
   activeTool,
   onToolChange,
-  onNextTurn,
   fogCellCount,
   wallCount,
   onClearFog,
   onClearWalls,
   round,
   actionsPanel,
+  activeEncounter,
+  onAddEncounterParticipant,
 }) {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
@@ -1295,6 +1295,8 @@ export default function VttCanvas({
         <WaveGeneratorModal
           walls={walls}
           activeGroup={activeGroup}
+          activeEncounter={activeEncounter}
+          onAddEncounterParticipant={onAddEncounterParticipant}
           onSpawnTokens={(newTokens) => {
             const updated = [...localTokens, ...newTokens];
             setLocalTokens(updated);
