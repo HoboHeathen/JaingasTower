@@ -15,6 +15,7 @@ const TABS = ['Monsters', 'Players', 'Map Tokens'];
 export default function AddParticipantModal({ activeGroup, groupCharacters, onAdd, onClose, userEmail, vttTokens = [] }) {
   const [tab, setTab] = useState('Monsters');
   const [search, setSearch] = useState('');
+  const [monsterTypeFilter, setMonsterTypeFilter] = useState('all');
 
   const floorWave = activeGroup?.floor_wave_number || 1;
   const dieType = activeGroup?.die_type || 'd6';
@@ -31,9 +32,13 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
     ...customMonsters.map((m) => ({ ...m, _isCustom: true })),
   ];
 
-  const filteredMonsters = allMonsters.filter((m) =>
-    !search.trim() || m.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const monsterTypes = [...new Set(allMonsters.map((m) => m.category).filter(Boolean))];
+
+  const filteredMonsters = allMonsters.filter((m) => {
+    const matchesSearch = !search.trim() || m.name.toLowerCase().includes(search.toLowerCase());
+    const matchesType = monsterTypeFilter === 'all' || m.category === monsterTypeFilter;
+    return matchesSearch && matchesType;
+  });
 
   const filteredPlayers = groupCharacters.filter((c) =>
     !search.trim() || c.name.toLowerCase().includes(search.toLowerCase())
@@ -134,8 +139,36 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
           <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
+        {tab === 'Monsters' && (
+          <div className="flex gap-1 flex-wrap mb-2">
+            <button
+              onClick={() => setMonsterTypeFilter('all')}
+              className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                monsterTypeFilter === 'all'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              All Types
+            </button>
+            {monsterTypes.map((type) => (
+              <button
+                key={type}
+                onClick={() => setMonsterTypeFilter(type)}
+                className={`px-2 py-1 rounded text-xs font-medium transition-all capitalize ${
+                  monsterTypeFilter === type
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-          {tab === 'Monsters' && filteredMonsters.map((m) => (
+           {tab === 'Monsters' && filteredMonsters.map((m) => (
             <div key={m.id} className="flex items-center justify-between bg-card border border-border/50 rounded-lg px-3 py-2.5 gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <Skull className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -164,6 +197,11 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
             </div>
           ))}
 
+          {tab === 'Map Tokens' && filteredTokens.length > 0 && (
+            <Button size="sm" variant="outline" className="w-full mb-2 h-7 text-xs gap-1" onClick={() => filteredTokens.forEach((t) => handleAddToken(t))}>
+              Add All
+            </Button>
+          )}
           {tab === 'Map Tokens' && filteredTokens.map((t) => (
             <div key={t.id} className="flex items-center justify-between bg-card border border-border/50 rounded-lg px-3 py-2.5 gap-3">
               <div className="flex items-center gap-2 min-w-0">
