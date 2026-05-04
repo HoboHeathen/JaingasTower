@@ -1074,12 +1074,13 @@ export default function VttCanvas({
     const el = containerRef.current;
     if (!isFullscreen) {
       const req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen;
-      req?.call(el);
+      if (!req) { setIsFullscreen(true); return; }
+      req.call(el).catch(() => setIsFullscreen(true));
     } else {
       const exit = document.exitFullscreen || document.webkitExitFullscreen || document.webkitCancelFullScreen;
-      exit?.call(document);
+      if (!exit) { setIsFullscreen(false); return; }
+      exit.call(document).catch(() => setIsFullscreen(false));
     }
-    setIsFullscreen((v) => !v);
   };
 
   // Sync fullscreen state with browser events
