@@ -29,9 +29,10 @@ export default function EncounterSidebar({
   onRoundChange,
   onEncounterChange,
   onAddParticipantRef,
+  showAddModal,
+  setShowAddModal,
 }) {
   const queryClient = useQueryClient();
-  const [showAddModal, setShowAddModal] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [hpInputs, setHpInputs] = useState({});
   const [renamingId, setRenamingId] = useState(null);
@@ -491,16 +492,7 @@ export default function EncounterSidebar({
           </>
           )}
 
-          {showAddModal && activeEncounter && (
-            <AddParticipantModal
-              activeGroup={activeGroup}
-              groupCharacters={groupCharacters}
-              vttTokens={vttTokens}
-              onAdd={(data) => addParticipantMutation.mutate(data)}
-              onClose={() => setShowAddModal(false)}
-              userEmail={user?.email}
-            />
-          )}
+
         </div>
       );
     }

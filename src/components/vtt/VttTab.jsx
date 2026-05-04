@@ -27,6 +27,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [activeEncounterTokenId, setActiveEncounterTokenId] = useState(null);
   const [encounterRound, setEncounterRound] = useState(1);
   const [activeEncounter, setActiveEncounter] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const addParticipantRef = useRef(null);
 
   // Skill trees for actions panel
@@ -301,6 +302,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
               onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
             />
           ) : null}
+          showAddModal={showAddModal}
+          setShowAddModal={setShowAddModal}
           encounterSidebar={isGM && showEncounterSidebar ? (
             <div className="absolute right-0 top-0 h-full w-full sm:w-96 bg-card border-l border-border/50 overflow-y-auto flex flex-col">
               <div className="px-4 py-3 border-b border-border/40">
@@ -318,6 +321,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
                   onRoundChange={setEncounterRound}
                   onEncounterChange={setActiveEncounter}
                   onAddParticipantRef={addParticipantRef}
+                  showAddModal={showAddModal}
+                  setShowAddModal={setShowAddModal}
                 />
               </div>
             </div>

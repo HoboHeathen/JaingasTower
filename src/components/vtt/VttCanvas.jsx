@@ -7,6 +7,7 @@ import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
 import VttToolbar from '@/components/vtt/VttToolbar';
 import SurvivalToolbar from '@/components/vtt/SurvivalToolbar';
 import WaveGeneratorModal from '@/components/vtt/WaveGeneratorModal';
+import AddParticipantModal from '@/components/encounter/AddParticipantModal';
 import { base44 } from '@/api/base44Client';
 
 const TOKEN_COLORS = {
@@ -121,6 +122,8 @@ export default function VttCanvas({
   showEncounterSidebar,
   encounterActive,
   encounterSidebar,
+  showAddModal,
+  setShowAddModal,
 }) {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
@@ -1312,6 +1315,17 @@ export default function VttCanvas({
             onUpdateTokens(updated);
           }}
           onClose={() => setShowWaveGenerator(false)}
+        />
+      )}
+
+      {showAddModal && activeEncounter && (
+        <AddParticipantModal
+          activeGroup={activeGroup}
+          groupCharacters={groupCharacters}
+          vttTokens={localTokens}
+          onAdd={(data) => onAddEncounterParticipant?.(data)}
+          onClose={() => setShowAddModal(false)}
+          userEmail={user?.email}
         />
       )}
     </div>
