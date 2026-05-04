@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Heart, HeartOff } from 'lucide-react';
+import { Heart, HeartOff, DoorOpen, DoorClosed } from 'lucide-react';
 
-export default function WallCellContextMenu({ cell, wall, x, y, onClose, onToggleHealth, onEditHealth }) {
+export default function WallCellContextMenu({ cell, wall, x, y, onClose, onToggleHealth, onEditHealth, onToggleDoor }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -19,12 +19,21 @@ export default function WallCellContextMenu({ cell, wall, x, y, onClose, onToggl
       style={{ top: y, left: x }}
     >
       <div className="px-3 py-1.5 border-b border-border/40 mb-1">
-        <p className="text-xs font-semibold text-foreground capitalize">{wall?.type ?? 'Wall'} Cell</p>
+        <p className="text-xs font-semibold text-foreground capitalize">{wall?.type ?? 'Structure'} Cell</p>
         {hasHealth && (
           <p className="text-[10px] text-muted-foreground">{cell.current_hp ?? cell.max_hp} / {cell.max_hp} HP</p>
         )}
       </div>
 
+      {wall?.type === 'door' && (
+        <button
+          onClick={() => onToggleDoor?.()}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 transition-colors text-foreground"
+        >
+          {wall?.is_open ? <DoorClosed className="w-3.5 h-3.5 shrink-0" /> : <DoorOpen className="w-3.5 h-3.5 shrink-0" />}
+          {wall?.is_open ? 'Close Door' : 'Open Door'}
+        </button>
+      )}
       <button
         onClick={() => onToggleHealth?.()}
         className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 transition-colors text-foreground"

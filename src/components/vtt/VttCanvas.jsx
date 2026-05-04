@@ -213,6 +213,7 @@ export default function VttCanvas({
 
   // Zoom
   const [zoom, setZoom] = useState(1);
+  const [wallsVisible, setWallsVisible] = useState(true);
   const [losEnabled, setLosEnabled] = useState(true);
   const [isSurvivalMode, setIsSurvivalMode] = useState(false);
   const [showWaveGenerator, setShowWaveGenerator] = useState(false);
@@ -349,8 +350,8 @@ export default function VttCanvas({
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Only draw when a wall tool is active
-    if (!WALL_FORT_TOOLS.has(activeTool)) return;
+    // Draw when a wall tool is active OR walls are toggled visible
+    if (!wallsVisible && !WALL_FORT_TOOLS.has(activeTool)) return;
 
     ctx.save();
     ctx.scale(zoom, zoom);
@@ -382,8 +383,8 @@ export default function VttCanvas({
         else if (wall.type === 'obstacle') ctx.fillText('O', wx, wy);
         else if (wall.type === 'spawn_point' && isGM) ctx.fillText('☠', wx, wy);
 
-        // Per-cell health bar (wall / window only)
-        if (cell.max_hp != null && (wall.type === 'wall' || wall.type === 'window')) {
+        // Per-cell health bar (wall / window / door)
+        if (cell.max_hp != null && (wall.type === 'wall' || wall.type === 'window' || wall.type === 'door')) {
           const barW = gs * 0.8;
           const barX = wx - barW / 2;
           const barY = wy + gs / 2 - 7;
@@ -397,7 +398,7 @@ export default function VttCanvas({
     });
 
     ctx.restore();
-  }, [pan, zoom, walls, activeTool, gs, ox, oy, isGM]);
+  }, [pan, zoom, walls, activeTool, gs, ox, oy, isGM, wallsVisible]);
 
   // ── Draw Tokens Layer ─────────────────────────────────────────────────────
   const draw = useCallback(() => {
@@ -875,13 +876,7 @@ export default function VttCanvas({
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
       const wall = findWallCellAt(col, row);
       if (wall) {
-        if (wall.type === 'door') {
-          const updated = walls.map((w) => w.id === wall.id ? { ...w, is_open: !w.is_open } : w);
-          setWalls(updated);
-          onUpdateMap?.({ walls: updated });
-          return;
-        }
-        if (wall.type === 'wall' || wall.type === 'window') {
+        if (wall.type === 'wall' || wall.type === 'window' || wall.type === 'door') {
           const cell = wall.cells.find((c) => c.col === col && c.row === row);
           setWallCellMenu({ wall, cell: cell || { col, row }, screenX: e.clientX, screenY: e.clientY });
           return;
@@ -1131,6 +1126,16 @@ export default function VttCanvas({
             Clear Trails
           </button>
         )}
+        {/* Wall visibility toggle */}
+        {isGM && (
+          <button
+            onClick={() => setWallsVisible((v) => !v)}
+            title={wallsVisible ? 'Hide Walls' : 'Show Walls'}
+            className={`text-xs px-2 py-1 rounded transition-colors ${wallsVisible ? 'bg-cyan-700/80 text-white' : 'bg-black/60 text-muted-foreground'}`}
+          >
+            {wallsVisible ? '🧱' : '👁'}
+          </button>
+        )}
         {/* Zoom controls */}
         <div className="flex items-center bg-black/60 rounded-lg overflow-hidden">
           <button onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))} className="text-white text-sm px-2 py-1 hover:bg-black/80">−</button>
@@ -1256,6 +1261,12 @@ export default function VttCanvas({
           onClose={() => setWallCellMenu(null)}
           onToggleHealth={handleToggleWallCellHealth}
           onEditHealth={handleEditWallCellHealth}
+          onToggleDoor={() => {
+            const updated = walls.map((w) => w.id === wallCellMenu.wall.id ? { ...w, is_open: !w.is_open } : w);
+            setWalls(updated);
+            onUpdateMap?.({ walls: updated });
+            setWallCellMenu(null);
+          }}
         />
       )}
       {renameToken && (
