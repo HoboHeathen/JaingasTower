@@ -1106,8 +1106,8 @@ export default function VttCanvas({
     <div
       ref={containerRef}
       data-vtt-container
-      className={isFullscreen ? "fixed inset-0 overflow-hidden bg-black block" : "relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"}
-      style={isFullscreen ? { zIndex: 9998 } : { height: '65vh' }}
+      className={isFullscreen ? "fixed inset-0 overflow-hidden bg-black block pointer-events-none" : "relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"}
+      style={isFullscreen ? { zIndex: 0 } : { height: '65vh' }}
     >
       {/* Background layer: map image + grid */}
       <canvas
@@ -1130,7 +1130,7 @@ export default function VttCanvas({
         ref={tokensCanvasRef}
         width={canvasSize.w}
         height={canvasSize.h}
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full pointer-events-auto"
         style={{ cursor: getCursor(), touchAction: 'none' }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
