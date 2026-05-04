@@ -6,6 +6,10 @@
       "type": "string",
       "description": "ID of the group this encounter belongs to"
     },
+    "map_id": {
+      "type": "string",
+      "description": "ID of the VttMap this encounter is tied to (one active per map)"
+    },
     "name": {
       "type": "string",
       "description": "Encounter name (optional)"
@@ -19,6 +23,10 @@
       "type": "number",
       "default": 1,
       "description": "Current round number"
+    },
+    "active_token_id": {
+      "type": "string",
+      "description": "ID of the VttToken whose turn it currently is"
     },
     "wave_number": {
       "type": "number",

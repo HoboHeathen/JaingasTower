@@ -8,9 +8,10 @@ import { toast } from 'sonner';
 import VttCanvas from '@/components/vtt/VttCanvas';
 import VttMapSettings from '@/components/vtt/VttMapSettings';
 import AddTokenModal from '@/components/vtt/AddTokenModal';
-import InitiativePanel from '@/components/vtt/InitiativePanel';
+
 import VttToolbar from '@/components/vtt/VttToolbar';
 import VttActionsPanel from '@/components/vtt/VttActionsPanel';
+import EncounterSidebar from '@/components/vtt/EncounterSidebar';
 
 export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const queryClient = useQueryClient();
@@ -22,12 +23,9 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [selectedMapId, setSelectedMapId] = useState(null); // null = show list view
   const [activeTool, setActiveTool] = useState('select');
   const fileInputRef = useRef(null);
-
-  // Initiative state (local – GM drives it, ideally would be persisted; kept simple)
-  const [initiativeOrder, setInitiativeOrder] = useState([]); // [{tokenId, name, roll, type, color}]
-  const [initiativeStarted, setInitiativeStarted] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [round, setRound] = useState(1);
+  const [showEncounterSidebar, setShowEncounterSidebar] = useState(false);
+  const [activeEncounterTokenId, setActiveEncounterTokenId] = useState(null);
+  const [encounterRound, setEncounterRound] = useState(1);
 
   // Skill trees for actions panel
   const { data: allTrees = [] } = useQuery({
@@ -120,10 +118,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
 
   const handleSetActive = (mapId) => {
     setSelectedMapId(mapId);
-    // Reset initiative when switching maps
-    setInitiativeOrder([]);
-    setInitiativeStarted(false);
-    setActiveIndex(0);
+    setActiveEncounterTokenId(null);
+    setEncounterRound(1);
     // Auto-enter fullscreen
     setTimeout(() => {
       const el = document.querySelector('[data-vtt-container]');
@@ -177,37 +173,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     setShowAddToken(false);
   };
 
-  // Initiative handlers
-  const handleStartInitiative = () => {
-    setActiveIndex(0);
-    setRound(1);
-    setInitiativeStarted(true);
-  };
-
-  const handleEndInitiative = () => {
-    setInitiativeStarted(false);
-    setActiveIndex(0);
-    setRound(1);
-    setInitiativeOrder([]);
-  };
-
-  const handleNextTurn = () => {
-    setActiveIndex((prev) => {
-      const next = (prev + 1) % initiativeOrder.length;
-      if (next === 0 && initiativeOrder.length > 0) {
-        setRound((r) => {
-          toast(`Round ${r + 1} begins!`, { icon: '⚔️' });
-          return r + 1;
-        });
-      }
-      return next;
-    });
-  };
-
-  const activeTokenId = initiativeStarted && initiativeOrder.length > 0
-    ? initiativeOrder[activeIndex]?.tokenId
-    : null;
-
+  const activeTokenId = activeEncounterTokenId;
   const tokens = vttTokens;
 
   // ── Map List View ─────────────────────────────────────────────────────────
@@ -302,24 +268,9 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         <VttMapSettings map={activeMap} onUpdate={handleUpdateMap} />
       )}
 
-      {/* Initiative panel */}
-      {tokens.length > 0 && (
-        <InitiativePanel
-          tokens={tokens}
-          groupCharacters={groupCharacters}
-          isGM={isGM}
-          initiativeStarted={initiativeStarted}
-          initiativeOrder={initiativeOrder}
-          activeIndex={activeIndex}
-          round={round}
-          onStart={handleStartInitiative}
-          onEnd={handleEndInitiative}
-          onNextTurn={handleNextTurn}
-          onSetOrder={setInitiativeOrder}
-        />
-      )}
-
-      {/* Canvas */}
+      {/* Canvas + Encounter Sidebar */}
+      <div className="flex gap-3 items-start">
+      <div className="flex-1 min-w-0">
       <VttCanvas
         map={activeMap}
         tokens={tokens}
@@ -329,13 +280,11 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         activeGroup={activeGroup}
         onUpdateTokens={handleUpdateTokens}
         onUpdateMap={handleUpdateMap}
-        initiativeOrder={initiativeOrder}
         activeTokenId={activeTokenId}
-        initiativeStarted={initiativeStarted}
+        initiativeStarted={!!activeEncounterTokenId}
         activeTool={activeTool}
         onToolChange={setActiveTool}
-        onNextTurn={handleNextTurn}
-        round={round}
+        round={encounterRound}
         fogCellCount={activeMap?.fog_cells?.length || 0}
         wallCount={activeMap?.walls?.length || 0}
         onClearFog={() => handleUpdateMap({ fog_cells: [] })}
@@ -349,6 +298,24 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           />
         ) : null}
       />
+      </div>
+      {isGM && (
+        <div className="shrink-0">
+          <EncounterSidebar
+            activeGroup={activeGroup}
+            activeMap={activeMap}
+            isGM={isGM}
+            user={user}
+            groupCharacters={groupCharacters}
+            vttTokens={tokens}
+            isOpen={showEncounterSidebar}
+            onToggle={() => setShowEncounterSidebar((v) => !v)}
+            onActiveTokenChange={setActiveEncounterTokenId}
+            onRoundChange={setEncounterRound}
+          />
+        </div>
+      )}
+      </div>
 
       {showAddToken && (
         <AddTokenModal

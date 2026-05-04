@@ -1208,11 +1208,7 @@ export default function VttCanvas({
               ⚔️ {localTokens.find((t) => t.id === activeTokenId)?.name ?? ''}'s Turn
             </span>
           )}
-          {isGM && onNextTurn && (
-            <button onClick={onNextTurn} className="bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded-lg hover:bg-yellow-400 transition-colors ml-1">
-              Next Turn ▶
-            </button>
-          )}
+          
         </div>
       )}
 
