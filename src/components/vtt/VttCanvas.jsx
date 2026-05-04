@@ -1079,7 +1079,22 @@ export default function VttCanvas({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFsToolbar, setShowFsToolbar] = useState(false);
 
-  const toggleFullscreen = () => setIsFullscreen((v) => !v);
+  // Sync isFullscreen state with the actual browser fullscreen state
+  useEffect(() => {
+    const onFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
 
   // Clear measure when tool changes away
   useEffect(() => {
@@ -1092,7 +1107,7 @@ export default function VttCanvas({
       ref={containerRef}
       data-vtt-container
       className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"
-      style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 9999, height: '100vh', width: '100vw', borderRadius: 0 } : { height: '65vh' }}
+      style={isFullscreen ? { height: '100vh', width: '100vw', borderRadius: 0 } : { height: '65vh' }}
     >
       {/* Background layer: map image + grid */}
       <canvas
