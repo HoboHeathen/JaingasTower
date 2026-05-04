@@ -304,20 +304,22 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       />
       </div>
       {isGM && (
-        <EncounterSidebar
-          activeGroup={activeGroup}
-          activeMap={activeMap}
-          isGM={isGM}
-          user={user}
-          groupCharacters={groupCharacters}
-          vttTokens={tokens}
-          isOpen={showEncounterSidebar}
-          onToggle={() => setShowEncounterSidebar((v) => !v)}
-          onActiveTokenChange={setActiveEncounterTokenId}
-          onRoundChange={setEncounterRound}
-          onEncounterChange={setActiveEncounter}
-          onAddParticipantRef={addParticipantRef}
-        />
+        <div className="fixed inset-0 pointer-events-none z-[10000]">
+          <EncounterSidebar
+            activeGroup={activeGroup}
+            activeMap={activeMap}
+            isGM={isGM}
+            user={user}
+            groupCharacters={groupCharacters}
+            vttTokens={tokens}
+            isOpen={showEncounterSidebar}
+            onToggle={() => setShowEncounterSidebar((v) => !v)}
+            onActiveTokenChange={setActiveEncounterTokenId}
+            onRoundChange={setEncounterRound}
+            onEncounterChange={setActiveEncounter}
+            onAddParticipantRef={addParticipantRef}
+          />
+        </div>
       )}
 
       {showAddToken && (
