@@ -4,10 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   Plus, Swords, Heart, Shield, ChevronUp, ChevronDown,
   Dices, Trash2, RotateCcw, User, Skull, Pencil, Check, X,
-  ChevronRight, Play, StopCircle, PanelRightClose, PanelRightOpen
+  ChevronRight, Play, StopCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -219,49 +220,27 @@ export default function EncounterSidebar({
     toast(`${participant.name} — ${action.name}: Hit ${hitRoll} | Damage: ${damageRoll}`, { duration: 6000 });
   };
 
-  // ── Toggle button (always visible) ───────────────────────────────────────
-  const toggleButton = (
-    <button
-      onClick={onToggle}
-      title={isOpen ? 'Hide Encounter Panel' : 'Show Encounter Panel'}
-      className={cn(
-        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
-        isOpen
-          ? 'bg-primary/10 text-primary border-primary/30'
-          : 'bg-transparent text-muted-foreground border-transparent hover:bg-secondary/60 hover:text-foreground'
-      )}
-    >
-      {isOpen ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
-      <span className="hidden sm:inline">Encounter</span>
-      {activeEncounter?.is_active && (
-        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-      )}
-    </button>
-  );
-
-  if (!isOpen) return <>{toggleButton}</>;
-
   return (
-    <>
-      {toggleButton}
-      <div className="fixed right-4 top-16 z-[9999] w-80 shrink-0 bg-card border border-border/50 rounded-xl flex flex-col overflow-hidden shadow-2xl" style={{ maxHeight: 'calc(100vh - 5rem)' }}>
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <Swords className="w-4 h-4 text-primary" />
-            <span className="font-heading text-sm font-semibold">Encounter</span>
-            {activeEncounter?.is_active && (
-              <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
-                R{activeEncounter.round || 1}
-              </Badge>
+    <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onToggle(); }}>
+      <SheetContent side="right" className="w-80 p-0 flex flex-col bg-card border-border/50">
+        <SheetHeader className="px-4 py-3 border-b border-border/40 shrink-0">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2 font-heading text-sm">
+              <Swords className="w-4 h-4 text-primary" />
+              Encounter
+              {activeEncounter?.is_active && (
+                <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
+                  R{activeEncounter.round || 1}
+                </Badge>
+              )}
+            </SheetTitle>
+            {isGM && (
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => createEncounterMutation.mutate()}>
+                <Plus className="w-3 h-3" /> New
+              </Button>
             )}
           </div>
-          {isGM && (
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => createEncounterMutation.mutate()}>
-              <Plus className="w-3 h-3" /> New
-            </Button>
-          )}
-        </div>
+        </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-3">
           {/* Encounter list */}
@@ -529,16 +508,19 @@ export default function EncounterSidebar({
           )}
         </div>
 
-        {showAddModal && activeEncounter && (
-          <AddParticipantModal
-            activeGroup={activeGroup}
-            groupCharacters={groupCharacters}
-            onAdd={(data) => addParticipantMutation.mutate(data)}
-            onClose={() => setShowAddModal(false)}
-            userEmail={user?.email}
-          />
-        )}
       </div>
-    </>
+
+      {showAddModal && activeEncounter && (
+        <AddParticipantModal
+          activeGroup={activeGroup}
+          groupCharacters={groupCharacters}
+          vttTokens={vttTokens}
+          onAdd={(data) => addParticipantMutation.mutate(data)}
+          onClose={() => setShowAddModal(false)}
+          userEmail={user?.email}
+        />
+      )}
+    </SheetContent>
+    </Sheet>
   );
 }

@@ -274,7 +274,6 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       )}
 
       {/* Canvas + Encounter Sidebar */}
-      <div className="flex gap-3 items-start">
       <div className="flex-1 min-w-0">
       <VttCanvas
         map={activeMap}
@@ -310,24 +309,21 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       />
       </div>
       {isGM && (
-        <div className="shrink-0">
-          <EncounterSidebar
-            activeGroup={activeGroup}
-            activeMap={activeMap}
-            isGM={isGM}
-            user={user}
-            groupCharacters={groupCharacters}
-            vttTokens={tokens}
-            isOpen={showEncounterSidebar}
-            onToggle={() => setShowEncounterSidebar((v) => !v)}
-            onActiveTokenChange={setActiveEncounterTokenId}
-            onRoundChange={setEncounterRound}
-            onEncounterChange={setActiveEncounter}
-            onAddParticipantRef={addParticipantRef}
-          />
-        </div>
+        <EncounterSidebar
+          activeGroup={activeGroup}
+          activeMap={activeMap}
+          isGM={isGM}
+          user={user}
+          groupCharacters={groupCharacters}
+          vttTokens={tokens}
+          isOpen={showEncounterSidebar}
+          onToggle={() => setShowEncounterSidebar((v) => !v)}
+          onActiveTokenChange={setActiveEncounterTokenId}
+          onRoundChange={setEncounterRound}
+          onEncounterChange={setActiveEncounter}
+          onAddParticipantRef={addParticipantRef}
+        />
       )}
-      </div>
 
       {showAddToken && (
         <AddTokenModal

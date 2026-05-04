@@ -5,14 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, User, Skull } from 'lucide-react';
+import { Search, User, Skull, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BESTIARY, formatHp, getDiceCount } from '@/lib/bestiaryData';
 import { toast } from 'sonner';
 
-const TABS = ['Monsters', 'Players'];
+const TABS = ['Monsters', 'Players', 'Map Tokens'];
 
-export default function AddParticipantModal({ activeGroup, groupCharacters, onAdd, onClose, userEmail }) {
+export default function AddParticipantModal({ activeGroup, groupCharacters, onAdd, onClose, userEmail, vttTokens = [] }) {
   const [tab, setTab] = useState('Monsters');
   const [search, setSearch] = useState('');
 
@@ -37,6 +37,10 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
 
   const filteredPlayers = groupCharacters.filter((c) =>
     !search.trim() || c.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredTokens = vttTokens.filter((t) =>
+    !search.trim() || t.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleAddMonster = (monster) => {
@@ -85,6 +89,25 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
       conditions: character.conditions || [],
     });
     toast.success(`${character.name} added!`);
+  };
+
+  const TOKEN_TYPE_LABELS = { player: 'Player', enemy: 'Enemy', friendly: 'Friendly', neutral: 'Neutral', innocent: 'Innocent' };
+
+  const handleAddMapToken = (token) => {
+    const isPlayer = token.type === 'player';
+    // Try to match to a character for HP
+    const linkedChar = groupCharacters.find((c) => c.id === token.character_id);
+    onAdd({
+      participant_type: isPlayer ? 'player' : 'monster',
+      name: token.name,
+      character_id: token.character_id || undefined,
+      monster_id: token.monster_id || undefined,
+      max_hp: token.max_hp || linkedChar?.base_health || 10,
+      current_hp: token.current_hp ?? token.max_hp ?? linkedChar?.current_hp ?? 10,
+      initiative: null,
+      conditions: [],
+    });
+    toast.success(`${token.name} added!`);
   };
 
   return (
@@ -149,6 +172,24 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
           )}
           {tab === 'Players' && filteredPlayers.length === 0 && (
             <p className="text-center py-8 text-muted-foreground text-sm">No characters in this group.</p>
+          )}
+
+          {tab === 'Map Tokens' && filteredTokens.map((t) => (
+            <div key={t.id} className="flex items-center justify-between bg-card border border-border/50 rounded-lg px-3 py-2.5 gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <MapPin className="w-4 h-4 text-muted-foreground shrink-0" style={{ color: t.color || undefined }} />
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-foreground truncate block">{t.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {TOKEN_TYPE_LABELS[t.type] || t.type} · HP {t.current_hp ?? t.max_hp ?? '—'}/{t.max_hp ?? '—'}
+                  </span>
+                </div>
+              </div>
+              <Button size="sm" className="shrink-0 h-7 px-3 text-xs" onClick={() => handleAddMapToken(t)}>Add</Button>
+            </div>
+          ))}
+          {tab === 'Map Tokens' && filteredTokens.length === 0 && (
+            <p className="text-center py-8 text-muted-foreground text-sm">No tokens on this map.</p>
           )}
         </div>
       </DialogContent>
