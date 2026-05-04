@@ -1323,7 +1323,10 @@ export default function VttCanvas({
           activeGroup={activeGroup}
           groupCharacters={groupCharacters}
           vttTokens={localTokens}
-          onAdd={(data) => onAddEncounterParticipant?.(data)}
+          onAdd={(data) => {
+            onAddEncounterParticipant?.(data);
+            setShowAddModal(false);
+          }}
           onClose={() => setShowAddModal(false)}
           userEmail={user?.email}
         />
