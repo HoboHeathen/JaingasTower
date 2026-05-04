@@ -489,19 +489,19 @@ export default function EncounterSidebar({
                 })}
               </div>
             </>
-          )}
-          </div>
+            )}
+            </div>
 
-          {showAddModal && activeEncounter && (
-          <AddParticipantModal
-          activeGroup={activeGroup}
-          groupCharacters={groupCharacters}
-          vttTokens={vttTokens}
-          onAdd={(data) => addParticipantMutation.mutate(data)}
-          onClose={() => setShowAddModal(false)}
-          userEmail={user?.email}
-          />
-          )}
-          </div>
-          );
-          }
+            {showAddModal && activeEncounter && (
+            <AddParticipantModal
+            activeGroup={activeGroup}
+            groupCharacters={groupCharacters}
+            vttTokens={vttTokens}
+            onAdd={(data) => addParticipantMutation.mutate(data)}
+            onClose={() => setShowAddModal(false)}
+            userEmail={user?.email}
+            />
+            )}
+            </div>
+            );
+            }

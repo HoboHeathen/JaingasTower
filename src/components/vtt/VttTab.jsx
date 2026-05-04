@@ -123,11 +123,6 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     setSelectedMapId(mapId);
     setActiveEncounterTokenId(null);
     setEncounterRound(1);
-    // Auto-enter fullscreen
-    setTimeout(() => {
-      const el = document.querySelector('[data-vtt-container]');
-      if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
-    }, 300);
   };
 
   const handleUpdateMap = (data) => {
