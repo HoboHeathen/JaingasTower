@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Plus, Heart, Shield, ChevronUp, ChevronDown,
   Dices, Trash2, RotateCcw, User, Skull, Pencil, Check, X,
-  ChevronRight, Play, StopCircle
+  ChevronRight, Play, StopCircle, Focus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ export default function EncounterSidebar({
   onAddParticipantRef,
   showAddModal,
   setShowAddModal,
+  onCenterOnToken,
 }) {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState(null);
@@ -320,6 +321,11 @@ export default function EncounterSidebar({
                       <Button size="sm" className="h-7 text-xs gap-1" onClick={handleNextTurn}>
                         <ChevronRight className="w-3 h-3" /> Next
                       </Button>
+                      {activeEncounter.active_token_id && onCenterOnToken && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => onCenterOnToken(activeEncounter.active_token_id)}>
+                          <Focus className="w-3 h-3" />
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-destructive border-destructive/30" onClick={handleEndEncounter}>
                         <StopCircle className="w-3 h-3" /> End
                       </Button>

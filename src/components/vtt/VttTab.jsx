@@ -173,6 +173,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
 
   const activeTokenId = activeEncounterTokenId;
   const tokens = vttTokens;
+  const vttCanvasRef = useRef(null);
 
   // ── Map List View ─────────────────────────────────────────────────────────
   if (!activeMap) {
@@ -272,6 +273,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       {/* Canvas */}
       <div className="relative flex-1 min-w-0">
         <VttCanvas
+          ref={vttCanvasRef}
           map={activeMap}
           tokens={tokens}
           isGM={isGM}
@@ -323,6 +325,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
                   onAddParticipantRef={addParticipantRef}
                   showAddModal={showAddModal}
                   setShowAddModal={setShowAddModal}
+                  onCenterOnToken={(tokenId) => vttCanvasRef.current?.centerOnToken(tokenId)}
                 />
               </div>
             </div>

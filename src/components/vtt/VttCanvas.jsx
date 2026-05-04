@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo, useImperativeHandle } from 'react';
 import TokenContextMenu from '@/components/vtt/TokenContextMenu';
 import WallCellContextMenu from '@/components/vtt/WallCellContextMenu';
 import EditHpModal from '@/components/vtt/EditHpModal';
@@ -97,7 +97,7 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export default function VttCanvas({
+const VttCanvasInner = ({
   map,
   tokens: tokensProp,
   isGM,
@@ -124,12 +124,24 @@ export default function VttCanvas({
   encounterSidebar,
   showAddModal,
   setShowAddModal,
-}) {
+}, ref) => {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
   const tokensCanvasRef = useRef(null);
   const canvasRef = tokensCanvasRef; // keep legacy ref for event handlers
   const containerRef = useRef(null);
+
+  // Expose centerOnToken via imperative handle
+  React.useImperativeHandle(ref, () => ({
+    centerOnToken: (tokenId) => {
+      const token = localTokens.find((t) => t.id === tokenId);
+      if (!token || !canvasRef.current) return;
+      const { x: worldX, y: worldY } = cellToWorld(token.x, token.y, gs, ox, oy);
+      const centerX = canvasSize.w / 2 / zoom;
+      const centerY = canvasSize.h / 2 / zoom;
+      setPan({ x: centerX - worldX, y: centerY - worldY });
+    }
+  }), [localTokens, canvasSize, gs, ox, oy, zoom]);
   const imgRef = useRef(null);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -1335,3 +1347,7 @@ export default function VttCanvas({
     </>
   );
 }
+
+const VttCanvas = React.forwardRef(VttCanvasInner);
+VttCanvas.displayName = 'VttCanvas';
+export default VttCanvas;
