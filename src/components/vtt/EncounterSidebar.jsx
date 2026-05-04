@@ -508,8 +508,6 @@ export default function EncounterSidebar({
           )}
         </div>
 
-      </div>
-
       {showAddModal && activeEncounter && (
         <AddParticipantModal
           activeGroup={activeGroup}
