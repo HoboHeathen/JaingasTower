@@ -120,6 +120,7 @@ export default function VttCanvas({
   onToggleEncounterSidebar,
   showEncounterSidebar,
   encounterActive,
+  encounterSidebar,
 }) {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
@@ -1223,6 +1224,9 @@ export default function VttCanvas({
           {actionsPanel}
         </div>
       )}
+
+      {/* Encounter Sidebar — lives inside the canvas */}
+      {encounterSidebar}
 
       {/* Active turn badge (non-fullscreen) */}
       {!isFullscreen && initiativeStarted && activeTokenId && (
