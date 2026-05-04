@@ -244,7 +244,7 @@ export default function EncounterSidebar({
   return (
     <>
       {toggleButton}
-      <div className="w-80 shrink-0 bg-card border border-border/50 rounded-xl flex flex-col overflow-hidden" style={{ maxHeight: '65vh' }}>
+      <div className="fixed right-4 top-16 z-[9999] w-80 shrink-0 bg-card border border-border/50 rounded-xl flex flex-col overflow-hidden shadow-2xl" style={{ maxHeight: 'calc(100vh - 5rem)' }}>
         {/* Header */}
         <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
