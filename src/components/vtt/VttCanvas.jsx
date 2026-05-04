@@ -130,75 +130,62 @@ const VttCanvasInner = ({
   const tokensCanvasRef = useRef(null);
   const canvasRef = tokensCanvasRef; // keep legacy ref for event handlers
   const containerRef = useRef(null);
-
-  // Expose centerOnToken via imperative handle
-  React.useImperativeHandle(ref, () => ({
-    centerOnToken: (tokenId) => {
-      const token = localTokens.find((t) => t.id === tokenId);
-      if (!token || !canvasRef.current) return;
-      const { x: worldX, y: worldY } = cellToWorld(token.x, token.y, gs, ox, oy);
-      const centerX = canvasSize.w / 2 / zoom;
-      const centerY = canvasSize.h / 2 / zoom;
-      setPan({ x: centerX - worldX, y: centerY - worldY });
-    }
-  }), [localTokens, canvasSize, gs, ox, oy, zoom]);
   const imgRef = useRef(null);
+
+  // State declarations first
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef(null);
   const [draggingId, setDraggingId] = useState(null);
-  const dragStart = useRef(null);
   const [localTokens, setLocalTokens] = useState(tokensProp || []);
-  const [trails, setTrails] = useState({}); // {tokenId: [{col,row}, ...]}
-  const [moveInfo, setMoveInfo] = useState(null); // {feet, col, row} - current hover position + cumulative distance
-  
-  // Movement tracking per token (persists across multiple drags in one turn)
-  const movementState = useRef({}); // {tokenId: {totalFeet: number, waypoints: [{col,row}]}}
-
-  // Fog of war
+  const [trails, setTrails] = useState({});
+  const [moveInfo, setMoveInfo] = useState(null);
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
-  const isPainting = useRef(false);
-
-  // Walls: array of {id, type, is_open, cells:[{col,row,current_hp?,max_hp?}]}
   const [walls, setWalls] = useState(() => map.walls || []);
-  // Current stroke being painted
-  const paintedCells = useRef(new Set());
-
-  // Wall cell context menu
-  const [wallCellMenu, setWallCellMenu] = useState(null); // {wall, cell, screenX, screenY}
-  const [editHpWallCell, setEditHpWallCell] = useState(null); // {wall, cell}
-
-  // Pings
+  const [wallCellMenu, setWallCellMenu] = useState(null);
+  const [editHpWallCell, setEditHpWallCell] = useState(null);
   const [pings, setPings] = useState([]);
-
-  // Line of sight
-  const [visibleCells, setVisibleCells] = useState(new Set()); // {tokenId: Set of "col,row"}
-  const [gmTokenLOS, setGmTokenLOS] = useState({}); // For GM to see all tokens' LOS
-  const losRange = 30; // 30 cells = 150 feet
-
-  // Zoom
+  const [visibleCells, setVisibleCells] = useState(new Set());
+  const [gmTokenLOS, setGmTokenLOS] = useState({});
   const [zoom, setZoom] = useState(1);
   const [wallsVisible, setWallsVisible] = useState(true);
   const [losEnabled, setLosEnabled] = useState(!isGM);
   const [isSurvivalMode, setIsSurvivalMode] = useState(false);
   const [showWaveGenerator, setShowWaveGenerator] = useState(false);
-
-  // Measurement tool
-  const [measureStart, setMeasureStart] = useState(null); // {col, row}
-  const [measureEnd, setMeasureEnd] = useState(null);     // {col, row}
-
-  // GM selected token for LOS preview
+  const [measureStart, setMeasureStart] = useState(null);
+  const [measureEnd, setMeasureEnd] = useState(null);
   const [gmSelectedTokenId, setGmSelectedTokenId] = useState(null);
-
-  // Context menu
   const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
   const [renameToken, setRenameToken] = useState(null);
   const [linkToken, setLinkToken] = useState(null);
   const [noLinkWarning, setNoLinkWarning] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFsToolbar, setShowFsToolbar] = useState(false);
 
+  // Refs for mutable state
+  const panStart = useRef(null);
+  const dragStart = useRef(null);
+  const movementState = useRef({});
+  const isPainting = useRef(false);
+  const paintedCells = useRef(new Set());
   const pendingSave = useRef(false);
+  const losRange = 30; // 30 cells = 150 feet
+
+  // Expose centerOnToken via imperative handle
+  useImperativeHandle(ref, () => ({
+    centerOnToken: (tokenId) => {
+      const token = localTokens.find((t) => t.id === tokenId);
+      if (!token || !canvasRef.current) return;
+      const gs = map.grid_size || 60;
+      const ox = map.grid_offset_x || 0;
+      const oy = map.grid_offset_y || 0;
+      const { x: worldX, y: worldY } = cellToWorld(token.x, token.y, gs, ox, oy);
+      const centerX = canvasSize.w / 2 / zoom;
+      const centerY = canvasSize.h / 2 / zoom;
+      setPan({ x: centerX - worldX, y: centerY - worldY });
+    }
+  }), [localTokens, canvasSize, zoom, map]);
 
   // ── Web Worker for LOS ────────────────────────────────────────────────────
   const losWorkerRef = useRef(null);
@@ -1091,9 +1078,6 @@ const VttCanvasInner = ({
     if (activeTool === 'erase_wall') return 'cell';
     return 'crosshair';
   };
-
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showFsToolbar, setShowFsToolbar] = useState(false);
 
   const toggleFullscreen = () => setIsFullscreen((v) => !v);
 
