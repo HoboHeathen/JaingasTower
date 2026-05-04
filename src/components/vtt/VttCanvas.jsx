@@ -1070,29 +1070,7 @@ export default function VttCanvas({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFsToolbar, setShowFsToolbar] = useState(false);
 
-  const toggleFullscreen = () => {
-    const el = containerRef.current;
-    if (!isFullscreen) {
-      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen;
-      if (!req) { setIsFullscreen(true); return; }
-      req.call(el).catch(() => setIsFullscreen(true));
-    } else {
-      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.webkitCancelFullScreen;
-      if (!exit) { setIsFullscreen(false); return; }
-      exit.call(document).catch(() => setIsFullscreen(false));
-    }
-  };
-
-  // Sync fullscreen state with browser events
-  useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
-    document.addEventListener('fullscreenchange', onFsChange);
-    document.addEventListener('webkitfullscreenchange', onFsChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', onFsChange);
-      document.removeEventListener('webkitfullscreenchange', onFsChange);
-    };
-  }, []);
+  const toggleFullscreen = () => setIsFullscreen((v) => !v);
 
   // Clear measure when tool changes away
   useEffect(() => {
@@ -1105,7 +1083,7 @@ export default function VttCanvas({
       ref={containerRef}
       data-vtt-container
       className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"
-      style={{ height: isFullscreen ? '100vh' : '65vh' }}
+      style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 9999, height: '100vh', width: '100vw', borderRadius: 0 } : { height: '65vh' }}
     >
       {/* Background layer: map image + grid */}
       <canvas
