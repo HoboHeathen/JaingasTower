@@ -12,6 +12,7 @@ import AddTokenModal from '@/components/vtt/AddTokenModal';
 import VttToolbar from '@/components/vtt/VttToolbar';
 import VttActionsPanel from '@/components/vtt/VttActionsPanel';
 import EncounterSidebar from '@/components/vtt/EncounterSidebar';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const queryClient = useQueryClient();
@@ -273,8 +274,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         <VttMapSettings map={activeMap} onUpdate={handleUpdateMap} />
       )}
 
-      {/* Canvas + Encounter Sidebar */}
-      <div className="flex gap-3 items-start">
+      {/* Canvas */}
       <div className="flex-1 min-w-0">
       <VttCanvas
         map={activeMap}
@@ -309,25 +309,32 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         ) : null}
       />
       </div>
+
+      {/* Encounter Sheet */}
       {isGM && (
-        <div className="shrink-0">
-          <EncounterSidebar
-            activeGroup={activeGroup}
-            activeMap={activeMap}
-            isGM={isGM}
-            user={user}
-            groupCharacters={groupCharacters}
-            vttTokens={tokens}
-            isOpen={showEncounterSidebar}
-            onToggle={() => setShowEncounterSidebar((v) => !v)}
-            onActiveTokenChange={setActiveEncounterTokenId}
-            onRoundChange={setEncounterRound}
-            onEncounterChange={setActiveEncounter}
-            onAddParticipantRef={addParticipantRef}
-          />
-        </div>
+        <Sheet open={showEncounterSidebar} onOpenChange={setShowEncounterSidebar}>
+          <SheetContent side="right" className="w-full sm:w-96 p-0 flex flex-col">
+            <SheetHeader className="px-4 py-3 border-b border-border/40">
+              <SheetTitle className="font-heading">Encounter</SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto">
+              <EncounterSidebar
+                activeGroup={activeGroup}
+                activeMap={activeMap}
+                isGM={isGM}
+                user={user}
+                groupCharacters={groupCharacters}
+                vttTokens={tokens}
+                onActiveTokenChange={setActiveEncounterTokenId}
+                onRoundChange={setEncounterRound}
+                onEncounterChange={setActiveEncounter}
+                onAddParticipantRef={addParticipantRef}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
-      </div>
+      
 
       {showAddToken && (
         <AddTokenModal
