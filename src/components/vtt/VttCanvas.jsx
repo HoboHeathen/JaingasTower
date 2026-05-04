@@ -232,9 +232,24 @@ export default function VttCanvas({
   const [linkToken, setLinkToken] = useState(null);
   const [noLinkWarning, setNoLinkWarning] = useState(null);
 
+  const pendingSave = useRef(false);
+
+  // Wrapper that sets pendingSave flag so refetch doesn't overwrite local wall state mid-save
+  const saveWalls = useCallback((updated) => {
+    pendingSave.current = true;
+    onUpdateMap?.({ walls: updated });
+    // Clear flag after a generous debounce (save + refetch cycle)
+    setTimeout(() => { pendingSave.current = false; }, 3000);
+  }, [onUpdateMap]);
+
   useEffect(() => { setLocalTokens(map.tokens || []); }, [map.tokens]);
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
-  useEffect(() => { setWalls(map.walls || []); }, [map.walls]);
+  // Only sync walls from server if we don't have a save in-flight (prevents HP reset on refetch)
+  useEffect(() => {
+    if (!pendingSave.current) {
+      setWalls(map.walls || []);
+    }
+  }, [map.walls]);
 
   // Clear movement tracking and trails when the turn changes
   useEffect(() => {
@@ -715,7 +730,7 @@ export default function VttCanvas({
     } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point', 'erase_wall'].includes(activeTool)) {
       setWalls((prev) => {
         const cleaned = prev.map(({ _stroke, ...w }) => w);
-        onUpdateMap?.({ walls: cleaned });
+        saveWalls(cleaned);
         return cleaned;
       });
     }
@@ -941,7 +956,7 @@ export default function VttCanvas({
       };
     });
     setWalls(updated);
-    onUpdateMap?.({ walls: updated });
+    saveWalls(updated);
     setWallCellMenu(null);
   };
 
@@ -964,7 +979,7 @@ export default function VttCanvas({
       };
     });
     setWalls(updated);
-    onUpdateMap?.({ walls: updated });
+    saveWalls(updated);
     setEditHpWallCell(null);
   };
 
@@ -991,7 +1006,7 @@ export default function VttCanvas({
   const clearSpawnPoints = () => {
     const updated = walls.filter((w) => w.type !== 'spawn_point');
     setWalls(updated);
-    onUpdateMap?.({ walls: updated });
+    saveWalls(updated);
   };
 
   // ── Touch handling ────────────────────────────────────────────────────────
@@ -1262,9 +1277,12 @@ export default function VttCanvas({
           onToggleHealth={handleToggleWallCellHealth}
           onEditHealth={handleEditWallCellHealth}
           onToggleDoor={() => {
-            const updated = walls.map((w) => w.id === wallCellMenu.wall.id ? { ...w, is_open: !w.is_open } : w);
-            setWalls(updated);
-            onUpdateMap?.({ walls: updated });
+            // Use current walls state (not stale wallCellMenu.wall) to preserve HP data
+            setWalls((prev) => {
+              const updated = prev.map((w) => w.id === wallCellMenu.wall.id ? { ...w, is_open: !w.is_open } : w);
+              saveWalls(updated);
+              return updated;
+            });
             setWallCellMenu(null);
           }}
         />
