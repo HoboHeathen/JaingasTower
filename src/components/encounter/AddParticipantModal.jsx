@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, User, Skull, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BESTIARY, formatHp, getDiceCount } from '@/lib/bestiaryData';
@@ -15,6 +16,7 @@ const TABS = ['Monsters', 'Players', 'Map Tokens'];
 export default function AddParticipantModal({ activeGroup, groupCharacters, onAdd, onClose, userEmail, vttTokens = [] }) {
   const [tab, setTab] = useState('Monsters');
   const [search, setSearch] = useState('');
+  const [monsterSortBy, setMonsterSortBy] = useState('name');
 
   const floorWave = activeGroup?.floor_wave_number || 1;
   const dieType = activeGroup?.die_type || 'd6';
@@ -31,9 +33,14 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
     ...customMonsters.map((m) => ({ ...m, _isCustom: true })),
   ];
 
-  const filteredMonsters = allMonsters.filter((m) =>
-    !search.trim() || m.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const HP_TYPE_ORDER = { weak: 1, standard: 2, tough: 3, hulking: 4 };
+  const filteredMonsters = allMonsters
+    .filter((m) => !search.trim() || m.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      if (monsterSortBy === 'category') return (a.category || '').localeCompare(b.category || '');
+      if (monsterSortBy === 'hp_type') return (HP_TYPE_ORDER[a.hp_type] || 0) - (HP_TYPE_ORDER[b.hp_type] || 0);
+      return a.name.localeCompare(b.name);
+    });
 
   const filteredPlayers = groupCharacters.filter((c) =>
     !search.trim() || c.name.toLowerCase().includes(search.toLowerCase())
@@ -93,6 +100,11 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
 
   const TOKEN_TYPE_LABELS = { player: 'Player', enemy: 'Enemy', friendly: 'Friendly', neutral: 'Neutral', innocent: 'Innocent' };
 
+  const handleAddAllMapTokens = () => {
+    filteredTokens.forEach((token) => handleAddMapToken(token));
+    toast.success(`${filteredTokens.length} tokens added!`);
+  };
+
   const handleAddMapToken = (token) => {
     const isPlayer = token.type === 'player';
     // Try to match to a character for HP
@@ -132,9 +144,23 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
           ))}
         </div>
 
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex gap-2 mb-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          {tab === 'Monsters' && (
+            <Select value={monsterSortBy} onValueChange={setMonsterSortBy}>
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="category">Category</SelectItem>
+                <SelectItem value="hp_type">HP Type</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
@@ -172,6 +198,12 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
           )}
           {tab === 'Players' && filteredPlayers.length === 0 && (
             <p className="text-center py-8 text-muted-foreground text-sm">No characters in this group.</p>
+          )}
+
+          {tab === 'Map Tokens' && filteredTokens.length > 0 && (
+            <Button variant="outline" size="sm" className="w-full mb-1" onClick={handleAddAllMapTokens}>
+              Add All ({filteredTokens.length})
+            </Button>
           )}
 
           {tab === 'Map Tokens' && filteredTokens.map((t) => (
