@@ -98,6 +98,7 @@ function hexToRgba(hex, alpha) {
 
 export default function VttCanvas({
   map,
+  tokens: tokensProp,
   isGM,
   user,
   groupCharacters,
@@ -129,7 +130,7 @@ export default function VttCanvas({
   const panStart = useRef(null);
   const [draggingId, setDraggingId] = useState(null);
   const dragStart = useRef(null);
-  const [localTokens, setLocalTokens] = useState(map.tokens || []);
+  const [localTokens, setLocalTokens] = useState(tokensProp || []);
   const [trails, setTrails] = useState({}); // {tokenId: [{col,row}, ...]}
   const [moveInfo, setMoveInfo] = useState(null); // {feet, col, row} - current hover position + cumulative distance
   
@@ -232,7 +233,7 @@ export default function VttCanvas({
     setTimeout(() => { pendingSave.current = false; }, 3000);
   }, [onUpdateMap]);
 
-  useEffect(() => { setLocalTokens(map.tokens || []); }, [map.tokens]);
+  useEffect(() => { setLocalTokens(tokensProp || []); }, [tokensProp]);
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
   // Only sync walls from server if we don't have a save in-flight (prevents HP reset on refetch)
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -48,11 +48,29 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     queryKey: ['vtt-maps', activeGroup?.id],
     queryFn: () => base44.entities.VttMap.filter({ group_id: activeGroup.id }),
     enabled: !!activeGroup?.id,
-    refetchInterval: 5000,
+    refetchInterval: 10000,
   });
 
   // If selectedMapId is set, use that map; otherwise show list view
   const activeMap = selectedMapId ? (maps.find((m) => m.id === selectedMapId) || null) : null;
+
+  // ── VttToken entity — fetch and subscribe ─────────────────────────────────
+  const { data: vttTokens = [], refetch: refetchTokens } = useQuery({
+    queryKey: ['vtt-tokens', selectedMapId],
+    queryFn: () => base44.entities.VttToken.filter({ map_id: selectedMapId }),
+    enabled: !!selectedMapId,
+  });
+
+  // Real-time subscription to VttToken changes for the active map
+  useEffect(() => {
+    if (!selectedMapId) return;
+    const unsubscribe = base44.entities.VttToken.subscribe((event) => {
+      if (event.data?.map_id === selectedMapId || !event.data) {
+        refetchTokens();
+      }
+    });
+    return unsubscribe;
+  }, [selectedMapId, refetchTokens]);
 
   const updateCharacterMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Character.update(id, data),
@@ -118,22 +136,44 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     updateMapMutation.mutate({ id: activeMap.id, data });
   };
 
-  const handleUpdateTokens = (tokens) => {
-    if (!activeMap) return;
-    updateMapMutation.mutate({ id: activeMap.id, data: { tokens } });
+  // handleUpdateTokens: reconcile local token state back to VttToken entities.
+  // Called by VttCanvas after drag-drop for non-position fields (hp, visibility, etc.)
+  const handleUpdateTokens = async (tokens) => {
+    if (!selectedMapId) return;
+    // For each token: if it has an `id` matching an existing VttToken, update it.
+    // If it's new (not in vttTokens), create it.
+    const existingIds = new Set(vttTokens.map((t) => t.id));
+    const serverIds = new Set(tokens.map((t) => t.id));
+
+    // Deletions
+    const toDelete = vttTokens.filter((t) => !serverIds.has(t.id));
+    // Updates / Creations
+    await Promise.all([
+      ...toDelete.map((t) => base44.entities.VttToken.delete(t.id)),
+      ...tokens.map((t) => {
+        const { id, ...fields } = t;
+        if (existingIds.has(id)) {
+          return base44.entities.VttToken.update(id, fields);
+        } else {
+          return base44.entities.VttToken.create({ ...fields, map_id: selectedMapId, group_id: activeGroup.id });
+        }
+      }),
+    ]);
+    refetchTokens();
   };
 
-  const handleAddToken = (token) => {
-    const existing = activeMap?.tokens || [];
-    const gs = activeMap?.grid_size || 60;
-    const ox = activeMap?.grid_offset_x || 0;
-    const oy = activeMap?.grid_offset_y || 0;
-    // Default to grid cell (0,0) — GM can drag it to the right spot
-    const centerCol = 0;
-    const centerRow = 0;
+  const handleAddToken = async (token) => {
     // Players default to visible; enemies/neutrals/friendly default to hidden for GM to reveal
     const defaultVisible = token.type === 'player';
-    handleUpdateTokens([...existing, { ...token, id: crypto.randomUUID(), x: centerCol, y: centerRow, is_visible: defaultVisible }]);
+    await base44.entities.VttToken.create({
+      ...token,
+      map_id: selectedMapId,
+      group_id: activeGroup.id,
+      x: 0,
+      y: 0,
+      is_visible: defaultVisible,
+    });
+    refetchTokens();
     setShowAddToken(false);
   };
 
@@ -168,7 +208,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     ? initiativeOrder[activeIndex]?.tokenId
     : null;
 
-  const tokens = activeMap?.tokens || [];
+  const tokens = vttTokens;
 
   // ── Map List View ─────────────────────────────────────────────────────────
   if (!activeMap) {
@@ -282,6 +322,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       {/* Canvas */}
       <VttCanvas
         map={activeMap}
+        tokens={tokens}
         isGM={isGM}
         user={user}
         groupCharacters={groupCharacters}
