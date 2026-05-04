@@ -198,7 +198,7 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
           ))}
 
           {tab === 'Map Tokens' && filteredTokens.length > 0 && (
-            <Button size="sm" variant="outline" className="w-full mb-2 h-7 text-xs gap-1" onClick={() => { filteredTokens.forEach((t) => handleAddToken(t)); onClose(); }}>
+            <Button size="sm" variant="outline" className="w-full mb-2 h-7 text-xs gap-1" onClick={() => filteredTokens.forEach((t) => handleAddToken(t))}>
               Add All
             </Button>
           )}
