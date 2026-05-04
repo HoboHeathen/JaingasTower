@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import TokenContextMenu from '@/components/vtt/TokenContextMenu';
 import WallCellContextMenu from '@/components/vtt/WallCellContextMenu';
 import EditHpModal from '@/components/vtt/EditHpModal';
@@ -7,6 +7,7 @@ import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
 import VttToolbar from '@/components/vtt/VttToolbar';
 import SurvivalToolbar from '@/components/vtt/SurvivalToolbar';
 import WaveGeneratorModal from '@/components/vtt/WaveGeneratorModal';
+import { base44 } from '@/api/base44Client';
 
 const TOKEN_COLORS = {
   player: '#4ade80',
@@ -84,62 +85,7 @@ function cellDist(ax, ay, bx, by) {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
-// Line-of-sight helper: check if a cell is blocked by walls/obstacles
-function isCellBlockedByWall(col, row, walls) {
-  return walls.some((wall) =>
-    wall.cells?.some((c) => c.col === col && c.row === row && 
-      (wall.type === 'wall' || wall.type === 'obstacle' || (wall.type === 'door' && !wall.is_open)))
-  );
-}
-
-// Bresenham line algorithm to get cells between two points
-function getLineOfSightCells(fromCol, fromRow, toCol, toRow) {
-  const cells = [];
-  let x0 = fromCol, y0 = fromRow;
-  let x1 = toCol, y1 = toRow;
-  const dx = Math.abs(x1 - x0);
-  const dy = Math.abs(y1 - y0);
-  const sx = x0 < x1 ? 1 : -1;
-  const sy = y0 < y1 ? 1 : -1;
-  let err = dx - dy;
-  let x = x0, y = y0;
-  while (true) {
-    cells.push({ col: x, row: y });
-    if (x === x1 && y === y1) break;
-    const e2 = 2 * err;
-    if (e2 > -dy) { err -= dy; x += sx; }
-    if (e2 < dx) { err += dx; y += sy; }
-  }
-  return cells;
-}
-
-// Calculate visible cells for a token using shadowcasting
-function calculateTokenVisibility(tokenCol, tokenRow, range, walls) {
-  const visible = new Set();
-  const key = (col, row) => `${col},${row}`;
-  visible.add(key(tokenCol, tokenRow));
-
-  // Simple approach: raycast in all directions within range
-  for (let col = tokenCol - range; col <= tokenCol + range; col++) {
-    for (let row = tokenRow - range; row <= tokenRow + range; row++) {
-      const dist = cellDist(tokenCol, tokenRow, col, row);
-      if (dist <= range && dist > 0) {
-        const path = getLineOfSightCells(tokenCol, tokenRow, col, row);
-        let blocked = false;
-        for (const cell of path) {
-          if (isCellBlockedByWall(cell.col, cell.row, walls)) {
-            blocked = true;
-            break;
-          }
-        }
-        if (!blocked) {
-          visible.add(key(col, row));
-        }
-      }
-    }
-  }
-  return visible;
-}
+// (LOS calculations are now handled by the Web Worker — see src/workers/losWorker.js)
 
 function fogKey(col, row) { return `${col},${row}`; }
 
@@ -234,6 +180,50 @@ export default function VttCanvas({
 
   const pendingSave = useRef(false);
 
+  // ── Web Worker for LOS ────────────────────────────────────────────────────
+  const losWorkerRef = useRef(null);
+  const losRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    const worker = new Worker(new URL('/src/workers/losWorker.js', import.meta.url), { type: 'module' });
+    losWorkerRef.current = worker;
+    worker.onmessage = (e) => {
+      const { results, requestId } = e.data;
+      // Ignore stale responses
+      if (requestId !== losRequestIdRef.current) return;
+      // results: { [tokenId]: string[] } — convert arrays back to Sets
+      if (isGM) {
+        const gmLos = {};
+        for (const [id, cells] of Object.entries(results)) {
+          gmLos[id] = new Set(cells);
+        }
+        setGmTokenLOS(gmLos);
+      } else {
+        const combined = new Set();
+        for (const cells of Object.values(results)) {
+          for (const c of cells) combined.add(c);
+        }
+        setVisibleCells(combined);
+      }
+    };
+    return () => worker.terminate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGM]);
+
+  // ── Token update batching ─────────────────────────────────────────────────
+  const tokenUpdateQueue = useRef({});
+  const batchTimer = useRef(null);
+
+  const flushTokenUpdates = useCallback(() => {
+    const queue = tokenUpdateQueue.current;
+    if (Object.keys(queue).length === 0) return;
+    const updates = Object.entries(queue).map(([id, pos]) => ({ id, ...pos }));
+    tokenUpdateQueue.current = {};
+    base44.functions.invoke('updateTokensBatch', { updates }).catch((err) => {
+      console.warn('updateTokensBatch failed:', err);
+    });
+  }, []);
+
   // Wrapper that sets pendingSave flag so refetch doesn't overwrite local wall state mid-save
   const saveWalls = useCallback((updated) => {
     pendingSave.current = true;
@@ -258,31 +248,28 @@ export default function VttCanvas({
     setTrails({});
   }, [activeTokenId]);
 
-  // Calculate LOS for all tokens on token/wall changes (excluding innocents)
+  // Dispatch LOS calculations to the Web Worker
   useEffect(() => {
-    if (isGM) {
-      if (!losEnabled) { setGmTokenLOS({}); return; }
-      const gmLos = {};
-      localTokens.forEach((t) => {
-        if (t.type !== 'innocent') {
-          gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
-        }
-      });
-      setGmTokenLOS(gmLos);
+    if (!losWorkerRef.current) return;
+    if (isGM && !losEnabled) { setGmTokenLOS({}); return; }
+
+    const relevant = isGM
+      ? localTokens.filter((t) => t.type !== 'innocent')
+      : localTokens.filter((t) => t.type === 'player');
+
+    if (relevant.length === 0) {
+      if (isGM) setGmTokenLOS({});
+      else setVisibleCells(new Set());
       return;
     }
 
-    // For non-GM players, calculate LOS for their own character tokens (excluding innocents)
-    if (!isGM) {
-      const playerLos = new Set();
-      localTokens.forEach((t) => {
-        if (t.type === 'player') {
-          const los = calculateTokenVisibility(t.x, t.y, losRange, walls);
-          los.forEach((cell) => playerLos.add(cell));
-        }
-      });
-      setVisibleCells(playerLos);
-    }
+    losRequestIdRef.current += 1;
+    losWorkerRef.current.postMessage({
+      tokens: relevant.map((t) => ({ id: t.id, x: t.x, y: t.y })),
+      range: losRange,
+      walls,
+      requestId: losRequestIdRef.current,
+    });
   }, [localTokens, walls, isGM, losEnabled]);
 
   // Resize observer
@@ -539,17 +526,22 @@ export default function VttCanvas({
       });
     }
 
-    // Line of sight darkness (non-GM players only) — darken all cells except visible ones
+    // Line of sight darkness (non-GM players only) — viewport-culled version
     if (!isGM && losEnabled && visibleCells.size > 0) {
+      // Determine which cells are currently on screen
+      const viewLeft   = -pan.x;
+      const viewTop    = -pan.y;
+      const viewRight  = viewLeft + canvas.width / zoom;
+      const viewBottom = viewTop  + canvas.height / zoom;
+      const colMin = Math.floor((viewLeft  - ox) / gs) - 1;
+      const colMax = Math.ceil ((viewRight - ox) / gs) + 1;
+      const rowMin = Math.floor((viewTop   - oy) / gs) - 1;
+      const rowMax = Math.ceil ((viewBottom - oy) / gs) + 1;
+
       ctx.fillStyle = 'rgba(0,0,0,0.92)';
-      // Iterate through visible cells and darken their neighbors and the entire map
-      // Use a static large range independent of viewport
-      const staticRange = 300;
-      
-      for (let col = -staticRange; col <= staticRange; col++) {
-        for (let row = -staticRange; row <= staticRange; row++) {
-          const key = `${col},${row}`;
-          if (!visibleCells.has(key)) {
+      for (let col = colMin; col <= colMax; col++) {
+        for (let row = rowMin; row <= rowMax; row++) {
+          if (!visibleCells.has(`${col},${row}`)) {
             const { x: fx, y: fy } = cellToWorld(col, row, gs, ox, oy);
             ctx.fillRect(fx - gs / 2, fy - gs / 2, gs, gs);
           }
@@ -840,14 +832,12 @@ export default function VttCanvas({
         return { ...prev, [draggingId]: [...existing.slice(0, state.waypoints.length - 1), ...state.waypoints] };
       });
 
-      // Update LOS for dragging token (GM only, when LOS is enabled)
-      if (isGM && losEnabled) {
-        const gmLos = {};
-        localTokens.forEach((t) => {
-          gmLos[t.id] = calculateTokenVisibility(t.x, t.y, losRange, walls);
-        });
-        setGmTokenLOS(gmLos);
-      }
+      // Queue position for batched backend update (throttled)
+      tokenUpdateQueue.current[draggingId] = { x: col, y: row };
+      clearTimeout(batchTimer.current);
+      batchTimer.current = setTimeout(flushTokenUpdates, 80);
+
+      // LOS during drag handled by useEffect above (worker dispatched on localTokens change)
     } else if (isPanning) {
       setPan({ x: e.clientX / zoom - panStart.current.x, y: e.clientY / zoom - panStart.current.y });
     }
@@ -874,6 +864,8 @@ export default function VttCanvas({
           });
         }
       }
+      clearTimeout(batchTimer.current);
+      flushTokenUpdates();
       onUpdateTokens(localTokens);
       setDraggingId(null);
       dragStart.current = null;

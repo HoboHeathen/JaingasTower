@@ -1,0 +1,75 @@
+{
+  "name": "VttToken",
+  "type": "object",
+  "properties": {
+    "map_id": {
+      "type": "string"
+    },
+    "group_id": {
+      "type": "string"
+    },
+    "x": {
+      "type": "number"
+    },
+    "y": {
+      "type": "number"
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "player",
+        "enemy",
+        "friendly",
+        "neutral",
+        "innocent"
+      ]
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "tiny",
+        "small",
+        "medium",
+        "large",
+        "huge"
+      ],
+      "default": "medium"
+    },
+    "character_id": {
+      "type": "string"
+    },
+    "monster_id": {
+      "type": "string"
+    },
+    "current_hp": {
+      "type": "number"
+    },
+    "max_hp": {
+      "type": "number"
+    },
+    "color": {
+      "type": "string"
+    },
+    "is_visible": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "map_id",
+    "group_id",
+    "x",
+    "y",
+    "name",
+    "type"
+  ],
+  "rls": {
+    "read": null,
+    "create": null,
+    "update": null,
+    "delete": null
+  }
+}
