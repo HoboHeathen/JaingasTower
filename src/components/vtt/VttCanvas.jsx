@@ -1149,7 +1149,7 @@ export default function VttCanvas({
       />
 
       {/* Top-right HUD controls */}
-      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+      <div className="absolute top-2 right-2 flex items-center gap-1.5 pointer-events-auto">
         {initiativeStarted && Object.keys(trails).length > 0 && (
           <button onClick={clearTrails} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
             Clear Trails
@@ -1248,6 +1248,7 @@ export default function VttCanvas({
 
       {/* Context menu */}
       {contextMenu && (
+        <div className="pointer-events-auto">
         <TokenContextMenu
           token={contextMenu.token}
           x={contextMenu.screenX}
@@ -1263,12 +1264,16 @@ export default function VttCanvas({
           losEnabled={losEnabled}
           onToggleLos={() => { setLosEnabled((v) => !v); setContextMenu(null); }}
         />
+        </div>
       )}
 
       {editHpToken && (
+        <div className="pointer-events-auto">
         <EditHpModal token={editHpToken} onSave={handleSaveHP} onClose={() => setEditHpToken(null)} />
+        </div>
       )}
       {editHpWallCell && (
+        <div className="pointer-events-auto">
         <EditHpModal
           token={{
             name: `${editHpWallCell.wall.type} (${editHpWallCell.cell.col},${editHpWallCell.cell.row})`,
@@ -1278,8 +1283,10 @@ export default function VttCanvas({
           onSave={handleSaveWallCellHP}
           onClose={() => setEditHpWallCell(null)}
         />
+        </div>
       )}
       {wallCellMenu && (
+        <div className="pointer-events-auto">
         <WallCellContextMenu
           cell={wallCellMenu.cell}
           wall={wallCellMenu.wall}
@@ -1298,20 +1305,26 @@ export default function VttCanvas({
             setWallCellMenu(null);
           }}
         />
+        </div>
       )}
       {renameToken && (
+        <div className="pointer-events-auto">
         <RenameTokenModal token={renameToken} onSave={handleSaveName} onClose={() => setRenameToken(null)} />
+        </div>
       )}
       {linkToken && (
+        <div className="pointer-events-auto">
         <LinkCharacterModal
           token={linkToken}
           groupCharacters={groupCharacters}
           onSave={handleLinkSave}
           onClose={() => setLinkToken(null)}
         />
+        </div>
       )}
 
       {showWaveGenerator && (
+        <div className="pointer-events-auto">
         <WaveGeneratorModal
           walls={walls}
           activeGroup={activeGroup}
@@ -1324,6 +1337,7 @@ export default function VttCanvas({
           }}
           onClose={() => setShowWaveGenerator(false)}
         />
+        </div>
       )}
     </div>
     </>
