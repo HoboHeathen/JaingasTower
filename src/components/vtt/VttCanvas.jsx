@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import TokenContextMenu from '@/components/vtt/TokenContextMenu';
+import WallCellContextMenu from '@/components/vtt/WallCellContextMenu';
 import EditHpModal from '@/components/vtt/EditHpModal';
 import RenameTokenModal from '@/components/vtt/RenameTokenModal';
 import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
@@ -15,7 +16,7 @@ const TOKEN_COLORS = {
 };
 
 const SIZE_SCALE = { tiny: 0.3, small: 0.5, medium: 0.75, large: 2, huge: 3 };
-const WALL_FORT_TOOLS = new Set(['wall', 'door', 'window', 'obstacle', 'erase_wall', 'fortification', 'erase_fort', 'spawn_point']);
+const WALL_FORT_TOOLS = new Set(['wall', 'door', 'window', 'obstacle', 'erase_wall', 'spawn_point']);
 const FEET_PER_CELL = 5;
 
 const WALL_COLORS = {
@@ -193,13 +194,14 @@ export default function VttCanvas({
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
   const isPainting = useRef(false);
 
-  // Walls: array of {id, type, is_open, cells:[{col,row}]}
+  // Walls: array of {id, type, is_open, cells:[{col,row,current_hp?,max_hp?}]}
   const [walls, setWalls] = useState(() => map.walls || []);
-  // Fort lines: array of {id, points:[{x,y}]} — free-draw, not snapped to grid
-  const [fortLines, setFortLines] = useState(() => map.fort_lines || []);
-  const currentFortLine = useRef(null); // {id, points:[]} being drawn
   // Current stroke being painted
   const paintedCells = useRef(new Set());
+
+  // Wall cell context menu
+  const [wallCellMenu, setWallCellMenu] = useState(null); // {wall, cell, screenX, screenY}
+  const [editHpWallCell, setEditHpWallCell] = useState(null); // {wall, cell}
 
   // Pings
   const [pings, setPings] = useState([]);
@@ -225,7 +227,6 @@ export default function VttCanvas({
   // Context menu
   const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
-  const [editHpFortification, setEditHpFortification] = useState(null);
   const [renameToken, setRenameToken] = useState(null);
   const [linkToken, setLinkToken] = useState(null);
   const [noLinkWarning, setNoLinkWarning] = useState(null);
@@ -233,7 +234,6 @@ export default function VttCanvas({
   useEffect(() => { setLocalTokens(map.tokens || []); }, [map.tokens]);
   useEffect(() => { setFogCells(new Set(map.fog_cells || [])); }, [map.fog_cells]);
   useEffect(() => { setWalls(map.walls || []); }, [map.walls]);
-  useEffect(() => { setFortLines(map.fort_lines || []); }, [map.fort_lines]);
 
   // Clear movement tracking and trails when the turn changes
   useEffect(() => {
@@ -342,25 +342,25 @@ export default function VttCanvas({
     ctx.restore();
   }, [pan, zoom, map, gs, ox, oy]);
 
-  // ── Draw Walls / Fortifications Layer ────────────────────────────────────
+  // ── Draw Walls Layer ─────────────────────────────────────────────────────
   const drawWallsFort = useCallback(() => {
     const canvas = wallsCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Only draw when a wall/fort tool is active
+    // Only draw when a wall tool is active
     if (!WALL_FORT_TOOLS.has(activeTool)) return;
 
     ctx.save();
     ctx.scale(zoom, zoom);
     ctx.translate(pan.x, pan.y);
 
-    // Walls
     walls.forEach((wall) => {
       if (!wall.cells?.length) return;
       const color = WALL_COLORS[wall.type] || WALL_COLORS.wall;
-      wall.cells.forEach(({ col, row }) => {
+      wall.cells.forEach((cell) => {
+        const { col, row } = cell;
         const { x: wx, y: wy } = cellToWorld(col, row, gs, ox, oy);
         ctx.fillStyle = color;
         ctx.fillRect(wx - gs / 2, wy - gs / 2, gs, gs);
@@ -381,56 +381,23 @@ export default function VttCanvas({
         else if (wall.type === 'window') ctx.fillText('W', wx, wy);
         else if (wall.type === 'obstacle') ctx.fillText('O', wx, wy);
         else if (wall.type === 'spawn_point' && isGM) ctx.fillText('☠', wx, wy);
+
+        // Per-cell health bar (wall / window only)
+        if (cell.max_hp != null && (wall.type === 'wall' || wall.type === 'window')) {
+          const barW = gs * 0.8;
+          const barX = wx - barW / 2;
+          const barY = wy + gs / 2 - 7;
+          const pct = Math.max(0, Math.min(1, (cell.current_hp ?? cell.max_hp) / cell.max_hp));
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(barX, barY, barW, 4);
+          ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
+          ctx.fillRect(barX, barY, barW * pct, 4);
+        }
       });
     });
 
-    // Fort lines
-    const allFortLines = currentFortLine.current
-      ? [...fortLines, currentFortLine.current]
-      : fortLines;
-    allFortLines.forEach((line) => {
-      if (!line.points || line.points.length < 2) return;
-      const currentHp = line.current_hp ?? 25;
-      const maxHp = 25;
-      ctx.strokeStyle = 'rgba(200, 136, 26, 0.94)';
-      ctx.lineWidth = 15;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(203, 157, 29, 0.82)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      line.points.forEach(({ x, y }, i) => { i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
-      ctx.stroke();
-
-      if (line.points.length > 0) {
-        const mid = Math.floor(line.points.length / 2);
-        const { x: midX, y: midY } = line.points[mid];
-        const barW = 40;
-        const barX = midX - barW / 2;
-        const barY = midY - 20;
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(barX, barY, barW, 4);
-        const pct = Math.max(0, Math.min(1, currentHp / maxHp));
-        ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
-        ctx.fillRect(barX, barY, barW * pct, 4);
-
-        ctx.fillStyle = 'rgba(0,0,0,0.65)';
-        ctx.beginPath();
-        ctx.roundRect(midX + 22, barY - 2, 22, 10, 3);
-        ctx.fill();
-        ctx.fillStyle = '#60a5fa';
-        ctx.font = `bold ${Math.max(7, gs * 0.5)}px Inter, sans-serif`;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`🛡13`, midX + 24, barY + 3);
-      }
-    });
-
     ctx.restore();
-  }, [pan, zoom, walls, fortLines, activeTool, gs, ox, oy, isGM]);
+  }, [pan, zoom, walls, activeTool, gs, ox, oy, isGM]);
 
   // ── Draw Tokens Layer ─────────────────────────────────────────────────────
   const draw = useCallback(() => {
@@ -706,19 +673,6 @@ export default function VttCanvas({
   // ── Painting helpers ──────────────────────────────────────────────────────
   const applyPaint = (e) => {
     const world = getWorldPos(e);
-
-    // Fortification: free-draw line (appends to currentFortLine)
-    if (activeTool === 'fortification') {
-      if (currentFortLine.current) {
-        currentFortLine.current = {
-          ...currentFortLine.current,
-          points: [...currentFortLine.current.points, { x: world.x, y: world.y }],
-        };
-        draw(); // force redraw to show in-progress line
-      }
-      return;
-    }
-
     const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
     const key = fogKey(col, row);
     if (paintedCells.current.has(key)) return;
@@ -744,14 +698,6 @@ export default function VttCanvas({
           cells: w.cells?.filter((c) => !(c.col === col && c.row === row)),
         })).filter((w) => w.cells?.length > 0);
       });
-    } else if (activeTool === 'erase_fort' && isGM) {
-      const world = { x: col * gs + ox + gs / 2, y: row * gs + oy + gs / 2 };
-      setFortLines((prev) => {
-        return prev.filter((line) => {
-          if (!line.points || line.points.length === 0) return true;
-          return !line.points.some((p) => Math.hypot(world.x - p.x, world.y - p.y) < 15);
-        });
-      });
     }
   };
 
@@ -759,19 +705,6 @@ export default function VttCanvas({
     if (!isPainting.current) return;
     isPainting.current = false;
     paintedCells.current = new Set();
-
-    if (activeTool === 'fortification') {
-      const line = currentFortLine.current;
-      currentFortLine.current = null;
-      if (line && line.points.length >= 2) {
-        setFortLines((prev) => {
-          const updated = [...prev, line];
-          onUpdateMap?.({ fort_lines: updated });
-          return updated;
-        });
-      }
-      return;
-    }
 
     if (activeTool === 'fog_add' || activeTool === 'fog_erase') {
       setFogCells((prev) => {
@@ -784,10 +717,8 @@ export default function VttCanvas({
         onUpdateMap?.({ walls: cleaned });
         return cleaned;
       });
-    } else if (activeTool === 'erase_fort') {
-      onUpdateMap?.({ fort_lines: fortLines });
     }
-  }, [activeTool, onUpdateMap, fortLines]);
+  }, [activeTool, onUpdateMap]);
 
   // ── Wheel zoom (mouse-centered) ───────────────────────────────────────────
   // Attach on the container with passive:false so we can preventDefault on
@@ -833,15 +764,10 @@ export default function VttCanvas({
       return;
     }
 
-    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'erase_fort' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       isPainting.current = true;
       paintedCells.current = new Set();
-      if (activeTool === 'fortification') {
-        // Start a new free-draw line at the mouse position
-        currentFortLine.current = { id: crypto.randomUUID(), points: [{ x: world.x, y: world.y }] };
-      } else {
-        applyPaint(e);
-      }
+      applyPaint(e);
       return;
     }
 
@@ -862,7 +788,7 @@ export default function VttCanvas({
       setMeasureEnd(worldToCell(world.x, world.y, gs, ox, oy));
       return;
     }
-    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || activeTool === 'erase_fort' || activeTool === 'fortification' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || (isSurvivalMode && ['spawn_point'].includes(activeTool)) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
       applyPaint(e);
       return;
     }
@@ -944,28 +870,22 @@ export default function VttCanvas({
       setContextMenu({ token, screenX: e.clientX, screenY: e.clientY });
       return;
     }
-    // Check fortifications for HP editing
-    if (isGM) {
-      const fort = fortLines.find((line) => {
-        if (!line.points || line.points.length === 0) return false;
-        const mid = Math.floor(line.points.length / 2);
-        const { x, y } = line.points[mid];
-        return Math.hypot(world.x - x, world.y - y) < 30;
-      });
-      if (fort) {
-        setEditHpFortification(fort);
-        return;
-      }
-    }
-    // Check wall cells for door toggling
+    // Check wall cells — door toggling or wall/window health menu
     if (isGM) {
       const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
       const wall = findWallCellAt(col, row);
-      if (wall && wall.type === 'door') {
-        const updated = walls.map((w) => w.id === wall.id ? { ...w, is_open: !w.is_open } : w);
-        setWalls(updated);
-        onUpdateMap?.({ walls: updated });
-        return;
+      if (wall) {
+        if (wall.type === 'door') {
+          const updated = walls.map((w) => w.id === wall.id ? { ...w, is_open: !w.is_open } : w);
+          setWalls(updated);
+          onUpdateMap?.({ walls: updated });
+          return;
+        }
+        if (wall.type === 'wall' || wall.type === 'window') {
+          const cell = wall.cells.find((c) => c.col === col && c.row === row);
+          setWallCellMenu({ wall, cell: cell || { col, row }, screenX: e.clientX, screenY: e.clientY });
+          return;
+        }
       }
     }
     // Ping on empty right-click
@@ -1007,11 +927,50 @@ export default function VttCanvas({
     setLocalTokens(updated); onUpdateTokens(updated); setEditHpToken(null);
   };
 
-  const handleSaveFortificationHP = ({ current_hp }) => {
-    const updated = fortLines.map((f) => f.id === editHpFortification.id ? { ...f, current_hp } : f);
-    setFortLines(updated);
-    onUpdateMap?.({ fort_lines: updated });
-    setEditHpFortification(null);
+  const handleToggleWallCellHealth = () => {
+    if (!wallCellMenu) return;
+    const { wall, cell } = wallCellMenu;
+    const hasHealth = cell.max_hp != null;
+    const updated = walls.map((w) => {
+      if (w.id !== wall.id) return w;
+      return {
+        ...w,
+        cells: w.cells.map((c) => {
+          if (c.col !== cell.col || c.row !== cell.row) return c;
+          if (hasHealth) {
+            const { current_hp, max_hp, ...rest } = c;
+            return rest;
+          }
+          return { ...c, max_hp: 10, current_hp: 10 };
+        }),
+      };
+    });
+    setWalls(updated);
+    onUpdateMap?.({ walls: updated });
+    setWallCellMenu(null);
+  };
+
+  const handleEditWallCellHealth = () => {
+    if (!wallCellMenu) return;
+    setEditHpWallCell({ wall: wallCellMenu.wall, cell: wallCellMenu.cell });
+    setWallCellMenu(null);
+  };
+
+  const handleSaveWallCellHP = ({ current_hp, max_hp }) => {
+    if (!editHpWallCell) return;
+    const { wall, cell } = editHpWallCell;
+    const updated = walls.map((w) => {
+      if (w.id !== wall.id) return w;
+      return {
+        ...w,
+        cells: w.cells.map((c) =>
+          c.col === cell.col && c.row === cell.row ? { ...c, current_hp, max_hp } : c
+        ),
+      };
+    });
+    setWalls(updated);
+    onUpdateMap?.({ walls: updated });
+    setEditHpWallCell(null);
   };
 
   const handleSaveName = (name) => {
@@ -1032,13 +991,7 @@ export default function VttCanvas({
 
   const clearTrails = () => setTrails({});
 
-  const fortificationCount = fortLines.length;
   const spawnPointCount = walls.filter((w) => w.type === 'spawn_point').reduce((sum, w) => sum + w.cells.length, 0);
-
-  const clearFortifications = () => {
-    setFortLines([]);
-    onUpdateMap?.({ fort_lines: [] });
-  };
 
   const clearSpawnPoints = () => {
     const updated = walls.filter((w) => w.type !== 'spawn_point');
@@ -1235,9 +1188,7 @@ export default function VttCanvas({
                       onToolChange={(t) => { onToolChange(t); }}
                       isGM={isGM}
                       onOpenWaveGenerator={() => setShowWaveGenerator(true)}
-                      onClearFortifications={clearFortifications}
                       onClearSpawnPoints={clearSpawnPoints}
-                      fortificationCount={fortificationCount}
                       spawnPointCount={spawnPointCount}
                     />
                   </div>
@@ -1306,11 +1257,26 @@ export default function VttCanvas({
       {editHpToken && (
         <EditHpModal token={editHpToken} onSave={handleSaveHP} onClose={() => setEditHpToken(null)} />
       )}
-      {editHpFortification && (
+      {editHpWallCell && (
         <EditHpModal
-          token={{ name: 'Fortification', max_hp: 25, current_hp: editHpFortification.current_hp ?? 25 }}
-          onSave={handleSaveFortificationHP}
-          onClose={() => setEditHpFortification(null)}
+          token={{
+            name: `${editHpWallCell.wall.type} (${editHpWallCell.cell.col},${editHpWallCell.cell.row})`,
+            max_hp: editHpWallCell.cell.max_hp ?? 10,
+            current_hp: editHpWallCell.cell.current_hp ?? editHpWallCell.cell.max_hp ?? 10,
+          }}
+          onSave={handleSaveWallCellHP}
+          onClose={() => setEditHpWallCell(null)}
+        />
+      )}
+      {wallCellMenu && (
+        <WallCellContextMenu
+          cell={wallCellMenu.cell}
+          wall={wallCellMenu.wall}
+          x={wallCellMenu.screenX}
+          y={wallCellMenu.screenY}
+          onClose={() => setWallCellMenu(null)}
+          onToggleHealth={handleToggleWallCellHealth}
+          onEditHealth={handleEditWallCellHealth}
         />
       )}
       {renameToken && (

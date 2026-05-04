@@ -1,14 +1,12 @@
 import React from 'react';
-import { Shield, Skull, Zap } from 'lucide-react';
+import { Skull, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SURVIVAL_TOOLS = [
-  { key: 'fortification', label: 'Fortification', icon: Shield, gmOnly: true },
   { key: 'spawn_point', label: 'Spawn Point', icon: Skull, gmOnly: true },
 ];
 
 const SURVIVAL_COLORS = {
-  fortification: 'bg-yellow-900 text-yellow-300 border-yellow-700',
   spawn_point: 'bg-green-900 text-green-300 border-green-700',
 };
 
@@ -17,9 +15,7 @@ export default function SurvivalToolbar({
   onToolChange,
   isGM,
   onOpenWaveGenerator,
-  onClearFortifications,
   onClearSpawnPoints,
-  fortificationCount,
   spawnPointCount,
 }) {
   const visibleTools = SURVIVAL_TOOLS.filter((t) => !t.gmOnly || isGM);
@@ -68,7 +64,6 @@ export default function SurvivalToolbar({
 
       {/* Active tool hint */}
       <div className="ml-auto text-[10px] text-muted-foreground italic hidden md:block">
-        {activeTool === 'fortification' && 'Click and drag to draw a fortification line'}
         {activeTool === 'spawn_point' && 'Click/drag cells to place spawn points (GM only)'}
       </div>
     </div>
