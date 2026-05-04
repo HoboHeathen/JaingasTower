@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, User, Skull } from 'lucide-react';
+import { Search, User, Skull, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BESTIARY, formatHp, getDiceCount } from '@/lib/bestiaryData';
 import { toast } from 'sonner';
@@ -115,8 +115,11 @@ export default function AddParticipantModal({ activeGroup, groupCharacters, onAd
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="flex items-center justify-between">
           <DialogTitle className="font-heading">Add Combatant</DialogTitle>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-4 h-4" />
+          </button>
         </DialogHeader>
 
         <div className="flex gap-1 bg-secondary/30 rounded-xl p-1 mb-3">
