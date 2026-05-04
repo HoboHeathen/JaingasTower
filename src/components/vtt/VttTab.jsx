@@ -248,7 +248,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
               <div key={m.id} className="flex items-center gap-3 bg-card border border-border/50 rounded-xl px-4 py-3 hover:bg-secondary/20 transition-colors">
                 <button className="flex-1 text-left" onClick={() => handleSetActive(m.id)}>
                   <p className="font-medium text-foreground">{m.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{m.tokens?.length || 0} token{m.tokens?.length !== 1 ? 's' : ''} · {m.grid_type || 'no'} grid</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{m.grid_type || 'no'} grid</p>
                 </button>
                 <Button size="sm" onClick={() => handleSetActive(m.id)}>Open</Button>
                 {isGM && (
