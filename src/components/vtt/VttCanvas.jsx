@@ -1107,7 +1107,7 @@ export default function VttCanvas({
       ref={containerRef}
       data-vtt-container
       className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"
-      style={isFullscreen ? { height: '100vh', width: '100vw', borderRadius: 0 } : { height: '65vh' }}
+      style={isFullscreen ? { height: '100vh', width: '100vw', borderRadius: 0, zIndex: 9998 } : { height: '65vh' }}
     >
       {/* Background layer: map image + grid */}
       <canvas
