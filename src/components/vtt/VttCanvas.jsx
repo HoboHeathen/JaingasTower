@@ -117,6 +117,9 @@ export default function VttCanvas({
   actionsPanel,
   activeEncounter,
   onAddEncounterParticipant,
+  onToggleEncounterSidebar,
+  showEncounterSidebar,
+  encounterActive,
 }) {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
@@ -1163,10 +1166,10 @@ export default function VttCanvas({
               ☰
             </button>
             {showFsToolbar && (
-              <div className="absolute top-full right-0 mt-1 z-50 bg-black/90 rounded-xl p-2 min-w-[200px] shadow-xl space-y-2">
+              <div className="absolute top-full right-0 mt-1 z-50 bg-black/90 rounded-xl p-2 min-w-[220px] shadow-xl space-y-2">
                 <VttToolbar
                   activeTool={activeTool}
-                  onToolChange={(t) => { onToolChange(t); }}
+                  onToolChange={(t) => { onToolChange(t); setShowFsToolbar(false); }}
                   isGM={isGM}
                   fogCellCount={fogCellCount || 0}
                   wallCount={wallCount || 0}
@@ -1174,7 +1177,10 @@ export default function VttCanvas({
                   onClearWalls={() => { onClearWalls?.(); }}
                   isSurvivalMode={isSurvivalMode}
                   onToggleSurvivalMode={() => setIsSurvivalMode(!isSurvivalMode)}
-                  compact
+                  onToggleEncounterSidebar={onToggleEncounterSidebar}
+                  showEncounterSidebar={showEncounterSidebar}
+                  encounterActive={encounterActive}
+                  forceShowLabels
                 />
                 {isSurvivalMode && isGM && (
                   <div className="border-t border-border/30 pt-2">
@@ -1182,13 +1188,12 @@ export default function VttCanvas({
                       activeTool={activeTool}
                       onToolChange={(t) => { onToolChange(t); }}
                       isGM={isGM}
-                      onOpenWaveGenerator={() => setShowWaveGenerator(true)}
+                      onOpenWaveGenerator={() => { setShowWaveGenerator(true); setShowFsToolbar(false); }}
                       onClearSpawnPoints={clearSpawnPoints}
                       spawnPointCount={spawnPointCount}
                     />
                   </div>
                 )}
-
               </div>
             )}
           </div>

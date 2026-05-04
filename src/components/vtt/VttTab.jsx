@@ -296,6 +296,9 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         onClearWalls={() => handleUpdateMap({ walls: [] })}
         activeEncounter={activeEncounter}
         onAddEncounterParticipant={(data) => addParticipantRef.current?.(data)}
+        onToggleEncounterSidebar={isGM ? () => setShowEncounterSidebar((v) => !v) : undefined}
+        showEncounterSidebar={showEncounterSidebar}
+        encounterActive={activeEncounter?.is_active || false}
         actionsPanel={!isGM && playerCharacter ? (
           <VttActionsPanel
             character={playerCharacter}
