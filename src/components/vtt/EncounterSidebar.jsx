@@ -222,7 +222,7 @@ export default function EncounterSidebar({
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onToggle(); }}>
-      <SheetContent side="right" className="w-80 p-0 flex flex-col bg-card border-border/50">
+      <SheetContent side="right" className="w-80 p-0 flex flex-col bg-card border-border/50 !z-[10000]">
         <SheetHeader className="px-4 py-3 border-b border-border/40 shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2 font-heading text-sm">
