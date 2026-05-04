@@ -122,6 +122,11 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
     setSelectedMapId(mapId);
     setActiveEncounterTokenId(null);
     setEncounterRound(1);
+    // Auto-enter fullscreen
+    setTimeout(() => {
+      const el = document.querySelector('[data-vtt-container]');
+      if (el?.requestFullscreen) el.requestFullscreen().catch(() => {});
+    }, 300);
   };
 
   const handleUpdateMap = (data) => {
@@ -269,6 +274,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       )}
 
       {/* Canvas + Encounter Sidebar */}
+      <div className="flex gap-3 items-start">
       <div className="flex-1 min-w-0">
       <VttCanvas
         map={activeMap}
@@ -304,7 +310,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       />
       </div>
       {isGM && (
-        <div className="fixed inset-0 pointer-events-none z-[10000]">
+        <div className="shrink-0">
           <EncounterSidebar
             activeGroup={activeGroup}
             activeMap={activeMap}
@@ -321,6 +327,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           />
         </div>
       )}
+      </div>
 
       {showAddToken && (
         <AddTokenModal

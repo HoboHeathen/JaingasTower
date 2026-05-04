@@ -1079,22 +1079,7 @@ export default function VttCanvas({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFsToolbar, setShowFsToolbar] = useState(false);
 
-  // Sync isFullscreen state with the actual browser fullscreen state
-  useEffect(() => {
-    const onFsChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen?.().catch(() => {});
-    } else {
-      document.exitFullscreen?.().catch(() => {});
-    }
-  };
+  const toggleFullscreen = () => setIsFullscreen((v) => !v);
 
   // Clear measure when tool changes away
   useEffect(() => {
@@ -1106,8 +1091,8 @@ export default function VttCanvas({
     <div
       ref={containerRef}
       data-vtt-container
-      className={isFullscreen ? "fixed inset-0 overflow-hidden bg-black block pointer-events-none" : "relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"}
-      style={isFullscreen ? { zIndex: 0 } : { height: '65vh' }}
+      className="relative w-full rounded-xl overflow-hidden bg-black border border-border/50 block"
+      style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 9999, height: '100vh', width: '100vw', borderRadius: 0 } : { height: '65vh' }}
     >
       {/* Background layer: map image + grid */}
       <canvas
@@ -1130,7 +1115,7 @@ export default function VttCanvas({
         ref={tokensCanvasRef}
         width={canvasSize.w}
         height={canvasSize.h}
-        className="absolute inset-0 w-full h-full pointer-events-auto"
+        className="absolute inset-0 w-full h-full"
         style={{ cursor: getCursor(), touchAction: 'none' }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
@@ -1149,7 +1134,7 @@ export default function VttCanvas({
       />
 
       {/* Top-right HUD controls */}
-      <div className="absolute top-2 right-2 flex items-center gap-1.5 pointer-events-auto">
+      <div className="absolute top-2 right-2 flex items-center gap-1.5">
         {initiativeStarted && Object.keys(trails).length > 0 && (
           <button onClick={clearTrails} className="bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black/80 transition-colors">
             Clear Trails
@@ -1248,7 +1233,6 @@ export default function VttCanvas({
 
       {/* Context menu */}
       {contextMenu && (
-        <div className="pointer-events-auto">
         <TokenContextMenu
           token={contextMenu.token}
           x={contextMenu.screenX}
@@ -1264,16 +1248,12 @@ export default function VttCanvas({
           losEnabled={losEnabled}
           onToggleLos={() => { setLosEnabled((v) => !v); setContextMenu(null); }}
         />
-        </div>
       )}
 
       {editHpToken && (
-        <div className="pointer-events-auto">
         <EditHpModal token={editHpToken} onSave={handleSaveHP} onClose={() => setEditHpToken(null)} />
-        </div>
       )}
       {editHpWallCell && (
-        <div className="pointer-events-auto">
         <EditHpModal
           token={{
             name: `${editHpWallCell.wall.type} (${editHpWallCell.cell.col},${editHpWallCell.cell.row})`,
@@ -1283,10 +1263,8 @@ export default function VttCanvas({
           onSave={handleSaveWallCellHP}
           onClose={() => setEditHpWallCell(null)}
         />
-        </div>
       )}
       {wallCellMenu && (
-        <div className="pointer-events-auto">
         <WallCellContextMenu
           cell={wallCellMenu.cell}
           wall={wallCellMenu.wall}
@@ -1305,26 +1283,20 @@ export default function VttCanvas({
             setWallCellMenu(null);
           }}
         />
-        </div>
       )}
       {renameToken && (
-        <div className="pointer-events-auto">
         <RenameTokenModal token={renameToken} onSave={handleSaveName} onClose={() => setRenameToken(null)} />
-        </div>
       )}
       {linkToken && (
-        <div className="pointer-events-auto">
         <LinkCharacterModal
           token={linkToken}
           groupCharacters={groupCharacters}
           onSave={handleLinkSave}
           onClose={() => setLinkToken(null)}
         />
-        </div>
       )}
 
       {showWaveGenerator && (
-        <div className="pointer-events-auto">
         <WaveGeneratorModal
           walls={walls}
           activeGroup={activeGroup}
@@ -1337,7 +1309,6 @@ export default function VttCanvas({
           }}
           onClose={() => setShowWaveGenerator(false)}
         />
-        </div>
       )}
     </div>
     </>

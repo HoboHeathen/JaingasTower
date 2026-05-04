@@ -186,15 +186,15 @@ export default function WaveGeneratorModal({ walls, activeGroup, activeEncounter
   if (step === 'setup') {
     return (
       <div
-        className="fixed inset-0 flex items-center justify-center z-[20000]"
+        className="absolute inset-0 flex items-center justify-center z-50"
         style={{ background: 'rgba(0,0,0,0.75)' }}
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
-         <div
-          className="bg-card border border-border rounded-xl shadow-2xl p-5 w-full max-w-sm mx-4 flex flex-col gap-4 relative z-[20001]"
+      >
+        <div
+          className="bg-card border border-border rounded-xl shadow-2xl p-5 w-full max-w-sm mx-4 flex flex-col gap-4"
           onClick={(e) => e.stopPropagation()}
         >
-           <h2 className="font-heading text-lg font-semibold text-foreground">Wave Setup</h2>
+          <h2 className="font-heading text-lg font-semibold text-foreground">Wave Setup</h2>
 
           {/* Wave number */}
           <div className="flex flex-col gap-1.5">
@@ -255,12 +255,12 @@ export default function WaveGeneratorModal({ walls, activeGroup, activeEncounter
   // ── Generate screen ───────────────────────────────────────────────────────
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-[20000]"
+      className="absolute inset-0 flex items-center justify-center z-50"
       style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="bg-card border border-border rounded-xl shadow-2xl p-5 w-full max-w-md mx-4 flex flex-col gap-3 relative z-[20001]"
+        className="bg-card border border-border rounded-xl shadow-2xl p-5 w-full max-w-md mx-4 flex flex-col gap-3"
         style={{ maxHeight: '85%', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -352,7 +352,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, activeEncounter
               autoFocus
               className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
-            <div className="overflow-y-auto space-y-0.5 relative z-[20002]" style={{ maxHeight: '160px' }}>
+            <div className="overflow-y-auto space-y-0.5" style={{ maxHeight: '160px' }}>
               {filteredMonsters.map((m) => (
                 <div
                   key={m.id}
