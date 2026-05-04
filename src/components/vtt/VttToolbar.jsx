@@ -45,12 +45,7 @@ export default function VttToolbar({
   const [expandedTool, setExpandedTool] = useState(null);
 
   const handleToolClick = (key) => {
-    // On small screens, first tap expands label, second tap selects
-    if (!forceShowLabels && expandedTool !== key) {
-      setExpandedTool(key);
-      return;
-    }
-    setExpandedTool(null);
+    setExpandedTool(key);
     onToolChange(key);
   };
 
