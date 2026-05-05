@@ -72,7 +72,7 @@ export default function StatBlock({ character, skillBonuses, onUpdateCharacter }
       {statConfig.map(({ key, label, icon: Icon, color }) => (
         <div
           key={key}
-          className="bg-secondary/50 border border-border/50 rounded-xl p-4 flex flex-col items-center gap-2"
+          className="bg-secondary/50 border border-border/50 rounded-xl p-4 flex flex-col items-center justify-center gap-2 min-h-[120px]"
         >
           <Icon className={`w-5 h-5 ${color}`} />
           {key === 'health' && onUpdateCharacter ? (
