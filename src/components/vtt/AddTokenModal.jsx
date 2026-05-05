@@ -89,8 +89,8 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+    <Dialog open onOpenChange={onClose} modal>
+      <DialogContent className="max-w-md" style={{ zIndex: 10000 }}>
         <DialogHeader>
           <DialogTitle className="font-heading">Add Token</DialogTitle>
         </DialogHeader>

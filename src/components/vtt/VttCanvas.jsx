@@ -1184,6 +1184,18 @@ const VttCanvasInner = ({
                    showEncounterSidebar={showEncounterSidebar}
                    encounterActive={encounterActive}
                    forceShowLabels
+                   onAddToken={showAddModal !== undefined ? () => { setShowAddModal(true); setShowFsToolbar(false); } : undefined}
+                   onCenterOnActive={activeTokenId ? () => {
+                     const token = localTokens.find((t) => t.id === activeTokenId);
+                     if (token && canvasRef.current) {
+                       const { x: worldX, y: worldY } = cellToWorld(token.x, token.y, gs, ox, oy);
+                       const centerX = canvasSize.w / 2 / zoom;
+                       const centerY = canvasSize.h / 2 / zoom;
+                       setPan({ x: centerX - worldX, y: centerY - worldY });
+                     }
+                     setShowFsToolbar(false);
+                   } : undefined}
+                   hasActiveToken={!!activeTokenId}
                  />
                 {isSurvivalMode && isGM && (
                   <div className="border-t border-border/30 pt-2">

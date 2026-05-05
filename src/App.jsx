@@ -18,6 +18,7 @@ import Group from '@/pages/Group.jsx';
 import Inventory from '@/pages/Inventory.jsx';
 import LootTable from '@/pages/LootTable.jsx';
 import EditRules from '@/pages/EditRules.jsx';
+import EditRacialTree from '@/pages/EditRacialTree.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/loot-table" element={<LootTable />} />
         <Route path="/edit-rules" element={<EditRules />} />
+        <Route path="/edit-racial-tree" element={<EditRacialTree />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, TreePine, Pencil, Trash2, GripVertical, RotateCcw, Copy } from 'lucide-react';
+import { Plus, TreePine, Pencil, Trash2, GripVertical, RotateCcw, Copy, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Link } from 'react-router-dom';
 import {
@@ -205,6 +205,125 @@ function AdminSkillTrees() {
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
               <Button type="submit" disabled={!form.name.trim()}>Create</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Racial Trees Section */}
+      <AdminRacialTrees />
+    </div>
+  );
+}
+
+// ─── Admin Racial Trees section ───────────────────────────────────────────────
+
+function AdminRacialTrees() {
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ race_name: '', tree_name: '', description: '' });
+  const [deletingId, setDeletingId] = useState(null);
+  const queryClient = useQueryClient();
+
+  const { data: racialTrees = [], isLoading } = useQuery({
+    queryKey: ['racial-trees'],
+    queryFn: () => base44.entities.RacialTree.list('race_name'),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.RacialTree.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['racial-trees'] });
+      setShowCreate(false);
+      setForm({ race_name: '', tree_name: '', description: '' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.RacialTree.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['racial-trees'] }),
+  });
+
+  const handleCreate = (e) => {
+    e.preventDefault();
+    if (!form.race_name.trim() || !form.tree_name.trim()) return;
+    createMutation.mutate({ ...form, nodes: [] });
+  };
+
+  return (
+    <div className="mt-12">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
+            <Users className="w-5 h-5 text-accent" /> Racial Trees
+          </h2>
+          <p className="text-muted-foreground text-sm mt-0.5">Racial skill trees (admin)</p>
+        </div>
+        <Button onClick={() => setShowCreate(true)} className="gap-2" variant="outline">
+          <Plus className="w-4 h-4" /> New Racial Tree
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-10"><div className="w-6 h-6 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>
+      ) : racialTrees.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground text-sm bg-card border border-dashed border-border rounded-xl">
+          No racial trees yet. Create one above.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {racialTrees.map((tree) => (
+            <div key={tree.id} className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-4 group hover:border-accent/30 transition-all">
+              <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-heading font-semibold text-foreground leading-tight">{tree.tree_name}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{tree.race_name}{tree.description ? ` · ${tree.description}` : ''}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{(tree.nodes || []).length} node{(tree.nodes || []).length !== 1 ? 's' : ''}{tree.is_standalone_skill ? ' · standalone' : ''}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link to={`/edit-racial-tree?id=${tree.id}`}>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Pencil className="w-3 h-3" /> Edit
+                  </Button>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive h-8 w-8"
+                  onClick={() => setDeletingId(tree.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this racial tree?</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently delete the racial tree and all its nodes. This cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { deleteMutation.mutate(deletingId); setDeletingId(null); }}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-heading">New Racial Tree</DialogTitle></DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Input placeholder="Race name (e.g. Elf)..." value={form.race_name} onChange={(e) => setForm({ ...form, race_name: e.target.value })} autoFocus />
+            <Input placeholder="Tree name (e.g. Forest Magic)..." value={form.tree_name} onChange={(e) => setForm({ ...form, tree_name: e.target.value })} />
+            <Textarea placeholder="Description (optional)..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button type="submit" disabled={!form.race_name.trim() || !form.tree_name.trim()}>Create</Button>
             </DialogFooter>
           </form>
         </DialogContent>

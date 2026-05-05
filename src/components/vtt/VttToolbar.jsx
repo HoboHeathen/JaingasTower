@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2, Ruler, Flame, Swords } from 'lucide-react';
+import { Eye, EyeOff, Minus, DoorOpen, Square, Move, Eraser, Trash2, Ruler, Flame, Swords, Focus, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TOOLS = [
@@ -39,6 +39,9 @@ export default function VttToolbar({
   showEncounterSidebar,
   encounterActive,
   forceShowLabels,
+  onAddToken,
+  onCenterOnActive,
+  hasActiveToken,
 }) {
   const visibleTools = TOOLS.filter((t) => !t.gmOnly || isGM);
   // On mobile, track which tool key was last tapped (to show its label)
@@ -74,6 +77,33 @@ export default function VttToolbar({
           </button>
         );
       })}
+
+      {/* Add Token button (all users) */}
+      {onAddToken && (
+        <>
+          <div className="w-px h-5 bg-border/60 mx-1" />
+          <button
+            onClick={onAddToken}
+            title="Add Token"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-transparent bg-transparent text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span className={cn(forceShowLabels ? 'inline' : 'hidden sm:inline')}>Add Token</span>
+          </button>
+        </>
+      )}
+
+      {/* Center on active token (when encounter is running) */}
+      {onCenterOnActive && hasActiveToken && (
+        <button
+          onClick={onCenterOnActive}
+          title="Center on active token"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-transparent text-yellow-400 hover:bg-yellow-500/10 transition-all"
+        >
+          <Focus className="w-3.5 h-3.5" />
+          <span className={cn(forceShowLabels ? 'inline' : 'hidden sm:inline')}>Focus</span>
+        </button>
+      )}
 
       {/* Divider + clear actions (GM only) */}
       {isGM && (
