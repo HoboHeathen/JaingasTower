@@ -1117,7 +1117,7 @@ const VttCanvasInner = ({
       <canvas
           ref={tokensCanvasRef}
           width={canvasSize.w}
-          height={canvasSize.h} className="absolute inset-0 w-full h-2000\n"
+          height={canvasSize.h} className="absolute inset-0 w-full h-full\n"
 
           style={{ cursor: getCursor(), touchAction: 'none' }}
           onMouseDown={onMouseDown}
