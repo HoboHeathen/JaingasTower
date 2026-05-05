@@ -45,7 +45,7 @@ function HpControls({ maxHp, currentHp, onUpdate }) {
           type="number"
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
-          placeholder="amt"
+        
           className="w-14 h-6 rounded-md bg-background/60 border border-border/60 text-center text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         />
         <button
