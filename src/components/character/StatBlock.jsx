@@ -16,17 +16,12 @@ function HpControls({ maxHp, currentHp, onUpdate }) {
     onUpdate({ current_hp: next });
   };
 
-  const applyInput = () => {
+  const applyInputDelta = (sign) => {
     const num = parseInt(inputVal, 10);
-    if (!isNaN(num)) {
-      const next = Math.min(maxHp, Math.max(0, num));
-      onUpdate({ current_hp: next });
+    if (!isNaN(num) && num > 0) {
+      applyDelta(sign * num);
+      setInputVal('');
     }
-    setInputVal('');
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') applyInput();
   };
 
   return (
@@ -39,26 +34,40 @@ function HpControls({ maxHp, currentHp, onUpdate }) {
         <span className="text-xs text-muted-foreground">/ {maxHp}</span>
       </div>
 
-      {/* +/- buttons and text input */}
-      <div className="flex items-center gap-1 w-full justify-center">
+      {/* Input field */}
+      <input
+        type="number"
+        value={inputVal}
+        onChange={(e) => setInputVal(e.target.value)}
+        placeholder="amt"
+        className="w-16 h-6 rounded-md bg-background/60 border border-border/60 text-center text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+      />
+
+      {/* Apply as subtract or add */}
+      <div className="flex items-center gap-1">
         <button
-          onClick={() => applyDelta(-1)}
-          className="w-6 h-6 rounded-md bg-destructive/20 hover:bg-destructive/40 text-destructive flex items-center justify-center transition-colors"
+          onClick={() => applyInputDelta(-1)}
+          className="flex items-center gap-0.5 px-2 h-6 rounded-md bg-destructive/20 hover:bg-destructive/40 text-destructive text-xs font-bold transition-colors"
         >
           <Minus className="w-3 h-3" />
         </button>
-        <input
-          type="number"
-          value={inputVal}
-          onChange={(e) => setInputVal(e.target.value)}
-          onBlur={applyInput}
-          onKeyDown={handleKeyDown}
-          placeholder="HP"
-          className="w-14 h-6 rounded-md bg-background/60 border border-border/60 text-center text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-        />
+        <button
+          onClick={() => applyDelta(-1)}
+          className="w-5 h-6 rounded-md bg-secondary/60 hover:bg-secondary text-muted-foreground text-xs transition-colors flex items-center justify-center"
+          title="-1"
+        >
+          1
+        </button>
         <button
           onClick={() => applyDelta(1)}
-          className="w-6 h-6 rounded-md bg-green-900/40 hover:bg-green-800/60 text-green-400 flex items-center justify-center transition-colors"
+          className="w-5 h-6 rounded-md bg-secondary/60 hover:bg-secondary text-muted-foreground text-xs transition-colors flex items-center justify-center"
+          title="+1"
+        >
+          1
+        </button>
+        <button
+          onClick={() => applyInputDelta(1)}
+          className="flex items-center gap-0.5 px-2 h-6 rounded-md bg-green-900/40 hover:bg-green-800/60 text-green-400 text-xs font-bold transition-colors"
         >
           <Plus className="w-3 h-3" />
         </button>
