@@ -1150,7 +1150,7 @@ const VttCanvasInner = ({
             title={wallsVisible ? 'Hide Walls' : 'Show Walls'}
             className={`text-xs px-2 py-1 rounded transition-colors ${wallsVisible ? 'bg-cyan-700/80 text-white' : 'bg-black/60 text-muted-foreground'}`}
           >
-            {wallsVisible ? '🧱' : '👁'}
+            {wallsVisible ? 'Show Walls' : 'Hide Walls'}
           </button>
         )}
         {/* Zoom controls */}
