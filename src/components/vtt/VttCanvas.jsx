@@ -475,19 +475,22 @@ const VttCanvasInner = ({
       }
 
       // HP bar + defense
-      if (token.max_hp && token.max_hp > 0) {
+      // For player tokens linked to a character, prefer live character current_hp
+      const linkedCharForHp = token.character_id ? groupCharacters?.find((c) => c.id === token.character_id) : null;
+      const displayCurrentHp = linkedCharForHp ? (linkedCharForHp.current_hp ?? linkedCharForHp.base_health ?? token.current_hp) : token.current_hp;
+      const displayMaxHp = linkedCharForHp ? (linkedCharForHp.base_health ?? token.max_hp) : token.max_hp;
+      if (displayMaxHp && displayMaxHp > 0) {
         const barW = Math.max(radius * 2, 20);
         const barX = tx - barW / 2;
         const barY = ty + radius + 3;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(barX, barY, barW, 4);
-        const pct = Math.max(0, Math.min(1, (token.current_hp ?? token.max_hp) / token.max_hp));
+        const pct = Math.max(0, Math.min(1, (displayCurrentHp ?? displayMaxHp) / displayMaxHp));
         ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
         ctx.fillRect(barX, barY, barW * pct, 4);
 
         // Defense from linked character
-        const linkedChar = groupCharacters?.find((c) => c.id === token.character_id);
-        const defense = linkedChar?.base_armor;
+        const defense = linkedCharForHp?.base_armor;
         if (defense != null) {
           ctx.fillStyle = 'rgba(0,0,0,0.65)';
           ctx.beginPath();
@@ -512,7 +515,7 @@ const VttCanvasInner = ({
       }
       ctx.font = `${Math.max(9, gs * 0.16)}px Inter, sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillText(token.name, tx, ty + radius + (token.max_hp ? 16 : 6));
+      ctx.fillText(token.name, tx, ty + radius + (displayMaxHp ? 16 : 6));
       // Hidden label for GM
       if (isHidden) {
         ctx.font = `${Math.max(8, gs * 0.13)}px Inter, sans-serif`;

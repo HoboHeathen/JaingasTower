@@ -253,7 +253,7 @@ export default function CharacterSheet() {
       </div>
 
       <div className="space-y-6">
-        <StatBlock character={character} skillBonuses={skillBonuses} />
+        <StatBlock character={character} skillBonuses={skillBonuses} onUpdateCharacter={handleUpdateCharacter} />
         <AbilityScores character={character} skillBonuses={skillBonuses} onShareRoll={character.group_id ? handleShareRoll : null} />
 
         {(() => {
