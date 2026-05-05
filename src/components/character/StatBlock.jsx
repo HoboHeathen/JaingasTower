@@ -3,7 +3,7 @@ import { Heart, Shield, Zap, Crosshair, Plus, Minus } from 'lucide-react';
 
 const statConfig = [
   { key: 'health', label: 'Health', icon: Heart, color: 'text-red-400' },
-  { key: 'armor', label: 'Armor', icon: Shield, color: 'text-blue-400' },
+  { key: 'armor', label: 'Defense', icon: Shield, color: 'text-blue-400' },
   { key: 'speed', label: 'Speed', icon: Zap, color: 'text-yellow-400' },
   { key: 'spell_range', label: 'Spell Range', icon: Crosshair, color: 'text-purple-400' },
 ];
