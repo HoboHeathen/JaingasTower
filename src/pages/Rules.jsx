@@ -223,23 +223,24 @@ export default function Rules() {
   });
   const isAdmin = user?.role === 'admin';
 
-  // Build unified section list: DB entries first, then static fallbacks for anything not in DB
-  const dbSections = dbEntries.filter((e) => e.entry_type === 'section' || e.entry_type === 'condition').map((e) => {
-    const children = dbEntries.filter((c) => c.parent_id === e.id).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-    return {
-      id: e.id,
-      title: e.title,
-      category: e.category,
-      content: e.content,
-      subsections: children.length > 0 ? children.map((c) => ({ title: c.title, content: c.content })) : undefined,
-      _fromDb: true,
-    };
-  });
-
-  // Group conditions from DB into a virtual section if any exist
-  const dbConditions = dbEntries.filter((e) => e.entry_type === 'condition' && !e.parent_id);
-
-  const allSections = dbSections.length > 0 ? dbSections : STATIC_SECTIONS;
+  // Build display list from DB entries
+  const allSections = dbEntries.length > 0
+    ? dbEntries
+        .filter((e) => !e.parent_id) // top-level only
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((e) => {
+          const children = dbEntries
+            .filter((c) => c.parent_id === e.id)
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+          return {
+            id: e.id,
+            title: e.title,
+            category: e.category,
+            content: e.content,
+            subsections: children.length > 0 ? children.map((c) => ({ title: c.title, content: c.content })) : undefined,
+          };
+        })
+    : STATIC_SECTIONS;
 
   const categories = ['All', ...new Set(allSections.map((s) => s.category).filter(Boolean))];
 
