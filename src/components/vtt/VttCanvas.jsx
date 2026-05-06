@@ -1372,7 +1372,7 @@ const VttCanvasInner = ({
                 onToggleEncounterSidebar={() => {onToggleEncounterSidebar?.();setShowFsToolbar(false);}}
                 showEncounterSidebar={showEncounterSidebar}
                 encounterActive={encounterActive}
-                onAddToken={() => { setShowFsToolbar(false); setShowAddModal(true); }}
+                onAddToken={() => { setShowFsToolbar(false); setShowAddToken?.(true); }}
                 onCenterOnActive={activeTokenId ? () => { const tok = localTokens.find(t => t.id === activeTokenId); if (tok) { const {x:wx,y:wy} = cellToWorld(tok.x,tok.y,gs,ox,oy); setPan({ x: canvasSize.w/2/zoom - wx, y: canvasSize.h/2/zoom - wy }); } setShowFsToolbar(false); } : undefined}
                 hasActiveToken={!!activeTokenId}
                 forceShowLabels />
