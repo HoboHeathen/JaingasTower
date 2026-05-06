@@ -4,7 +4,7 @@ import { BESTIARY, CATEGORIES, getDiceCount, getDieFaces, getAverageHpD6 } from 
 import { base44 } from '@/api/base44Client';
 
 const TOKEN_COLOR = '#f87171';
-const DIE_TYPES = ['d4', 'd6', 'd8', 'd10', 'd12'];
+const DIE_TYPES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
 
 // Auto-populate monsters to fill a budget of 25 * waveNumber average HP (using d6 baseline)
 function buildDefaultWave(waveNumber, bestiary = BESTIARY) {
@@ -108,7 +108,7 @@ export default function WaveGeneratorModal({ walls, spawnCells: spawnCellsProp, 
 
   // ── Step 2: Generate ──────────────────────────────────────────────────────
   const waveNumber = setupWaveNumber;
-  const [currentDieType, setCurrentDieType] = useState(activeGroup?.die_type || 'd6');
+  const [currentDieType, setCurrentDieType] = useState(activeEncounter?.die_type || activeGroup?.die_type || 'd6');
 
   const filteredBestiary = useMemo(() =>
     selectedCategories.length === 0
@@ -129,8 +129,8 @@ export default function WaveGeneratorModal({ walls, spawnCells: spawnCellsProp, 
 
   const handleDieTypeChange = async (newDieType) => {
     setCurrentDieType(newDieType);
-    if (activeGroup?.id) {
-      await base44.entities.Group.update(activeGroup.id, { die_type: newDieType });
+    if (activeEncounter?.id) {
+      await base44.entities.Encounter.update(activeEncounter.id, { die_type: newDieType });
     }
   };
 

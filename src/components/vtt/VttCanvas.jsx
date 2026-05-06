@@ -1471,7 +1471,8 @@ const VttCanvasInner = ({
           losEnabled={losEnabled}
           onToggleLos={() => {setLosEnabled((v) => !v);setContextMenu(null);}}
           containerWidth={canvasSize.w}
-          containerHeight={canvasSize.h} />
+          containerHeight={canvasSize.h}
+          activeEncounter={activeEncounter} />
         }
 
       {editHpToken &&

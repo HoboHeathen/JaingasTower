@@ -39,7 +39,7 @@ export default function EncounterSidebar({
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
-  const dieType = activeGroup?.die_type || 'd6';
+  const dieType = activeEncounter?.die_type || 'd6';
   const hpAveraged = activeGroup?.hp_averaged || false;
 
   // Fetch encounters scoped to this map
@@ -91,6 +91,7 @@ export default function EncounterSidebar({
       round: 1,
       wave_number: activeGroup?.floor_wave_number || 1,
       name: `Encounter ${encounters.length + 1}`,
+      die_type: 'd6',
     }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['encounters'] }),
   });
@@ -295,10 +296,10 @@ export default function EncounterSidebar({
                   </span>
                 )}
                 <span className="text-xs text-muted-foreground ml-auto">Die:</span>
-                {['d4','d6','d8','d10','d12'].map((d) => (
+                {['d4','d6','d8','d10','d12','d20'].map((d) => (
                   <button
                     key={d}
-                    onClick={() => isGM && base44.entities.Group.update(activeGroup.id, { die_type: d }).then(() => queryClient.invalidateQueries({ queryKey: ['group'] }))}
+                    onClick={() => isGM && updateEncounterMutation.mutate({ id: activeEncounter.id, data: { die_type: d } })}
                     className={`text-[10px] px-1 py-0.5 rounded border transition-all ${dieType === d ? 'bg-primary text-primary-foreground border-primary' : 'border-border/40 text-muted-foreground hover:border-border'}`}
                   >
                     {d}

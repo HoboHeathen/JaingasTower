@@ -1,10 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Trash2, Heart, Pencil, Target, Link, Eye, EyeOff, Scan, BookOpen, X, Shield } from 'lucide-react';
-import { BESTIARY } from '@/lib/bestiaryData';
+import { Trash2, Heart, Pencil, Target, Link, Eye, EyeOff, Scan, BookOpen, X, Shield, Dices } from 'lucide-react';
+import { BESTIARY, getDamageDiceCount, getDieFaces, formatDamage } from '@/lib/bestiaryData';
 
-function MonsterStatBlock({ snapshot, onClose }) {
+function rollDice(count, faces) {
+  let total = 0;
+  for (let i = 0; i < count; i++) total += Math.floor(Math.random() * faces) + 1;
+  return total;
+}
+
+function MonsterStatBlock({ snapshot, onClose, isGM, activeEncounter }) {
+  const [rollResult, setRollResult] = useState(null); // { actionName, hit, d20, damage }
+
   if (!snapshot) return null;
   const { name, defense, speed, attributes = [], actions = [], vulnerabilities = [], resistances = [], immunities = [] } = snapshot;
+
+  const dieType = activeEncounter?.die_type || 'd6';
+  const floorWave = activeEncounter?.wave_number || 1;
+
+  const handleRollAttack = (action) => {
+    const toHitMod = parseInt((action.to_hit || '+0').replace('+', '')) || 0;
+    const d20Roll = Math.floor(Math.random() * 20) + 1;
+    const totalHit = d20Roll + toHitMod;
+
+    let totalDamage = null;
+    if (action.damage_type) {
+      const diceCount = getDamageDiceCount(action.damage_type, floorWave);
+      const faces = getDieFaces(dieType);
+      totalDamage = rollDice(diceCount, faces);
+    }
+
+    setRollResult({ actionName: action.name + (action.action_slot || ''), hit: totalHit, d20: d20Roll, damage: totalDamage });
+  };
+
   return (
     <div className="mt-2 border-t border-border/40 pt-2 space-y-2 max-h-64 overflow-y-auto">
       <div className="flex items-center justify-between">
@@ -14,6 +41,7 @@ function MonsterStatBlock({ snapshot, onClose }) {
       <div className="flex gap-3 text-[10px] text-muted-foreground">
         {defense != null && <span className="flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" />DEF {defense}</span>}
         {speed && <span>SPD {speed}</span>}
+        <span className="ml-auto text-primary font-mono">{dieType} · W{floorWave}</span>
       </div>
       {vulnerabilities.length > 0 && (
         <div className="text-[10px]"><span className="text-red-400 font-semibold">Vuln: </span>{vulnerabilities.join(', ')}</div>
@@ -36,21 +64,45 @@ function MonsterStatBlock({ snapshot, onClose }) {
       {actions.length > 0 && (
         <div className="space-y-0.5">
           <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Actions</div>
-          {actions.map((a, i) => (
-            <div key={i} className="text-[10px] bg-secondary/30 rounded px-1.5 py-1">
-              <span className="font-semibold text-foreground">{a.name}</span>
-              {a.to_hit && a.to_hit !== '—' && <span className="text-muted-foreground ml-1">{a.to_hit}</span>}
-              {a.damage_type && <span className="text-orange-400 ml-1">[{a.damage_type}]</span>}
-              {a.effect && <span className="text-muted-foreground ml-1">— {a.effect}</span>}
-            </div>
-          ))}
+          {actions.map((a, i) => {
+            const key = a.name + (a.action_slot || '');
+            const isRolled = rollResult?.actionName === key;
+            return (
+              <div key={i} className="bg-secondary/30 rounded px-1.5 py-1 space-y-0.5">
+                <div className="flex items-center justify-between gap-1">
+                  <div className="text-[10px] flex-1 min-w-0">
+                    <span className="font-semibold text-foreground">{a.name}</span>
+                    {a.to_hit && a.to_hit !== '—' && <span className="text-muted-foreground ml-1">{a.to_hit}</span>}
+                    {a.damage_type && (
+                      <span className="text-orange-400 ml-1">[{formatDamage(a.damage_type, floorWave, dieType)}]</span>
+                    )}
+                    {a.effect && <span className="text-muted-foreground ml-1">— {a.effect}</span>}
+                  </div>
+                  {isGM && (a.to_hit || a.damage_type) && (
+                    <button
+                      onClick={() => handleRollAttack(a)}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border/50 bg-secondary/50 hover:bg-primary/20 hover:border-primary/40 text-[10px] text-muted-foreground hover:text-primary transition-all shrink-0"
+                    >
+                      <Dices className="w-2.5 h-2.5" /> Roll
+                    </button>
+                  )}
+                </div>
+                {isRolled && (
+                  <div className="text-[10px] font-semibold text-primary bg-primary/10 rounded px-1.5 py-0.5">
+                    Hit: {rollResult.hit} <span className="text-muted-foreground font-normal">(d20:{rollResult.d20})</span>
+                    {rollResult.damage != null && <> · Dmg: <span className="text-orange-400">{rollResult.damage}</span></>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter, onToggleVisibility, losEnabled, onToggleLos, containerWidth, containerHeight }) {
+export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter, onToggleVisibility, losEnabled, onToggleLos, containerWidth, containerHeight, activeEncounter }) {
   const ref = useRef(null);
   const [showStats, setShowStats] = useState(false);
   const [adjustedPos, setAdjustedPos] = useState({ x, y });
@@ -73,7 +125,6 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
   }, [onClose]);
 
   const isMonster = token?.type === 'enemy' || token?.type === 'neutral' || token?.type === 'friendly';
-  // Prefer snapshot stored on the token; fall back to looking up by monster_id in the bestiary
   const resolvedSnapshot = token?.monster_snapshot || (token?.monster_id ? BESTIARY.find(m => m.id === token.monster_id) : null);
   const hasSnapshot = isMonster && resolvedSnapshot;
 
@@ -113,7 +164,6 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
           {label}
         </button>
       ))}
-      {/* View Stats — shown for monster tokens */}
       {hasSnapshot && (
         <button
           onClick={() => setShowStats((v) => !v)}
@@ -125,7 +175,12 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
       )}
       {showStats && (
         <div className="px-3 pb-2">
-          <MonsterStatBlock snapshot={resolvedSnapshot} onClose={() => setShowStats(false)} />
+          <MonsterStatBlock
+            snapshot={resolvedSnapshot}
+            onClose={() => setShowStats(false)}
+            isGM={isGM}
+            activeEncounter={activeEncounter}
+          />
         </div>
       )}
     </div>

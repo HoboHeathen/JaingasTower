@@ -32,6 +32,19 @@
       "type": "number",
       "default": 1,
       "description": "Wave or floor number for this specific encounter, used for scaling monster HP and damage"
+    },
+    "die_type": {
+      "type": "string",
+      "enum": [
+        "d4",
+        "d6",
+        "d8",
+        "d10",
+        "d12",
+        "d20"
+      ],
+      "default": "d6",
+      "description": "The type of die used for damage and HP rolls in this encounter"
     }
   },
   "required": [
