@@ -1067,7 +1067,10 @@ const VttCanvasInner = ({
     const world = getWorldPos(e);
     const token = findTokenAt(world);
     if (token) {
-      setContextMenu({ token, screenX: e.clientX, screenY: e.clientY });
+      const rect = containerRef.current?.getBoundingClientRect();
+      const relX = rect ? e.clientX - rect.left : e.clientX;
+      const relY = rect ? e.clientY - rect.top : e.clientY;
+      setContextMenu({ token, screenX: relX, screenY: relY });
       return;
     }
     // Check wall segments — door toggling
@@ -1177,7 +1180,10 @@ const VttCanvasInner = ({
       const world = { x: t.clientX - rect.left - pan.x, y: t.clientY - rect.top - pan.y };
       const token = findTokenAt(world);
       if (token) {
-        setContextMenu({ token, screenX: t.clientX, screenY: t.clientY });
+        const containerRect = containerRef.current?.getBoundingClientRect();
+        const relX = containerRect ? t.clientX - containerRect.left : t.clientX;
+        const relY = containerRect ? t.clientY - containerRect.top : t.clientY;
+        setContextMenu({ token, screenX: relX, screenY: relY });
       }
       longPressTimer.current = null;
     }, 500);
@@ -1442,22 +1448,20 @@ const VttCanvasInner = ({
 
       {/* Context menu — rendered inside canvas container so it works in fullscreen */}
       {contextMenu &&
-        <div className="fixed" style={{ zIndex: 9999 }}>
-          <TokenContextMenu
-            token={contextMenu.token}
-            x={contextMenu.screenX}
-            y={contextMenu.screenY}
-            isGM={isGM}
-            onClose={() => setContextMenu(null)}
-            onDelete={handleDeleteToken}
-            onEditHP={handleEditHP}
-            onRename={handleRename}
-            onPing={handlePingFromMenu}
-            onLinkCharacter={handleLinkChar}
-            onToggleVisibility={handleToggleVisibility}
-            losEnabled={losEnabled}
-            onToggleLos={() => {setLosEnabled((v) => !v);setContextMenu(null);}} />
-        </div>
+        <TokenContextMenu
+          token={contextMenu.token}
+          x={contextMenu.screenX}
+          y={contextMenu.screenY}
+          isGM={isGM}
+          onClose={() => setContextMenu(null)}
+          onDelete={handleDeleteToken}
+          onEditHP={handleEditHP}
+          onRename={handleRename}
+          onPing={handlePingFromMenu}
+          onLinkCharacter={handleLinkChar}
+          onToggleVisibility={handleToggleVisibility}
+          losEnabled={losEnabled}
+          onToggleLos={() => {setLosEnabled((v) => !v);setContextMenu(null);}} />
         }
 
       {editHpToken &&

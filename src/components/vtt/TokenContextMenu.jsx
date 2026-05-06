@@ -77,7 +77,7 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
   return (
     <div
       ref={ref}
-      className="fixed z-[100] bg-card border border-border/60 rounded-xl shadow-2xl py-1 min-w-[180px] max-w-[260px]"
+      className="absolute z-[9999] bg-card border border-border/60 rounded-xl shadow-2xl py-1 min-w-[180px] max-w-[260px]"
       style={{ top: y, left: x }}
     >
       {token && (
