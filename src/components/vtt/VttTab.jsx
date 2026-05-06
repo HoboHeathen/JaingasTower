@@ -317,7 +317,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           showAddModal={showAddModal}
           setShowAddModal={setShowAddModal}
           encounterSidebar={isGM && showEncounterSidebar ? (
-            <div className="absolute left-0 top-0 h-full w-full sm:w-45 bg-card border-l border-border/50 overflow-y-auto flex flex-col margin-5" style={{ zIndex: 50 }}>
+            <div className="absolute left-0 top-0 h-full w-full w-45 bg-card border-l border-border/50 overflow-y-auto flex flex-col margin-5" style={{ zIndex: 50 }}>
               <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
                 <h2 className="font-heading text-lg font-semibold text-foreground">Encounter</h2>
                 <button onClick={() => setShowEncounterSidebar(false)} className="text-muted-foreground hover:text-foreground transition-colors rounded-md p-1 hover:bg-secondary/60">
