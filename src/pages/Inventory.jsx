@@ -17,7 +17,7 @@ const ITEM_TYPE_COLORS = {
   upgrade: 'border-primary/40 bg-primary/10 text-primary',
   gold: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300',
   skill_points: 'border-chart-2/40 bg-chart-2/10 text-foreground',
-  special: 'border-chart-5/40 bg-chart-5/10 text-foreground',
+  special: 'border-chart-5/40 bg-chart-5/10 text-foreground'
 };
 
 const TABS = ['Consumables', 'Components', 'Upgrades', 'Weapons'];
@@ -34,23 +34,23 @@ export default function Inventory() {
     queryKey: ['character', characterId],
     queryFn: () => base44.entities.Character.filter({ id: characterId }),
     select: (d) => d[0],
-    enabled: !!characterId,
+    enabled: !!characterId
   });
 
   const { data: inventory = [], isLoading } = useQuery({
     queryKey: ['inventory', characterId],
     queryFn: () => base44.entities.CharacterInventory.filter({ character_id: characterId }),
-    enabled: !!characterId,
+    enabled: !!characterId
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.CharacterInventory.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inventory', characterId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inventory', characterId] })
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.CharacterInventory.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inventory', characterId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inventory', characterId] })
   });
 
   const handleUseConsumable = (entry) => {
@@ -68,7 +68,7 @@ export default function Inventory() {
   };
 
   const handleUseCharge = (entry) => {
-    if (entry.current_charges <= 0) { toast.error('No charges remaining!'); return; }
+    if (entry.current_charges <= 0) {toast.error('No charges remaining!');return;}
     updateMutation.mutate({ id: entry.id, data: { current_charges: entry.current_charges - 1 } });
   };
 
@@ -106,94 +106,94 @@ export default function Inventory() {
           <select
             value={activeTab}
             onChange={(e) => setActiveTab(e.target.value)}
-            className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            {TABS.map((tab) => (
-              <option key={tab} value={tab}>{tab}</option>
-            ))}
+            className="w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
+            
+            {TABS.map((tab) =>
+            <option key={tab} value={tab}>{tab}</option>
+            )}
           </select>
         </div>
         {/* Desktop pills */}
         <div className="hidden sm:flex gap-1 bg-secondary/30 p-1 rounded-lg">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                activeTab === tab
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
+          {TABS.map((tab) =>
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+            activeTab === tab ?
+            'bg-card text-foreground shadow-sm' :
+            'text-muted-foreground hover:text-foreground'}`
+            }>
+            
               {tab}
-              {tab !== 'Weapons' && tabItems[tab] && (
-                <span className="ml-1.5 text-xs opacity-60">
+              {tab !== 'Weapons' && tabItems[tab] &&
+            <span className="ml-1.5 text-xs opacity-60">
                   ({tab === 'Components' ? tabItems[tab].reduce((a, i) => a + (i.quantity || 1), 0) : tabItems[tab].length})
                 </span>
-              )}
+            }
             </button>
-          ))}
+          )}
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-20">
+      {isLoading ?
+      <div className="flex justify-center py-20">
           <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
-        </div>
-      ) : activeTab === 'Weapons' ? (
-        <div className="space-y-6">
+        </div> :
+      activeTab === 'Weapons' ?
+      <div className="space-y-6">
           <PlayerWeaponsPanel characterId={characterId} />
-          <div className="border-t border-border/30 pt-4">
+          <div className="border-t border-border/30 pt-4 hidden">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Weapon Upgrades</p>
             <WeaponUpgradesPanel characterId={characterId} upgrades={upgrades} onUseCharge={handleUseCharge} onResetCharges={handleResetCharges} />
           </div>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(tabItems[activeTab] || []).length === 0 ? (
-            <div className="col-span-full text-center py-16 text-muted-foreground">
+        </div> :
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(tabItems[activeTab] || []).length === 0 ?
+        <div className="col-span-full text-center py-16 text-muted-foreground">
               <Package className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p>No {activeTab.toLowerCase()} in inventory.</p>
-            </div>
-          ) : (
-            (tabItems[activeTab] || []).map((entry) => (
-              <InventoryCard
-                key={entry.id}
-                entry={entry}
-                onUse={handleUseConsumable}
-                onUseCharge={handleUseCharge}
-                onResetCharges={handleResetCharges}
-                onDelete={() => deleteMutation.mutate(entry.id)}
-              />
-            ))
-          )}
+            </div> :
+
+        (tabItems[activeTab] || []).map((entry) =>
+        <InventoryCard
+          key={entry.id}
+          entry={entry}
+          onUse={handleUseConsumable}
+          onUseCharge={handleUseCharge}
+          onResetCharges={handleResetCharges}
+          onDelete={() => deleteMutation.mutate(entry.id)} />
+
+        )
+        }
         </div>
-      )}
+      }
 
-      {showCrafting && (
-        <CraftingModal
-          characterId={characterId}
-          inventory={inventory}
-          onClose={() => setShowCrafting(false)}
-          onCrafted={() => {
-            queryClient.invalidateQueries({ queryKey: ['inventory', characterId] });
-            setShowCrafting(false);
-          }}
-        />
-      )}
+      {showCrafting &&
+      <CraftingModal
+        characterId={characterId}
+        inventory={inventory}
+        onClose={() => setShowCrafting(false)}
+        onCrafted={() => {
+          queryClient.invalidateQueries({ queryKey: ['inventory', characterId] });
+          setShowCrafting(false);
+        }} />
 
-      {showAddItem && (
-        <AddItemModal
-          characterId={characterId}
-          onClose={() => setShowAddItem(false)}
-          onAdded={() => {
-            queryClient.invalidateQueries({ queryKey: ['inventory', characterId] });
-            setShowAddItem(false);
-          }}
-        />
-      )}
-    </div>
-  );
+      }
+
+      {showAddItem &&
+      <AddItemModal
+        characterId={characterId}
+        onClose={() => setShowAddItem(false)}
+        onAdded={() => {
+          queryClient.invalidateQueries({ queryKey: ['inventory', characterId] });
+          setShowAddItem(false);
+        }} />
+
+      }
+    </div>);
+
 }
 
 function InventoryCard({ entry, onUse, onUseCharge, onResetCharges, onDelete }) {
@@ -204,38 +204,38 @@ function InventoryCard({ entry, onUse, onUseCharge, onResetCharges, onDelete }) 
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1 min-w-0">
           <h3 className="font-heading font-semibold text-sm text-foreground leading-tight">{entry.item_name}</h3>
-          {entry.item_type === 'crafting_component' && (
-            <Badge variant="outline" className="text-[10px] mt-1 capitalize">{entry.component_category || 'component'}</Badge>
-          )}
-          {entry.item_type === 'upgrade' && (
-            <Badge variant="outline" className="text-[10px] mt-1">Upgrade {['I','II','III'][entry.upgrade_tier - 1] || 'I'}</Badge>
-          )}
+          {entry.item_type === 'crafting_component' &&
+          <Badge variant="outline" className="text-[10px] mt-1 capitalize">{entry.component_category || 'component'}</Badge>
+          }
+          {entry.item_type === 'upgrade' &&
+          <Badge variant="outline" className="text-[10px] mt-1">Upgrade {['I', 'II', 'III'][entry.upgrade_tier - 1] || 'I'}</Badge>
+          }
         </div>
-        {entry.quantity > 1 && (
-          <span className="text-xs font-bold text-muted-foreground bg-secondary/60 rounded-full px-2 py-0.5">×{entry.quantity}</span>
-        )}
+        {entry.quantity > 1 &&
+        <span className="text-xs font-bold text-muted-foreground bg-secondary/60 rounded-full px-2 py-0.5">×{entry.quantity}</span>
+        }
       </div>
 
-      {entry.crafted_description && (
-        <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{entry.crafted_description}</p>
-      )}
+      {entry.crafted_description &&
+      <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{entry.crafted_description}</p>
+      }
 
       {/* Charge pips for upgrades */}
-      {entry.item_type === 'upgrade' && entry.max_charges > 0 && (
-        <div className="flex items-center gap-1.5 mb-3">
+      {entry.item_type === 'upgrade' && entry.max_charges > 0 &&
+      <div className="flex items-center gap-1.5 mb-3">
           <span className="text-xs text-muted-foreground">Charges:</span>
-          {Array.from({ length: entry.max_charges }).map((_, i) => (
-            <div key={i} className={`w-3 h-3 rounded-full border ${i < entry.current_charges ? 'bg-primary border-primary' : 'border-border bg-secondary/30'}`} />
-          ))}
+          {Array.from({ length: entry.max_charges }).map((_, i) =>
+        <div key={i} className={`w-3 h-3 rounded-full border ${i < entry.current_charges ? 'bg-primary border-primary' : 'border-border bg-secondary/30'}`} />
+        )}
         </div>
-      )}
+      }
 
       <div className="flex items-center gap-2 mt-auto">
-        {entry.item_type === 'consumable' && (
-          <Button size="sm" className="flex-1 h-7 text-xs" onClick={() => onUse(entry)}>Use</Button>
-        )}
-        {entry.item_type === 'upgrade' && (
-          <>
+        {entry.item_type === 'consumable' &&
+        <Button size="sm" className="flex-1 h-7 text-xs" onClick={() => onUse(entry)}>Use</Button>
+        }
+        {entry.item_type === 'upgrade' &&
+        <>
             <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => onUseCharge(entry)}>
               Use Charge
             </Button>
@@ -243,11 +243,11 @@ function InventoryCard({ entry, onUse, onUseCharge, onResetCharges, onDelete }) 
               <RefreshCw className="w-3 h-3" />
             </Button>
           </>
-        )}
+        }
         <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" onClick={onDelete}>
           <Trash2 className="w-3 h-3" />
         </Button>
       </div>
-    </div>
-  );
+    </div>);
+
 }
