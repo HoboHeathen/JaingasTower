@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BESTIARY, getDiceCount, getDieFaces } from '@/lib/bestiaryData';
+import { X } from 'lucide-react';
 
 const TOKEN_TYPES = ['player', 'enemy', 'friendly', 'neutral', 'innocent'];
 const TOKEN_SIZES = ['tiny', 'small', 'medium', 'large', 'huge'];
@@ -87,11 +87,19 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
   };
 
   return (
-    <Dialog open onOpenChange={onClose} modal>
-      <DialogContent className="max-w-md" style={{ zIndex: 10000 }}>
-        <DialogHeader>
-          <DialogTitle className="font-heading">Add Token</DialogTitle>
-        </DialogHeader>
+    <div
+      className="absolute inset-0 flex items-center justify-center z-[9999]"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-card border border-border rounded-xl shadow-2xl p-5 w-full max-w-md mx-4 flex flex-col gap-3 max-h-[85%] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-lg font-semibold text-foreground">Add Token</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        </div>
 
         {/* Mode tabs */}
         <div className="flex gap-1 bg-secondary/30 rounded-lg p-1 mb-2">
@@ -216,11 +224,11 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
           ))}
         </div>
 
-        <DialogFooter>
+        <div className="flex justify-end gap-2 pt-1 border-t border-border/40">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleAdd}>Add Token</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }

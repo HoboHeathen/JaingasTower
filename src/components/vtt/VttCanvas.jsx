@@ -7,6 +7,7 @@ import VttToolbar from '@/components/vtt/VttToolbar';
 import SurvivalToolbar from '@/components/vtt/SurvivalToolbar';
 import WaveGeneratorModal from '@/components/vtt/WaveGeneratorModal';
 import AddParticipantModal from '@/components/encounter/AddParticipantModal';
+import AddTokenModal from '@/components/vtt/AddTokenModal';
 import { base44 } from '@/api/base44Client';
 
 const TOKEN_COLORS = {
@@ -183,7 +184,11 @@ const VttCanvasInner = ({
   encounterActive,
   encounterSidebar,
   showAddModal,
-  setShowAddModal
+  setShowAddModal,
+  showAddToken,
+  setShowAddToken,
+  defaultAddPos,
+  onAddToken,
 }, ref) => {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
@@ -1514,6 +1519,19 @@ const VttCanvasInner = ({
           onClose={() => setShowWaveGenerator(false)} />
 
         }
+
+      {showAddToken && (
+        <AddTokenModal
+          groupCharacters={groupCharacters}
+          isGM={isGM}
+          user={user}
+          activeGroup={activeGroup}
+          onAdd={(token) => { onAddToken?.(token); setShowAddToken?.(false); }}
+          onClose={() => setShowAddToken?.(false)}
+          defaultX={defaultAddPos?.col ?? 5}
+          defaultY={defaultAddPos?.row ?? 4}
+        />
+      )}
 
       {showAddModal && activeEncounter &&
         <AddParticipantModal
