@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Dices, Plus, Coins } from 'lucide-react';
+import { Search, Dices, Plus, Coins, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import AddToInventoryModal from '@/components/inventory/AddToInventoryModal';
 
@@ -228,6 +229,27 @@ export default function LootTable() {
   const [rolledResult, setRolledResult] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedResult, setSelectedResult] = useState(null);
+  const [skillPointCharId, setSkillPointCharId] = useState(() => localStorage.getItem('lastSelectedCharacterId') || '');
+  const queryClient = useQueryClient();
+
+  const { data: characters = [] } = useQuery({
+    queryKey: ['characters'],
+    queryFn: () => base44.entities.Character.list(),
+  });
+
+  const awardSkillPointsMutation = useMutation({
+    mutationFn: ({ characterId, amount }) => {
+      const char = characters.find((c) => c.id === characterId);
+      const newTotal = (char?.total_points || 10) + amount;
+      return base44.entities.Character.update(characterId, { total_points: newTotal });
+    },
+    onSuccess: (_, { characterId, amount }) => {
+      const char = characters.find((c) => c.id === characterId);
+      localStorage.setItem('lastSelectedCharacterId', characterId);
+      queryClient.invalidateQueries({ queryKey: ['character', characterId] });
+      toast.success(`+${amount} skill point${amount > 1 ? 's' : ''} awarded to ${char?.name || 'character'}!`);
+    },
+  });
 
   const filtered = useMemo(() => {
     return LOOT_DATA.filter((entry) => {
@@ -291,17 +313,49 @@ export default function LootTable() {
         </div>
 
         {rolledResult && (
-          <div className={`mt-4 border rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-3 ${TYPE_STYLES[getResultType(rolledResult.result)]}`}>
-            <div>
-              <p className="text-xs text-muted-foreground mb-0.5">Roll: <span className="font-bold text-foreground">{rolledResult.roll}</span></p>
-              <p className="font-heading text-lg font-semibold">{rolledResult.result.result_label}</p>
+          <div className={`mt-4 border rounded-xl px-5 py-4 flex flex-col gap-3 ${TYPE_STYLES[getResultType(rolledResult.result)]}`}>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Roll: <span className="font-bold text-foreground">{rolledResult.roll}</span></p>
+                <p className="font-heading text-lg font-semibold">{rolledResult.result.result_label}</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="outline">{TYPE_BADGE[getResultType(rolledResult.result)]}</Badge>
+                {getResultType(rolledResult.result) !== 'skill_points' && (
+                  <Button size="sm" variant="secondary" onClick={() => { setSelectedResult(rolledResult.result); setShowAddModal(true); }}>
+                    + Add to Inventory
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Badge variant="outline">{TYPE_BADGE[getResultType(rolledResult.result)]}</Badge>
-              <Button size="sm" variant="secondary" onClick={() => { setSelectedResult(rolledResult.result); setShowAddModal(true); }}>
-                + Add to Inventory
-              </Button>
-            </div>
+            {/* Skill points: award directly to a character */}
+            {getResultType(rolledResult.result) === 'skill_points' && rolledResult.result.skill_points > 0 && (
+              <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/30">
+                <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
+                <span className="text-xs text-muted-foreground">Award to character:</span>
+                <Select
+                  value={skillPointCharId}
+                  onValueChange={(v) => { setSkillPointCharId(v); localStorage.setItem('lastSelectedCharacterId', v); }}
+                >
+                  <SelectTrigger className="h-7 text-xs w-40">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {characters.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  disabled={!skillPointCharId || awardSkillPointsMutation.isPending}
+                  onClick={() => awardSkillPointsMutation.mutate({ characterId: skillPointCharId, amount: rolledResult.result.skill_points })}
+                >
+                  <Plus className="w-3 h-3" /> Award {rolledResult.result.skill_points} SP
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

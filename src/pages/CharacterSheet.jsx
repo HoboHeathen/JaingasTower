@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, TreePine, Plus, Minus, Dices, Package } from 'lucide-react';
+import { ArrowLeft, TreePine, Plus, Minus, Dices, Package, Settings, Users, X, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import StatBlock from '@/components/character/StatBlock';
 import PortraitUpload from '@/components/character/PortraitUpload';
@@ -26,6 +28,20 @@ export default function CharacterSheet() {
   }, [characterId]);
   const queryClient = useQueryClient();
   const [showDiceRoller, setShowDiceRoller] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [joiningGroup, setJoiningGroup] = useState(false);
+  const optionsMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(e.target)) {
+        setShowOptionsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data: character, isLoading: loadingChar } = useQuery({
     queryKey: ['character', characterId],
@@ -190,6 +206,20 @@ export default function CharacterSheet() {
     });
   };
 
+  const handleJoinGroup = async () => {
+    if (!joinCodeInput.trim()) return;
+    setJoiningGroup(true);
+    const groups = await base44.entities.Group.filter({ invite_code: joinCodeInput.trim().toUpperCase() });
+    setJoiningGroup(false);
+    if (!groups.length) { toast.error('Invalid invite code.'); return; }
+    const group = groups[0];
+    updateMutation.mutate({ group_id: group.id, group_name: group.name });
+    setJoinCodeInput('');
+    setShowOptionsMenu(false);
+    toast.success(`${character.name} joined ${group.name}!`);
+    queryClient.invalidateQueries({ queryKey: ['character', characterId] });
+  };
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -222,7 +252,7 @@ export default function CharacterSheet() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+        <div className="flex gap-2 w-full sm:w-auto flex-wrap items-center">
           {character.group_id && (
             <button
               onClick={() => updateMutation.mutate({ share_rolls: !character.share_rolls })}
@@ -249,6 +279,58 @@ export default function CharacterSheet() {
               Spend Points
             </Button>
           </Link>
+
+          {/* Options menu */}
+          <div className="relative" ref={optionsMenuRef}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowOptionsMenu((v) => !v)}
+              title="Character Options"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+            {showOptionsMenu && (
+              <div className="absolute right-0 mt-2 w-72 bg-card border border-border/60 rounded-xl shadow-2xl p-4 z-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">Character Options</h3>
+                  <button onClick={() => setShowOptionsMenu(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Join Group */}
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Users className="w-3 h-3" /> Join a Group
+                  </label>
+                  {character.group_id && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Currently in: <span className="text-foreground font-medium">{character.group_name || character.group_id}</span>
+                    </p>
+                  )}
+                  <div className="flex gap-1.5">
+                    <Input
+                      placeholder="Invite code (e.g. AB3XY7)"
+                      value={joinCodeInput}
+                      onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === 'Enter' && handleJoinGroup()}
+                      className="h-7 text-xs flex-1"
+                      maxLength={6}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-7 px-2 text-xs gap-1"
+                      disabled={!joinCodeInput.trim() || joiningGroup}
+                      onClick={handleJoinGroup}
+                    >
+                      <Check className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
