@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Trash2, Heart, Pencil, Target, Link, Eye, EyeOff, Scan, BookOpen, X, Shield } from 'lucide-react';
+import { BESTIARY } from '@/lib/bestiaryData';
 
 function MonsterStatBlock({ snapshot, onClose }) {
   if (!snapshot) return null;
@@ -60,7 +61,9 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
   }, [onClose]);
 
   const isMonster = token?.type === 'enemy' || token?.type === 'neutral' || token?.type === 'friendly';
-  const hasSnapshot = isMonster && (token?.monster_snapshot || token?.monster_id);
+  // Prefer snapshot stored on the token; fall back to looking up by monster_id in the bestiary
+  const resolvedSnapshot = token?.monster_snapshot || (token?.monster_id ? BESTIARY.find(m => m.id === token.monster_id) : null);
+  const hasSnapshot = isMonster && resolvedSnapshot;
 
   const items = [
     { label: 'Ping Location', icon: Target, action: onPing, always: true },
@@ -110,7 +113,7 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
       )}
       {showStats && (
         <div className="px-3 pb-2">
-          <MonsterStatBlock snapshot={token?.monster_snapshot} onClose={() => setShowStats(false)} />
+          <MonsterStatBlock snapshot={resolvedSnapshot} onClose={() => setShowStats(false)} />
         </div>
       )}
     </div>
