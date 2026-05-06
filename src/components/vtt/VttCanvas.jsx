@@ -1354,6 +1354,8 @@ const VttCanvasInner = ({
                 showEncounterSidebar={showEncounterSidebar}
                 encounterActive={encounterActive}
                 onAddToken={() => { setShowFsToolbar(false); setShowAddModal(true); }}
+                onCenterOnActive={activeTokenId ? () => { const tok = localTokens.find(t => t.id === activeTokenId); if (tok) { const {x:wx,y:wy} = cellToWorld(tok.x,tok.y,gs,ox,oy); setPan({ x: canvasSize.w/2/zoom - wx, y: canvasSize.h/2/zoom - wy }); } setShowFsToolbar(false); } : undefined}
+                hasActiveToken={!!activeTokenId}
                 forceShowLabels />
               
                 {isSurvivalMode && isGM &&
@@ -1438,23 +1440,24 @@ const VttCanvasInner = ({
         </div>
         }
 
-      {/* Context menu */}
+      {/* Context menu — rendered inside canvas container so it works in fullscreen */}
       {contextMenu &&
-        <TokenContextMenu
-          token={contextMenu.token}
-          x={contextMenu.screenX}
-          y={contextMenu.screenY}
-          isGM={isGM}
-          onClose={() => setContextMenu(null)}
-          onDelete={handleDeleteToken}
-          onEditHP={handleEditHP}
-          onRename={handleRename}
-          onPing={handlePingFromMenu}
-          onLinkCharacter={handleLinkChar}
-          onToggleVisibility={handleToggleVisibility}
-          losEnabled={losEnabled}
-          onToggleLos={() => {setLosEnabled((v) => !v);setContextMenu(null);}} />
-
+        <div className="fixed" style={{ zIndex: 9999 }}>
+          <TokenContextMenu
+            token={contextMenu.token}
+            x={contextMenu.screenX}
+            y={contextMenu.screenY}
+            isGM={isGM}
+            onClose={() => setContextMenu(null)}
+            onDelete={handleDeleteToken}
+            onEditHP={handleEditHP}
+            onRename={handleRename}
+            onPing={handlePingFromMenu}
+            onLinkCharacter={handleLinkChar}
+            onToggleVisibility={handleToggleVisibility}
+            losEnabled={losEnabled}
+            onToggleLos={() => {setLosEnabled((v) => !v);setContextMenu(null);}} />
+        </div>
         }
 
       {editHpToken &&
