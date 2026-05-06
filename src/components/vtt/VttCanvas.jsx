@@ -7,7 +7,6 @@ import VttToolbar from '@/components/vtt/VttToolbar';
 import SurvivalToolbar from '@/components/vtt/SurvivalToolbar';
 import WaveGeneratorModal from '@/components/vtt/WaveGeneratorModal';
 import AddParticipantModal from '@/components/encounter/AddParticipantModal';
-import AddTokenModal from '@/components/vtt/AddTokenModal';
 import { base44 } from '@/api/base44Client';
 
 const TOKEN_COLORS = {
@@ -185,10 +184,7 @@ const VttCanvasInner = ({
   encounterSidebar,
   showAddModal,
   setShowAddModal,
-  showAddToken,
-  setShowAddToken,
-  defaultAddPos,
-  onAddToken,
+  onAddTokenRequest,
 }, ref) => {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
@@ -1372,7 +1368,7 @@ const VttCanvasInner = ({
                 onToggleEncounterSidebar={() => {onToggleEncounterSidebar?.();setShowFsToolbar(false);}}
                 showEncounterSidebar={showEncounterSidebar}
                 encounterActive={encounterActive}
-                onAddToken={() => { setShowFsToolbar(false); setShowAddToken?.(true); }}
+                onAddToken={() => { setShowFsToolbar(false); onAddTokenRequest?.(); }}
                 onCenterOnActive={activeTokenId ? () => { const tok = localTokens.find(t => t.id === activeTokenId); if (tok) { const {x:wx,y:wy} = cellToWorld(tok.x,tok.y,gs,ox,oy); setPan({ x: canvasSize.w/2/zoom - wx, y: canvasSize.h/2/zoom - wy }); } setShowFsToolbar(false); } : undefined}
                 hasActiveToken={!!activeTokenId}
                 forceShowLabels />
@@ -1519,19 +1515,6 @@ const VttCanvasInner = ({
           onClose={() => setShowWaveGenerator(false)} />
 
         }
-
-      {showAddToken && (
-        <AddTokenModal
-          groupCharacters={groupCharacters}
-          isGM={isGM}
-          user={user}
-          activeGroup={activeGroup}
-          onAdd={(token) => { onAddToken?.(token); setShowAddToken?.(false); }}
-          onClose={() => setShowAddToken?.(false)}
-          defaultX={defaultAddPos?.col ?? 5}
-          defaultY={defaultAddPos?.row ?? 4}
-        />
-      )}
 
       {showAddModal && activeEncounter &&
         <AddParticipantModal

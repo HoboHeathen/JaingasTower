@@ -273,6 +273,20 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         <VttMapSettings map={activeMap} onUpdate={handleUpdateMap} />
       )}
 
+      {/* AddTokenModal — fixed positioning so it works in fullscreen too */}
+      {showAddToken && (
+        <AddTokenModal
+          groupCharacters={groupCharacters}
+          isGM={isGM}
+          user={user}
+          activeGroup={activeGroup}
+          onAdd={handleAddToken}
+          onClose={() => setShowAddToken(false)}
+          defaultX={defaultAddPos.col}
+          defaultY={defaultAddPos.row}
+        />
+      )}
+
       {/* Canvas */}
       <div className="relative flex-1 min-w-0">
         <VttCanvas
@@ -309,10 +323,11 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
           ) : null}
           showAddModal={showAddModal}
           setShowAddModal={setShowAddModal}
-          showAddToken={showAddToken}
-          setShowAddToken={setShowAddToken}
-          defaultAddPos={defaultAddPos}
-          onAddToken={handleAddToken}
+          onAddTokenRequest={() => {
+            const center = vttCanvasRef.current?.getViewportCenterCell?.() || { col: 5, row: 4 };
+            setDefaultAddPos(center);
+            setShowAddToken(true);
+          }}
           encounterSidebar={isGM && showEncounterSidebar ? (
             <div className="absolute left-0 top-0 h-full w-full sm:w-96 bg-card border-l border-border/50 overflow-y-auto flex flex-col margin-5" style={{ zIndex: 50 }}>
               <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">

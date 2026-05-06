@@ -88,7 +88,7 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
 
   return (
     <div
-      className="absolute inset-0 flex items-center justify-center z-[9999]"
+      className="fixed inset-0 flex items-center justify-center z-[9999]"
       style={{ background: 'rgba(0,0,0,0.75)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
