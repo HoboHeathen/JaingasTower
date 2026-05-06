@@ -741,11 +741,33 @@ const VttCanvasInner = ({
     }
   }, [activeTool, onUpdateMap]);
 
+  // ── Spacebar shortcut: temporarily activates 'select' tool ──────────────
+  const spacebarOverride = useRef(false);
+  const prevToolRef = useRef(null);
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.code === 'Space' && !spacebarOverride.current && !e.repeat) {
+        // Don't capture if focus is in an input
+        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        spacebarOverride.current = true;
+        prevToolRef.current = activeTool;
+        onToolChange?.('select');
+      }
+    };
+    const onKeyUp = (e) => {
+      if (e.code === 'Space' && spacebarOverride.current) {
+        spacebarOverride.current = false;
+        if (prevToolRef.current) onToolChange?.(prevToolRef.current);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
+  }, [activeTool, onToolChange]);
+
   // ── Wheel zoom (mouse-centered) ───────────────────────────────────────────
-  // Attach on the container with passive:false so we can preventDefault on
-  // ctrl+wheel (trackpad pinch). Plain scroll (no ctrlKey) passes through.
-  // Zoom is centered on the mouse cursor by adjusting pan so the world point
-  // under the cursor stays fixed.
+  // Slower zoom: 0.05 per tick. Ctrl+wheel zooms; plain scroll pans vertically.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -753,14 +775,11 @@ const VttCanvasInner = ({
       if (!e.ctrlKey) return;
       e.preventDefault();
       const rect = container.getBoundingClientRect();
-      // Mouse position relative to container
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
       setZoom((prevZoom) => {
-        const delta = e.deltaY < 0 ? 0.1 : -0.1;
+        const delta = e.deltaY < 0 ? 0.05 : -0.05;
         const newZoom = Math.min(4, Math.max(0.25, prevZoom + delta));
-        // Adjust pan so world point under cursor stays fixed:
-        // worldX = mx/prevZoom - panX  =>  panX_new = mx/newZoom - worldX
         setPan((prevPan) => ({
           x: mx / newZoom - (mx / prevZoom - prevPan.x),
           y: my / newZoom - (my / prevZoom - prevPan.y)
@@ -776,6 +795,13 @@ const VttCanvasInner = ({
   const onMouseDown = (e) => {
     if (e.button === 2) return;
     const world = getWorldPos(e);
+
+    // Ctrl+click always pans regardless of active tool
+    if (e.ctrlKey) {
+      setIsPanning(true);
+      panStart.current = { x: e.clientX / zoom - pan.x, y: e.clientY / zoom - pan.y };
+      return;
+    }
 
     // Measurement tool
     if (activeTool === 'measure') {
@@ -1017,8 +1043,21 @@ const VttCanvasInner = ({
   // ── Touch handling ────────────────────────────────────────────────────────
   const touchStartRef = useRef(null);
   const longPressTimer = useRef(null);
+  const pinchStartRef = useRef(null); // { dist, zoom, midX, midY }
+
+  const getTouchDist = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 
   const onTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      // Two-finger pinch-to-zoom OR two-finger pan
+      if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+      const [t1, t2] = e.touches;
+      const midX = (t1.clientX + t2.clientX) / 2;
+      const midY = (t1.clientY + t2.clientY) / 2;
+      pinchStartRef.current = { dist: getTouchDist(t1, t2), zoom, midX, midY, panX: pan.x, panY: pan.y };
+      touchStartRef.current = null;
+      return;
+    }
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
@@ -1039,6 +1078,26 @@ const VttCanvasInner = ({
 
   const onTouchMove = (e) => {
     e.preventDefault();
+
+    // Pinch-to-zoom (2 fingers)
+    if (e.touches.length === 2 && pinchStartRef.current) {
+      const [t1, t2] = e.touches;
+      const newDist = getTouchDist(t1, t2);
+      const scale = newDist / pinchStartRef.current.dist;
+      const newZoom = Math.min(4, Math.max(0.25, pinchStartRef.current.zoom * scale));
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const midX = (t1.clientX + t2.clientX) / 2 - rect.left;
+        const midY = (t1.clientY + t2.clientY) / 2 - rect.top;
+        // Pan so that the pinch midpoint stays fixed in world space
+        const worldMidX = midX / pinchStartRef.current.zoom - pinchStartRef.current.panX;
+        const worldMidY = midY / pinchStartRef.current.zoom - pinchStartRef.current.panY;
+        setPan({ x: midX / newZoom - worldMidX, y: midY / newZoom - worldMidY });
+      }
+      setZoom(newZoom);
+      return;
+    }
+
     if (e.touches.length !== 1) return;
     const t = e.touches[0];
     // Cancel long press if moved more than 10px
@@ -1054,6 +1113,8 @@ const VttCanvasInner = ({
   };
 
   const onTouchEnd = (e) => {
+    if (e.touches.length < 2) pinchStartRef.current = null;
+
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -1183,6 +1244,7 @@ const VttCanvasInner = ({
                 onToggleEncounterSidebar={() => {onToggleEncounterSidebar?.();setShowFsToolbar(false);}}
                 showEncounterSidebar={showEncounterSidebar}
                 encounterActive={encounterActive}
+                onAddToken={() => { setShowFsToolbar(false); setShowAddModal(true); }}
                 forceShowLabels />
               
                 {isSurvivalMode && isGM &&

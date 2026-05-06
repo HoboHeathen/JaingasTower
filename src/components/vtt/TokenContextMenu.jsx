@@ -1,14 +1,66 @@
-import React, { useEffect, useRef } from 'react';
-import { Trash2, Heart, Pencil, Target, Link, Eye, EyeOff, Scan } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Trash2, Heart, Pencil, Target, Link, Eye, EyeOff, Scan, BookOpen, X, Shield } from 'lucide-react';
+
+function MonsterStatBlock({ snapshot, onClose }) {
+  if (!snapshot) return null;
+  const { name, defense, speed, attributes = [], actions = [], vulnerabilities = [], resistances = [], immunities = [] } = snapshot;
+  return (
+    <div className="mt-2 border-t border-border/40 pt-2 space-y-2 max-h-64 overflow-y-auto">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-foreground">{name || 'Monster'}</span>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>
+      </div>
+      <div className="flex gap-3 text-[10px] text-muted-foreground">
+        {defense != null && <span className="flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" />DEF {defense}</span>}
+        {speed && <span>SPD {speed}</span>}
+      </div>
+      {vulnerabilities.length > 0 && (
+        <div className="text-[10px]"><span className="text-red-400 font-semibold">Vuln: </span>{vulnerabilities.join(', ')}</div>
+      )}
+      {resistances.length > 0 && (
+        <div className="text-[10px]"><span className="text-blue-400 font-semibold">Resist: </span>{resistances.join(', ')}</div>
+      )}
+      {immunities.length > 0 && (
+        <div className="text-[10px]"><span className="text-green-400 font-semibold">Immune: </span>{immunities.join(', ')}</div>
+      )}
+      {attributes.length > 0 && (
+        <div className="space-y-0.5">
+          {attributes.map((a, i) => (
+            <div key={i} className="text-[10px] text-foreground/80">
+              <span className="font-semibold">{a.name}.</span> {a.description}
+            </div>
+          ))}
+        </div>
+      )}
+      {actions.length > 0 && (
+        <div className="space-y-0.5">
+          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Actions</div>
+          {actions.map((a, i) => (
+            <div key={i} className="text-[10px] bg-secondary/30 rounded px-1.5 py-1">
+              <span className="font-semibold text-foreground">{a.name}</span>
+              {a.to_hit && a.to_hit !== '—' && <span className="text-muted-foreground ml-1">{a.to_hit}</span>}
+              {a.damage_type && <span className="text-orange-400 ml-1">[{a.damage_type}]</span>}
+              {a.effect && <span className="text-muted-foreground ml-1">— {a.effect}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter, onToggleVisibility, losEnabled, onToggleLos }) {
   const ref = useRef(null);
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [onClose]);
+
+  const isMonster = token?.type === 'enemy' || token?.type === 'neutral' || token?.type === 'friendly';
+  const hasSnapshot = isMonster && (token?.monster_snapshot || token?.monster_id);
 
   const items = [
     { label: 'Ping Location', icon: Target, action: onPing, always: true },
@@ -25,7 +77,7 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
   return (
     <div
       ref={ref}
-      className="fixed z-[100] bg-card border border-border/60 rounded-xl shadow-2xl py-1 min-w-[160px]"
+      className="fixed z-[100] bg-card border border-border/60 rounded-xl shadow-2xl py-1 min-w-[180px] max-w-[260px]"
       style={{ top: y, left: x }}
     >
       {token && (
@@ -46,6 +98,21 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
           {label}
         </button>
       ))}
+      {/* View Stats — shown for monster tokens */}
+      {hasSnapshot && (
+        <button
+          onClick={() => setShowStats((v) => !v)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 transition-colors text-accent"
+        >
+          <BookOpen className="w-3.5 h-3.5 shrink-0" />
+          {showStats ? 'Hide Stats' : 'View Stats'}
+        </button>
+      )}
+      {showStats && (
+        <div className="px-3 pb-2">
+          <MonsterStatBlock snapshot={token?.monster_snapshot} onClose={() => setShowStats(false)} />
+        </div>
+      )}
     </div>
   );
 }
