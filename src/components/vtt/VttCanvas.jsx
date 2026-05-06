@@ -445,7 +445,7 @@ const VttCanvasInner = ({
       const color = WALL_COLORS[wall.type] || WALL_COLORS.wall;
 
       ctx.strokeStyle = color;
-      ctx.lineWidth = lineWidth;
+      ctx.lineWidth = wall.type === 'spawn_point' ? gs : lineWidth;
       ctx.lineCap = 'round';
 
       if (wall.type === 'door' && wall.is_open) {
