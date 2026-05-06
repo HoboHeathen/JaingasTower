@@ -50,9 +50,21 @@ function MonsterStatBlock({ snapshot, onClose }) {
   );
 }
 
-export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter, onToggleVisibility, losEnabled, onToggleLos }) {
+export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete, onEditHP, onRename, onPing, onLinkCharacter, onToggleVisibility, losEnabled, onToggleLos, containerWidth, containerHeight }) {
   const ref = useRef(null);
   const [showStats, setShowStats] = useState(false);
+  const [adjustedPos, setAdjustedPos] = useState({ x, y });
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const { offsetWidth: w, offsetHeight: h } = ref.current;
+    const maxX = (containerWidth || 800) - w - 4;
+    const maxY = (containerHeight || 600) - h - 4;
+    setAdjustedPos({
+      x: Math.max(4, Math.min(x, maxX)),
+      y: Math.max(4, Math.min(y, maxY)),
+    });
+  }, [x, y, containerWidth, containerHeight, showStats]);
 
   useEffect(() => {
     const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
@@ -81,7 +93,7 @@ export default function TokenContextMenu({ token, x, y, isGM, onClose, onDelete,
     <div
       ref={ref}
       className="absolute z-[9999] bg-card border border-border/60 rounded-xl shadow-2xl py-1 min-w-[180px] max-w-[260px]"
-      style={{ top: y, left: x }}
+      style={{ top: adjustedPos.y, left: adjustedPos.x }}
     >
       {token && (
         <div className="px-3 py-1.5 border-b border-border/40 mb-1">

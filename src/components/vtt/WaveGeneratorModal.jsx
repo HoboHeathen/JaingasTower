@@ -49,21 +49,49 @@ function rollHp(monster, waveNumber, dieType, hpAveraged) {
   return total;
 }
 
-function spreadAroundSpawnPoints(spawnCells, count) {
+function spreadAroundSpawnPoints(spawnCells, count, occupiedTokens = []) {
+  const occupiedKeys = new Set(occupiedTokens.map((t) => `${t.x},${t.y}`));
+
   if (!spawnCells.length) {
-    return Array.from({ length: count }, (_, i) => ({ x: 5 + (i % 5), y: 4 + Math.floor(i / 5) }));
+    const positions = [];
+    let col = 5, row = 4;
+    while (positions.length < count) {
+      if (!occupiedKeys.has(`${col},${row}`)) { positions.push({ x: col, y: row }); occupiedKeys.add(`${col},${row}`); }
+      col++; if (col > 20) { col = 5; row++; }
+    }
+    return positions;
   }
+
+  // Shuffle spawn points and assign one per token, cycling and offsetting if needed
   const shuffled = [...spawnCells].sort(() => Math.random() - 0.5);
   const positions = [];
+  let ring = 0;
+  let attemptCol = 0;
   for (let i = 0; i < count; i++) {
     const base = shuffled[i % shuffled.length];
-    const offset = Math.floor(i / shuffled.length);
-    positions.push({ x: base.col + (offset % 3), y: base.row + Math.floor(offset / 3) });
+    ring = Math.floor(i / shuffled.length);
+    // Try the base cell first, then spiral outward
+    let placed = false;
+    for (let dr = -ring; dr <= ring && !placed; dr++) {
+      for (let dc = -ring; dc <= ring && !placed; dc++) {
+        if (Math.abs(dr) !== ring && Math.abs(dc) !== ring) continue; // only ring edge
+        const key = `${base.col + dc},${base.row + dr}`;
+        if (!occupiedKeys.has(key)) {
+          positions.push({ x: base.col + dc, y: base.row + dr });
+          occupiedKeys.add(key);
+          placed = true;
+        }
+      }
+    }
+    if (!placed) {
+      // Fallback: just offset
+      positions.push({ x: base.col + ring, y: base.row + ring });
+    }
   }
   return positions;
 }
 
-export default function WaveGeneratorModal({ walls, activeGroup, activeEncounter, onAddEncounterParticipant, onSpawnTokens, onClose }) {
+export default function WaveGeneratorModal({ walls, spawnCells: spawnCellsProp, existingTokens, activeGroup, activeEncounter, onAddEncounterParticipant, onSpawnTokens, onClose }) {
   const hpAveraged = activeGroup?.hp_averaged || false;
 
   // ── Step 1: Setup ─────────────────────────────────────────────────────────
@@ -93,9 +121,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, activeEncounter
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
-  const spawnCells = (walls || [])
-    .filter((w) => w.type === 'spawn_point')
-    .flatMap((w) => w.cells || []);
+  const spawnCells = spawnCellsProp || [];
 
   const totalCount = entries.reduce((sum, e) => sum + (e.count || 1), 0);
   const totalBudgetUsed = entries.reduce((sum, e) => sum + getAverageHpD6(e.monster, waveNumber) * (e.count || 1), 0);
@@ -147,7 +173,7 @@ export default function WaveGeneratorModal({ walls, activeGroup, activeEncounter
       }
     });
 
-    const positions = spreadAroundSpawnPoints(spawnCells, allTokens.length);
+    const positions = spreadAroundSpawnPoints(spawnCells, allTokens.length, existingTokens || []);
     allTokens.forEach((t, i) => {
       t.x = positions[i]?.x ?? 5;
       t.y = positions[i]?.y ?? 4;

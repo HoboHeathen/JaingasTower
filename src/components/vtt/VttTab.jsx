@@ -28,6 +28,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   const [encounterRound, setEncounterRound] = useState(1);
   const [activeEncounter, setActiveEncounter] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [defaultAddPos, setDefaultAddPos] = useState({ col: 5, row: 4 });
   const addParticipantRef = useRef(null);
 
   // Skill trees for actions panel
@@ -163,8 +164,6 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       ...token,
       map_id: selectedMapId,
       group_id: activeGroup.id,
-      x: 0,
-      y: 0,
       is_visible: defaultVisible,
     });
     refetchTokens();
@@ -260,7 +259,11 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         onToggleEncounterSidebar={isGM ? () => setShowEncounterSidebar((v) => !v) : undefined}
         showEncounterSidebar={showEncounterSidebar}
         encounterActive={activeEncounter?.is_active || false}
-        onAddToken={() => setShowAddToken(true)}
+        onAddToken={() => {
+            const center = vttCanvasRef.current?.getViewportCenterCell?.() || { col: 5, row: 4 };
+            setDefaultAddPos(center);
+            setShowAddToken(true);
+          }}
         onCenterOnActive={() => activeEncounterTokenId && vttCanvasRef.current?.centerOnToken(activeEncounterTokenId)}
         hasActiveToken={!!activeEncounterTokenId}
       />
@@ -280,6 +283,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
             activeGroup={activeGroup}
             onAdd={handleAddToken}
             onClose={() => setShowAddToken(false)}
+            defaultX={defaultAddPos.col}
+            defaultY={defaultAddPos.row}
           />
         )}
         <VttCanvas

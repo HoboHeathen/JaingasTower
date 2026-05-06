@@ -8,7 +8,7 @@ const TOKEN_TYPES = ['player', 'enemy', 'friendly', 'neutral', 'innocent'];
 const TOKEN_SIZES = ['tiny', 'small', 'medium', 'large', 'huge'];
 const TOKEN_COLORS = { player: '#4ade80', enemy: '#f87171', friendly: '#60a5fa', neutral: '#facc15', innocent: '#9333ea' };
 
-export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onClose, activeGroup }) {
+export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onClose, activeGroup, defaultX, defaultY }) {
   const [mode, setMode] = useState('character'); // 'character' | 'monster' | 'custom'
   const [search, setSearch] = useState('');
   const [tokenType, setTokenType] = useState('player');
@@ -81,10 +81,8 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
       };
     } else return;
 
-    // Place token at center of viewport (canvas is ~800x600 equivalent in grid coords)
-    // Default center grid cell
-    token.x = token.x ?? 5;
-    token.y = token.y ?? 4;
+    token.x = defaultX ?? 5;
+    token.y = defaultY ?? 4;
     onAdd(token);
   };
 

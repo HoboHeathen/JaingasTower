@@ -239,7 +239,7 @@ const VttCanvasInner = ({
   const currentWallStroke = useRef([]); // world points for in-progress wall segment
   const losRange = 30; // 30 cells = 150 feet
 
-  // Expose centerOnToken via imperative handle
+  // Expose centerOnToken and getViewportCenterCell via imperative handle
   useImperativeHandle(ref, () => ({
     centerOnToken: (tokenId) => {
       const token = localTokens.find((t) => t.id === tokenId);
@@ -251,8 +251,16 @@ const VttCanvasInner = ({
       const centerX = canvasSize.w / 2 / zoom;
       const centerY = canvasSize.h / 2 / zoom;
       setPan({ x: centerX - worldX, y: centerY - worldY });
+    },
+    getViewportCenterCell: () => {
+      const gs = map.grid_size || 60;
+      const ox = map.grid_offset_x || 0;
+      const oy = map.grid_offset_y || 0;
+      const worldX = canvasSize.w / 2 / zoom - pan.x;
+      const worldY = canvasSize.h / 2 / zoom - pan.y;
+      return { col: Math.floor((worldX - ox) / gs), row: Math.floor((worldY - oy) / gs) };
     }
-  }), [localTokens, canvasSize, zoom, map]);
+  }), [localTokens, canvasSize, zoom, pan, map]);
 
   // ── Web Worker for LOS ────────────────────────────────────────────────────
   const losWorkerRef = useRef(null);
@@ -1461,7 +1469,9 @@ const VttCanvasInner = ({
           onLinkCharacter={handleLinkChar}
           onToggleVisibility={handleToggleVisibility}
           losEnabled={losEnabled}
-          onToggleLos={() => {setLosEnabled((v) => !v);setContextMenu(null);}} />
+          onToggleLos={() => {setLosEnabled((v) => !v);setContextMenu(null);}}
+          containerWidth={canvasSize.w}
+          containerHeight={canvasSize.h} />
         }
 
       {editHpToken &&
@@ -1483,6 +1493,14 @@ const VttCanvasInner = ({
 
       {showWaveGenerator &&
         <WaveGeneratorModal
+          existingTokens={localTokens}
+          spawnCells={walls
+            .filter((w) => w.type === 'spawn_point' && w.x1 != null)
+            .map((w) => {
+              const midX = (w.x1 + w.x2) / 2;
+              const midY = (w.y1 + w.y2) / 2;
+              return { col: Math.floor((midX - ox) / gs), row: Math.floor((midY - oy) / gs) };
+            })}
           walls={walls}
           activeGroup={activeGroup}
           activeEncounter={activeEncounter}
