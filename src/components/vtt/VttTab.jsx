@@ -329,8 +329,8 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
             setShowAddToken(true);
           }}
           encounterSidebar={isGM && showEncounterSidebar ? (
-            <div className="absolute left-0 top-0 h-full w-full sm:w-96 bg-card border-l border-border/50 overflow-y-auto flex flex-col margin-5" style={{ zIndex: 50 }}>
-              <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+            <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-card border-l border-border/50 overflow-y-auto flex flex-col" style={{ zIndex: 50 }}>
+              <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between shrink-0">
                 <h2 className="font-heading text-lg font-semibold text-foreground">Encounter</h2>
                 <button onClick={() => setShowEncounterSidebar(false)} className="text-muted-foreground hover:text-foreground transition-colors rounded-md p-1 hover:bg-secondary/60">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
