@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo, useImperativeHandle } from 'react';
 import TokenContextMenu from '@/components/vtt/TokenContextMenu';
+import WallContextMenu from '@/components/vtt/WallContextMenu';
 import EditHpModal from '@/components/vtt/EditHpModal';
 import RenameTokenModal from '@/components/vtt/RenameTokenModal';
 import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
@@ -230,6 +231,7 @@ const VttCanvasInner = ({
   const [noLinkWarning, setNoLinkWarning] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFsToolbar, setShowFsToolbar] = useState(false);
+  const [wallContextMenu, setWallContextMenu] = useState(null); // { wall, screenX, screenY }
 
   // Refs for mutable state
   const panStart = useRef(null);
@@ -482,6 +484,28 @@ const VttCanvasInner = ({
         else if (wall.type === 'window') ctx.fillText('W', mx, my - lineWidth);
         else if (wall.type === 'obstacle') ctx.fillText('O', mx, my - lineWidth);
         else if (wall.type === 'spawn_point' && isGM) ctx.fillText('☠', mx, my - lineWidth);
+      }
+
+      // HP bar for doors/windows with max_hp set
+      if ((wall.type === 'door' || wall.type === 'window') && wall.max_hp > 0) {
+        const mx = (wall.x1 + wall.x2) / 2;
+        const my = (wall.y1 + wall.y2) / 2;
+        const barW = Math.max(30, gs * 0.8);
+        const barH = 5;
+        const barX = mx - barW / 2;
+        const barY = my + lineWidth + 2;
+        const pct = Math.max(0, Math.min(1, (wall.current_hp ?? wall.max_hp) / wall.max_hp));
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(barX, barY, barW, barH);
+        ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
+        ctx.fillRect(barX, barY, barW * pct, barH);
+        // HP text
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = `bold ${Math.max(7, gs * 0.12)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${wall.current_hp ?? wall.max_hp}/${wall.max_hp}`, mx, barY + barH + 1);
+        ctx.textBaseline = 'middle';
       }
     });
 
@@ -1075,28 +1099,47 @@ const VttCanvasInner = ({
   const onContextMenu = (e) => {
     e.preventDefault();
     const world = getWorldPos(e);
+    const rect = containerRef.current?.getBoundingClientRect();
+    const relX = rect ? e.clientX - rect.left : e.clientX;
+    const relY = rect ? e.clientY - rect.top : e.clientY;
+
     const token = findTokenAt(world);
     if (token) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      const relX = rect ? e.clientX - rect.left : e.clientX;
-      const relY = rect ? e.clientY - rect.top : e.clientY;
       setContextMenu({ token, screenX: relX, screenY: relY });
       return;
     }
-    // Check wall segments — door toggling
+
+    // Check wall segments
     if (isGM) {
       const wall = findWallSegmentAt(world.x, world.y);
-      if (wall && wall.type === 'door') {
-        setWalls((prev) => {
-          const updated = prev.map((w) => w.id === wall.id ? { ...w, is_open: !w.is_open } : w);
-          saveWalls(updated);
-          return updated;
-        });
-        return;
+      if (wall) {
+        if (wall.type === 'door' || wall.type === 'window') {
+          // Show wall context menu for doors/windows
+          setWallContextMenu({ wall, screenX: relX, screenY: relY });
+          return;
+        }
+        if (wall.type === 'door') {
+          // Toggle door open/close (still handled for plain door right-click)
+          setWalls((prev) => {
+            const updated = prev.map((w) => w.id === wall.id ? { ...w, is_open: !w.is_open } : w);
+            saveWalls(updated);
+            return updated;
+          });
+          return;
+        }
       }
     }
     // Ping on empty right-click
     addPing(e.clientX, e.clientY);
+  };
+
+  const handleUpdateWall = (updatedWall) => {
+    setWalls((prev) => {
+      const updated = prev.map((w) => w.id === updatedWall.id ? updatedWall : w);
+      saveWalls(updated);
+      return updated;
+    });
+    setWallContextMenu(null);
   };
 
   const addPing = (screenX, screenY) => {
@@ -1460,6 +1503,18 @@ const VttCanvasInner = ({
         }
 
       {/* Context menu — rendered inside canvas container so it works in fullscreen */}
+      {wallContextMenu && isGM && (
+        <WallContextMenu
+          wall={wallContextMenu.wall}
+          x={wallContextMenu.screenX}
+          y={wallContextMenu.screenY}
+          onClose={() => setWallContextMenu(null)}
+          onUpdateWall={handleUpdateWall}
+          containerWidth={canvasSize.w}
+          containerHeight={canvasSize.h}
+        />
+      )}
+
       {contextMenu &&
         <TokenContextMenu
           token={contextMenu.token}

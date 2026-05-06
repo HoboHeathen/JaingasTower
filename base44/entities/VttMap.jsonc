@@ -49,7 +49,7 @@
     },
     "walls": {
       "type": "array",
-      "description": "Wall segments as line segments: {id, type, x1, y1, x2, y2, is_open} in world pixel coordinates. type: wall|door|window|obstacle|spawn_point",
+      "description": "Wall segments as line segments: {id, type, x1, y1, x2, y2, is_open, max_hp, current_hp} in world pixel coordinates. type: wall|door|window|obstacle|spawn_point",
       "items": {
         "type": "object",
         "properties": {
@@ -81,6 +81,14 @@
           },
           "y2": {
             "type": "number"
+          },
+          "max_hp": {
+            "type": "number",
+            "description": "Maximum HP for destructible doors/windows. 0 or absent means no HP bar."
+          },
+          "current_hp": {
+            "type": "number",
+            "description": "Current HP for destructible doors/windows."
           }
         }
       }

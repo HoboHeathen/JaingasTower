@@ -158,7 +158,6 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
   };
 
   const handleAddToken = async (token) => {
-    // Players default to visible; enemies/neutrals/friendly default to hidden for GM to reveal
     const defaultVisible = token.type === 'player';
     await base44.entities.VttToken.create({
       ...token,
@@ -166,6 +165,18 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
       group_id: activeGroup.id,
       is_visible: defaultVisible,
     });
+    refetchTokens();
+    setShowAddToken(false);
+  };
+
+  const handleBulkAddTokens = async (tokens) => {
+    const enriched = tokens.map((t) => ({
+      ...t,
+      map_id: selectedMapId,
+      group_id: activeGroup.id,
+      is_visible: true,
+    }));
+    await base44.entities.VttToken.bulkCreate(enriched);
     refetchTokens();
     setShowAddToken(false);
   };
@@ -321,6 +332,7 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
               user={user}
               activeGroup={activeGroup}
               onAdd={handleAddToken}
+              onBulkAdd={handleBulkAddTokens}
               onClose={() => setShowAddToken(false)}
               defaultX={defaultAddPos.col}
               defaultY={defaultAddPos.row}

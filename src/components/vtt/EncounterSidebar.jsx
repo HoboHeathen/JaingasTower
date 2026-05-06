@@ -71,7 +71,17 @@ export default function EncounterSidebar({
     refetchInterval: 3000,
   });
 
-  const sortedParticipants = [...participants].sort((a, b) => (b.initiative ?? -1) - (a.initiative ?? -1));
+  // Separate innocents into a single grouped entry; rest sort normally
+  const innocentParticipants = participants.filter((p) => p.participant_type === 'innocent');
+  const nonInnocentParticipants = participants.filter((p) => p.participant_type !== 'innocent');
+  const sortedParticipants = [...nonInnocentParticipants].sort((a, b) => (b.initiative ?? -1) - (a.initiative ?? -1));
+
+  // Build the innocents group virtual entry (if any exist)
+  const innocentCount = innocentParticipants.length + vttTokens.filter((t) => t.type === 'innocent').length;
+  // Deduplicate: use unique innocent VTT token count as source of truth
+  const innocentTokens = vttTokens.filter((t) => t.type === 'innocent');
+  const innocentGroupInitiative = innocentParticipants[0]?.initiative ?? null;
+  const innocentGroupId = '__innocent_group__';
 
   // Helper: find VttToken matching a participant (by character_id or monster_id/name)
   const findVttToken = (participant) => {
@@ -182,7 +192,7 @@ export default function EncounterSidebar({
   };
 
   const handleRollAllInitiative = () => {
-    participants.forEach((p) => {
+    nonInnocentParticipants.forEach((p) => {
       let initiative;
       if (p.participant_type === 'player') {
         const char = groupCharacters.find((c) => c.id === p.character_id);
@@ -193,6 +203,13 @@ export default function EncounterSidebar({
       }
       updateParticipantMutation.mutate({ id: p.id, data: { initiative } });
     });
+    // Roll a single initiative for the whole innocent group
+    if (innocentParticipants.length > 0) {
+      const groupInit = rollD20();
+      innocentParticipants.forEach((p) => {
+        updateParticipantMutation.mutate({ id: p.id, data: { initiative: groupInit } });
+      });
+    }
     toast.success('Initiative rolled!');
   };
 
@@ -342,9 +359,60 @@ export default function EncounterSidebar({
 
               {/* Participant list */}
               <div className="space-y-1.5">
-                {sortedParticipants.length === 0 && (
+                {sortedParticipants.length === 0 && innocentTokens.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-3">No combatants yet.</p>
                 )}
+
+                {/* Innocent group entry */}
+                {innocentTokens.length > 0 && (
+                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-secondary/20"
+                      onClick={() => setExpandedId(expandedId === innocentGroupId ? null : innocentGroupId)}>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 bg-purple-500/20 text-purple-300">
+                        {innocentGroupInitiative != null ? innocentGroupInitiative : '—'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-purple-300">Innocents ({innocentTokens.length})</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Individual HP tracked on map tokens</p>
+                      </div>
+                      {expandedId === innocentGroupId ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+                    </div>
+                    {expandedId === innocentGroupId && (
+                      <div className="px-3 pb-3 border-t border-border/30 pt-2 space-y-2">
+                        {isGM && (
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              className="w-14 h-6 text-xs"
+                              placeholder="Init"
+                              defaultValue={innocentGroupInitiative ?? ''}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                innocentParticipants.forEach((p) => {
+                                  updateParticipantMutation.mutate({ id: p.id, data: { initiative: val } });
+                                });
+                              }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">Set group initiative</span>
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          {innocentTokens.map((t) => (
+                            <div key={t.id} className="flex items-center gap-2 bg-secondary/20 rounded px-2 py-1">
+                              <span className="text-[10px] text-foreground flex-1 truncate">{t.name}</span>
+                              <Heart className="w-2.5 h-2.5 text-red-400 shrink-0" />
+                              <span className="text-[10px] text-red-400 font-semibold">{t.current_hp ?? t.max_hp ?? 4}/{t.max_hp ?? 4}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground italic">Click tokens on the map to adjust individual HP.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {sortedParticipants.map((p, i) => {
                   const isActiveTurn = activeEncounter.is_active && p.id === activeEncounter.active_token_id;
                   const isOpen = expandedId === p.id;

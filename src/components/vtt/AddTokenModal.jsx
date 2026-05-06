@@ -2,27 +2,91 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BESTIARY, getDiceCount, getDieFaces } from '@/lib/bestiaryData';
-import { X } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { X, Loader2 } from 'lucide-react';
 
 const TOKEN_TYPES = ['player', 'enemy', 'friendly', 'neutral', 'innocent'];
 const TOKEN_SIZES = ['tiny', 'small', 'medium', 'large', 'huge'];
 const TOKEN_COLORS = { player: '#4ade80', enemy: '#f87171', friendly: '#60a5fa', neutral: '#facc15', innocent: '#9333ea' };
 
-export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onClose, activeGroup, defaultX, defaultY }) {
-  const [mode, setMode] = useState('character'); // 'character' | 'monster' | 'custom'
+// Simple spiral offsets for multi-spawn positioning
+function getSpiralOffsets(count) {
+  const offsets = [{ col: 0, row: 0 }];
+  const dirs = [[1,0],[0,1],[-1,0],[0,-1]];
+  let col = 0, row = 0, step = 1, dir = 0;
+  while (offsets.length < count) {
+    for (let turn = 0; turn < 2 && offsets.length < count; turn++) {
+      for (let i = 0; i < step && offsets.length < count; i++) {
+        col += dirs[dir][0]; row += dirs[dir][1];
+        offsets.push({ col, row });
+      }
+      dir = (dir + 1) % 4;
+    }
+    step++;
+  }
+  return offsets;
+}
+
+export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onClose, activeGroup, defaultX, defaultY, onBulkAdd }) {
+  const [mode, setMode] = useState('character'); // 'character' | 'monster' | 'custom' | 'innocent'
   const [search, setSearch] = useState('');
   const [tokenType, setTokenType] = useState('player');
   const [tokenSize, setTokenSize] = useState('medium');
   const [customName, setCustomName] = useState('');
   const [selectedCharId, setSelectedCharId] = useState('');
   const [selectedMonster, setSelectedMonster] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const myChars = groupCharacters?.filter((c) => isGM || c.created_by === user?.email) || [];
   const filteredMonsters = BESTIARY.filter((m) =>
     !search.trim() || m.name.toLowerCase().includes(search.toLowerCase())
   ).slice(0, 30);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
+    const baseX = defaultX ?? 5;
+    const baseY = defaultY ?? 4;
+
+    if (mode === 'innocent') {
+      setIsGenerating(true);
+      try {
+        const qty = Math.max(1, Math.min(20, quantity));
+        let names = [];
+
+        if (qty === 1 && customName.trim()) {
+          names = [customName.trim()];
+        } else {
+          const res = await base44.functions.invoke('generateFantasyNames', { quantity: qty });
+          names = res.data?.names || [];
+          // Fallback if LLM returns fewer names
+          while (names.length < qty) names.push(`Townsperson ${names.length + 1}`);
+          names = names.slice(0, qty);
+        }
+
+        const offsets = getSpiralOffsets(qty);
+        const tokens = names.map((name, i) => ({
+          name,
+          type: 'innocent',
+          size: tokenSize,
+          color: TOKEN_COLORS.innocent,
+          max_hp: 4,
+          current_hp: 4,
+          x: baseX + offsets[i].col,
+          y: baseY + offsets[i].row,
+        }));
+
+        if (onBulkAdd) {
+          await onBulkAdd(tokens);
+        } else {
+          for (const t of tokens) await onAdd(t);
+        }
+      } finally {
+        setIsGenerating(false);
+        onClose();
+      }
+      return;
+    }
+
     let token = { type: tokenType, size: tokenSize };
 
     if (mode === 'character') {
@@ -38,7 +102,6 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
         type: 'player',
       };
     } else if (mode === 'monster' && selectedMonster) {
-      // Roll HP using the same formula as the encounter system
       const floorWave = activeGroup?.floor_wave_number || 1;
       const dieType = activeGroup?.die_type || 'd6';
       const hpAveraged = activeGroup?.hp_averaged || false;
@@ -64,25 +127,14 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
     } else if (mode === 'custom') {
       if (!customName.trim()) return;
       token = { ...token, name: customName.trim(), color: TOKEN_COLORS[tokenType] };
-      // Innocents have default HP 4, Defense 10
       if (tokenType === 'innocent') {
         token.max_hp = 4;
         token.current_hp = 4;
       }
-    } else if (mode === 'innocent') {
-      if (!customName.trim()) return;
-      token = {
-        ...token,
-        name: customName.trim(),
-        type: 'innocent',
-        color: TOKEN_COLORS.innocent,
-        max_hp: 4,
-        current_hp: 4,
-      };
     } else return;
 
-    token.x = defaultX ?? 5;
-    token.y = defaultY ?? 4;
+    token.x = baseX;
+    token.y = baseY;
     onAdd(token);
   };
 
@@ -196,7 +248,25 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
 
         {mode === 'innocent' && isGM && (
           <div className="space-y-3">
-            <Input placeholder="Innocent name..." value={customName} onChange={(e) => setCustomName(e.target.value)} autoFocus />
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Quantity</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                autoFocus
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Names will be auto-generated. For 1, you can set a custom name below.</p>
+            </div>
+            {quantity === 1 && (
+              <Input
+                placeholder="Custom name (optional)..."
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+              />
+            )}
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Size</label>
               <div className="flex gap-1 flex-wrap">
@@ -209,7 +279,7 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
               </div>
             </div>
             <div className="text-xs text-muted-foreground bg-secondary/30 p-2 rounded">
-              Innocents spawn with 4 HP and Defense 10. They don't participate in initiative.
+              Innocents spawn with 4 HP. They share a single initiative slot in encounters.
             </div>
           </div>
         )}
@@ -225,8 +295,14 @@ export default function AddTokenModal({ groupCharacters, isGM, user, onAdd, onCl
         </div>
 
         <div className="flex justify-end gap-2 pt-1 border-t border-border/40">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleAdd}>Add Token</Button>
+          <Button variant="outline" onClick={onClose} disabled={isGenerating}>Cancel</Button>
+          <Button onClick={handleAdd} disabled={isGenerating}>
+            {isGenerating ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /> Generating...</>
+            ) : (
+              mode === 'innocent' && quantity > 1 ? `Spawn ${quantity} Innocents` : 'Add Token'
+            )}
+          </Button>
         </div>
       </div>
     </div>
