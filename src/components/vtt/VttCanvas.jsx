@@ -185,6 +185,7 @@ const VttCanvasInner = ({
   showAddModal,
   setShowAddModal,
   onAddTokenRequest,
+  addTokenModal,
 }, ref) => {
   const bgCanvasRef = useRef(null);
   const wallsCanvasRef = useRef(null);
@@ -1417,6 +1418,9 @@ const VttCanvasInner = ({
 
       {/* Encounter Sidebar — lives inside the canvas */}
       {encounterSidebar}
+
+      {/* Add Token Modal — lives inside the canvas so it works in fullscreen */}
+      {addTokenModal}
 
       {/* Wall snap picker */}
       {['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool) && isGM && (

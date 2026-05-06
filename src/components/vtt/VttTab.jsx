@@ -273,20 +273,6 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         <VttMapSettings map={activeMap} onUpdate={handleUpdateMap} />
       )}
 
-      {/* AddTokenModal — fixed positioning so it works in fullscreen too */}
-      {showAddToken && (
-        <AddTokenModal
-          groupCharacters={groupCharacters}
-          isGM={isGM}
-          user={user}
-          activeGroup={activeGroup}
-          onAdd={handleAddToken}
-          onClose={() => setShowAddToken(false)}
-          defaultX={defaultAddPos.col}
-          defaultY={defaultAddPos.row}
-        />
-      )}
-
       {/* Canvas */}
       <div className="relative flex-1 min-w-0">
         <VttCanvas
@@ -328,6 +314,18 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
             setDefaultAddPos(center);
             setShowAddToken(true);
           }}
+          addTokenModal={showAddToken ? (
+            <AddTokenModal
+              groupCharacters={groupCharacters}
+              isGM={isGM}
+              user={user}
+              activeGroup={activeGroup}
+              onAdd={handleAddToken}
+              onClose={() => setShowAddToken(false)}
+              defaultX={defaultAddPos.col}
+              defaultY={defaultAddPos.row}
+            />
+          ) : null}
           encounterSidebar={isGM && showEncounterSidebar ? (
             <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-card border-l border-border/50 overflow-y-auto flex flex-col" style={{ zIndex: 50 }}>
               <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between shrink-0">
