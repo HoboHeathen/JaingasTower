@@ -181,7 +181,6 @@ const VttCanvasInner = ({
   onToggleEncounterSidebar,
   showEncounterSidebar,
   encounterActive,
-  encounterSidebar,
   showAddModal,
   setShowAddModal,
   onAddTokenRequest,
@@ -1414,9 +1413,6 @@ const VttCanvasInner = ({
           {actionsPanel}
         </div>
         }
-
-      {/* Encounter Sidebar — lives inside the canvas */}
-      {encounterSidebar}
 
       {/* Wall snap picker */}
       {['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool) && isGM && (

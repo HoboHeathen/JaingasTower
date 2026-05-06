@@ -287,75 +287,79 @@ export default function VttTab({ activeGroup, isGM, user, groupCharacters }) {
         />
       )}
 
-      {/* Canvas */}
-      <div className="relative flex-1 min-w-0">
-        <VttCanvas
-          ref={vttCanvasRef}
-          map={activeMap}
-          tokens={tokens}
-          isGM={isGM}
-          user={user}
-          groupCharacters={groupCharacters}
-          activeGroup={activeGroup}
-          onUpdateTokens={handleUpdateTokens}
-          onUpdateMap={handleUpdateMap}
-          activeTokenId={activeTokenId}
-          initiativeStarted={!!activeEncounterTokenId}
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          round={encounterRound}
-          fogCellCount={activeMap?.fog_cells?.length || 0}
-          wallCount={activeMap?.walls?.length || 0}
-          onClearFog={() => handleUpdateMap({ fog_cells: [] })}
-          onClearWalls={() => handleUpdateMap({ walls: [] })}
-          activeEncounter={activeEncounter}
-          onAddEncounterParticipant={(data) => addParticipantRef.current?.(data)}
-          onToggleEncounterSidebar={isGM ? () => setShowEncounterSidebar((v) => !v) : undefined}
-          showEncounterSidebar={showEncounterSidebar}
-          encounterActive={activeEncounter?.is_active || false}
-          actionsPanel={!isGM && playerCharacter ? (
-            <VttActionsPanel
-              character={playerCharacter}
-              trees={allTrees}
-              racialTrees={racialTrees}
-              onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
-            />
-          ) : null}
-          showAddModal={showAddModal}
-          setShowAddModal={setShowAddModal}
-          onAddTokenRequest={() => {
-            const center = vttCanvasRef.current?.getViewportCenterCell?.() || { col: 5, row: 4 };
-            setDefaultAddPos(center);
-            setShowAddToken(true);
-          }}
-          encounterSidebar={isGM && showEncounterSidebar ? (
-            <div className="absolute left-0 top-0 h-full w-full sm:w-96 bg-card border-l border-border/50 overflow-y-auto flex flex-col margin-5" style={{ zIndex: 50 }}>
-              <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-                <h2 className="font-heading text-lg font-semibold text-foreground">Encounter</h2>
-                <button onClick={() => setShowEncounterSidebar(false)} className="text-muted-foreground hover:text-foreground transition-colors rounded-md p-1 hover:bg-secondary/60">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                <EncounterSidebar
-                  activeGroup={activeGroup}
-                  activeMap={activeMap}
-                  isGM={isGM}
-                  user={user}
-                  groupCharacters={groupCharacters}
-                  vttTokens={tokens}
-                  onActiveTokenChange={setActiveEncounterTokenId}
-                  onRoundChange={setEncounterRound}
-                  onEncounterChange={setActiveEncounter}
-                  onAddParticipantRef={addParticipantRef}
-                  showAddModal={showAddModal}
-                  setShowAddModal={setShowAddModal}
-                  onCenterOnToken={(tokenId) => vttCanvasRef.current?.centerOnToken(tokenId)}
-                />
-              </div>
+      {/* Canvas + Encounter Sidebar side-by-side */}
+      <div className="relative flex gap-0">
+        <div className="relative flex-1 min-w-0">
+          <VttCanvas
+            ref={vttCanvasRef}
+            map={activeMap}
+            tokens={tokens}
+            isGM={isGM}
+            user={user}
+            groupCharacters={groupCharacters}
+            activeGroup={activeGroup}
+            onUpdateTokens={handleUpdateTokens}
+            onUpdateMap={handleUpdateMap}
+            activeTokenId={activeTokenId}
+            initiativeStarted={!!activeEncounterTokenId}
+            activeTool={activeTool}
+            onToolChange={setActiveTool}
+            round={encounterRound}
+            fogCellCount={activeMap?.fog_cells?.length || 0}
+            wallCount={activeMap?.walls?.length || 0}
+            onClearFog={() => handleUpdateMap({ fog_cells: [] })}
+            onClearWalls={() => handleUpdateMap({ walls: [] })}
+            activeEncounter={activeEncounter}
+            onAddEncounterParticipant={(data) => addParticipantRef.current?.(data)}
+            onToggleEncounterSidebar={isGM ? () => setShowEncounterSidebar((v) => !v) : undefined}
+            showEncounterSidebar={showEncounterSidebar}
+            encounterActive={activeEncounter?.is_active || false}
+            actionsPanel={!isGM && playerCharacter ? (
+              <VttActionsPanel
+                character={playerCharacter}
+                trees={allTrees}
+                racialTrees={racialTrees}
+                onUpdateCharacter={(data) => updateCharacterMutation.mutate({ id: playerCharacter.id, data })}
+              />
+            ) : null}
+            showAddModal={showAddModal}
+            setShowAddModal={setShowAddModal}
+            onAddTokenRequest={() => {
+              const center = vttCanvasRef.current?.getViewportCenterCell?.() || { col: 5, row: 4 };
+              setDefaultAddPos(center);
+              setShowAddToken(true);
+            }}
+          />
+        </div>
+
+        {/* Encounter Sidebar — rendered outside canvas to avoid circular dependency crash */}
+        {isGM && showEncounterSidebar && (
+          <div className="w-80 shrink-0 bg-card border-l border-border/50 overflow-y-auto flex flex-col" style={{ maxHeight: '65vh' }}>
+            <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between sticky top-0 bg-card z-10">
+              <h2 className="font-heading text-lg font-semibold text-foreground">Encounter</h2>
+              <button onClick={() => setShowEncounterSidebar(false)} className="text-muted-foreground hover:text-foreground transition-colors rounded-md p-1 hover:bg-secondary/60">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
-          ) : null}
-        />
+            <div className="flex-1 overflow-y-auto">
+              <EncounterSidebar
+                activeGroup={activeGroup}
+                activeMap={activeMap}
+                isGM={isGM}
+                user={user}
+                groupCharacters={groupCharacters}
+                vttTokens={tokens}
+                onActiveTokenChange={setActiveEncounterTokenId}
+                onRoundChange={setEncounterRound}
+                onEncounterChange={setActiveEncounter}
+                onAddParticipantRef={addParticipantRef}
+                showAddModal={showAddModal}
+                setShowAddModal={setShowAddModal}
+                onCenterOnToken={(tokenId) => vttCanvasRef.current?.centerOnToken(tokenId)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
