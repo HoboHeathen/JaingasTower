@@ -143,10 +143,10 @@ export default function Inventory() {
       activeTab === 'Weapons' ?
       <div className="space-y-6">
           <PlayerWeaponsPanel characterId={characterId} />
-          <div className="border-t border-border/30 pt-4 hidden">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Weapon Upgrades</p>
-            <WeaponUpgradesPanel characterId={characterId} upgrades={upgrades} onUseCharge={handleUseCharge} onResetCharges={handleResetCharges} />
-          </div>
+          
+
+
+        
         </div> :
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
