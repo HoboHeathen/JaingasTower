@@ -39,9 +39,6 @@ export default function EncounterSidebar({
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
-  const dieType = activeEncounter?.die_type || 'd6';
-  const hpAveraged = activeGroup?.hp_averaged || false;
-
   // Fetch encounters scoped to this map
   const { data: encounters = [] } = useQuery({
     queryKey: ['encounters', activeGroup?.id, activeMap?.id],
@@ -52,6 +49,8 @@ export default function EncounterSidebar({
 
   const activeEncounter = encounters.find((e) => e.is_active) || encounters[0] || null;
   const floorWave = activeEncounter?.wave_number || activeGroup?.floor_wave_number || 1;
+  const dieType = activeEncounter?.die_type || 'd6';
+  const hpAveraged = activeGroup?.hp_averaged || false;
 
   // Notify parent of the active encounter so it can pass it to WaveGeneratorModal
   useEffect(() => {
