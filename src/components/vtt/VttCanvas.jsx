@@ -53,6 +53,34 @@ function pointToSegmentDist(px, py, ax, ay, bx, by) {
 }
 const FEET_PER_CELL = 5;
 
+// ── Wall snapping helper ──────────────────────────────────────────────────
+function snapToGrid(wx, wy, gs, ox, oy) {
+  // Candidate snap points: cell vertices, cell centers, and edge midpoints
+  const col = Math.floor((wx - ox) / gs);
+  const row = Math.floor((wy - oy) / gs);
+  const candidates = [];
+  for (let dc = 0; dc <= 1; dc++) {
+    for (let dr = 0; dr <= 1; dr++) {
+      // Vertices
+      candidates.push({ x: (col + dc) * gs + ox, y: (row + dr) * gs + oy });
+    }
+  }
+  // Cell center
+  candidates.push({ x: col * gs + ox + gs / 2, y: row * gs + oy + gs / 2 });
+  // Edge midpoints
+  candidates.push({ x: col * gs + ox + gs / 2, y: row * gs + oy });
+  candidates.push({ x: col * gs + ox + gs / 2, y: (row + 1) * gs + oy });
+  candidates.push({ x: col * gs + ox,           y: row * gs + oy + gs / 2 });
+  candidates.push({ x: (col + 1) * gs + ox,     y: row * gs + oy + gs / 2 });
+
+  let best = null, bestDist = Infinity;
+  for (const c of candidates) {
+    const d = Math.hypot(wx - c.x, wy - c.y);
+    if (d < bestDist) { bestDist = d; best = c; }
+  }
+  return best || { x: wx, y: wy };
+}
+
 const WALL_COLORS = {
   wall: 'rgba(100,120,160,0.85)',
   door: 'rgba(180,100,30,0.9)',
@@ -188,6 +216,10 @@ const VttCanvasInner = ({
   const [measureMode, setMeasureMode] = useState('line'); // 'line' | 'cone' | 'circle'
   // For cone/circle: measureStart is origin, measureEnd is target world pos (not cell)
   const [measureEndWorld, setMeasureEndWorld] = useState(null);
+  // Wall drawing preview state
+  const [tempWallStart, setTempWallStart] = useState(null); // { x, y } world coords (snapped)
+  const [tempWallEnd, setTempWallEnd] = useState(null);     // { x, y } world coords (snapped)
+  const [wallSnapEnabled, setWallSnapEnabled] = useState(true);
   const [gmSelectedTokenId, setGmSelectedTokenId] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
@@ -443,21 +475,28 @@ const VttCanvasInner = ({
       }
     });
 
-    // Draw in-progress wall stroke (currentWallStroke)
-    if (currentWallStroke.current.length >= 2) {
-      const pts = currentWallStroke.current;
+    // Draw temp wall preview (snapped start → current mouse position)
+    if (tempWallStart && tempWallEnd) {
       ctx.strokeStyle = WALL_COLORS[activeTool] || WALL_COLORS.wall;
       ctx.lineWidth = lineWidth;
       ctx.lineCap = 'round';
-      ctx.setLineDash([]);
+      ctx.setLineDash([lineWidth * 0.6, lineWidth * 0.6]);
+      ctx.globalAlpha = 0.7;
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.moveTo(tempWallStart.x, tempWallStart.y);
+      ctx.lineTo(tempWallEnd.x, tempWallEnd.y);
       ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+
+      // Draw snap indicators at both endpoints
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(tempWallStart.x, tempWallStart.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(tempWallEnd.x, tempWallEnd.y, 4, 0, Math.PI * 2); ctx.fill();
     }
 
     ctx.restore();
-  }, [pan, zoom, walls, activeTool, gs, ox, oy, isGM, wallsVisible]);
+  }, [pan, zoom, walls, activeTool, gs, ox, oy, isGM, wallsVisible, tempWallStart, tempWallEnd]);
 
   // ── Draw Tokens Layer ─────────────────────────────────────────────────────
   const draw = useCallback(() => {
@@ -775,6 +814,14 @@ const VttCanvasInner = ({
   };
 
   // ── Painting helpers ──────────────────────────────────────────────────────
+  const getSnappedWorldPos = (e) => {
+    const world = getWorldPos(e);
+    if (wallSnapEnabled && WALL_FORT_TOOLS.has(activeTool) && activeTool !== 'erase_wall') {
+      return snapToGrid(world.x, world.y, gs, ox, oy);
+    }
+    return world;
+  };
+
   const applyPaint = (e) => {
     const world = getWorldPos(e);
     const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
@@ -788,16 +835,13 @@ const VttCanvasInner = ({
       if (paintedCells.current.has(key)) return;
       paintedCells.current.add(key);
       setFogCells((prev) => {const n = new Set(prev);n.delete(key);return n;});
-    } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool)) {
-      // Collect freehand points for a smooth line segment
-      currentWallStroke.current = [...currentWallStroke.current, { x: world.x, y: world.y }];
     } else if (activeTool === 'erase_wall') {
-      // Erase walls whose segment passes near the clicked world point
       setWalls((prev) => prev.filter((w) => {
-        if (w.x1 == null) return true; // keep legacy
+        if (w.x1 == null) return true;
         return pointToSegmentDist(world.x, world.y, w.x1, w.y1, w.x2, w.y2) > gs * 0.6;
       }));
     }
+    // Wall drawing is now handled via tempWallStart/End in onMouseDown/Move/Up
   };
 
   const finishPaint = useCallback(() => {
@@ -811,21 +855,26 @@ const VttCanvasInner = ({
         return prev;
       });
     } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool)) {
-      const pts = currentWallStroke.current;
-      currentWallStroke.current = [];
-      if (pts.length < 2) return;
-      // Simplify: just use start and end point as the segment
-      const seg = {
-        id: crypto.randomUUID(),
-        type: activeTool,
-        is_open: false,
-        x1: pts[0].x, y1: pts[0].y,
-        x2: pts[pts.length - 1].x, y2: pts[pts.length - 1].y
-      };
-      setWalls((prev) => {
-        const updated = [...prev, seg];
-        saveWalls(updated);
-        return updated;
+      // Commit the temp wall preview as a permanent segment
+      setTempWallStart((start) => {
+        setTempWallEnd((end) => {
+          if (start && end && (Math.abs(start.x - end.x) > 2 || Math.abs(start.y - end.y) > 2)) {
+            const seg = {
+              id: crypto.randomUUID(),
+              type: activeTool,
+              is_open: false,
+              x1: start.x, y1: start.y,
+              x2: end.x,   y2: end.y
+            };
+            setWalls((prev) => {
+              const updated = [...prev, seg];
+              saveWalls(updated);
+              return updated;
+            });
+          }
+          return null;
+        });
+        return null;
       });
     } else if (activeTool === 'erase_wall') {
       setWalls((prev) => {
@@ -835,30 +884,18 @@ const VttCanvasInner = ({
     }
   }, [activeTool, onUpdateMap, saveWalls]);
 
-  // ── Spacebar shortcut: temporarily activates 'select' tool ──────────────
-  const spacebarOverride = useRef(false);
-  const prevToolRef = useRef(null);
+  // ── Spacebar shortcut: permanently switches to 'select' tool ────────────
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.code === 'Space' && !spacebarOverride.current && !e.repeat) {
-        // Don't capture if focus is in an input
+      if (e.code === 'Space' && !e.repeat) {
         if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
         e.preventDefault();
-        spacebarOverride.current = true;
-        prevToolRef.current = activeTool;
         onToolChange?.('select');
       }
     };
-    const onKeyUp = (e) => {
-      if (e.code === 'Space' && spacebarOverride.current) {
-        spacebarOverride.current = false;
-        if (prevToolRef.current) onToolChange?.(prevToolRef.current);
-      }
-    };
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
-  }, [activeTool, onToolChange]);
+    return () => { window.removeEventListener('keydown', onKeyDown); };
+  }, [onToolChange]);
 
   // ── Wheel zoom (mouse-centered) ───────────────────────────────────────────
   // Slower zoom: 0.05 per tick. Ctrl+wheel zooms; plain scroll pans vertically.
@@ -905,7 +942,16 @@ const VttCanvasInner = ({
       return;
     }
 
-    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || isSurvivalMode && ['spawn_point'].includes(activeTool) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    // Wall drawing tools: start temp preview
+    if (isGM && ['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool)) {
+      const snapped = getSnappedWorldPos(e);
+      setTempWallStart(snapped);
+      setTempWallEnd(snapped);
+      isPainting.current = true;
+      return;
+    }
+
+    if (activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall')) {
       isPainting.current = true;
       paintedCells.current = new Set();
       applyPaint(e);
@@ -929,7 +975,14 @@ const VttCanvasInner = ({
       setMeasureEndWorld({ x: world.x, y: world.y });
       return;
     }
-    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || isSurvivalMode && ['spawn_point'].includes(activeTool) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
+    // Wall drawing: update temp preview end point
+    if (isPainting.current && isGM && ['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool)) {
+      const snapped = getSnappedWorldPos(e);
+      setTempWallEnd(snapped);
+      return;
+    }
+
+    if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall')) {
       applyPaint(e);
       return;
     }
@@ -1347,6 +1400,21 @@ const VttCanvasInner = ({
 
       {/* Encounter Sidebar — lives inside the canvas */}
       {encounterSidebar}
+
+      {/* Wall snap picker */}
+      {['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool) && isGM && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/80 rounded-xl px-3 py-1.5 z-20 border border-cyan-500/30">
+          <span className="text-xs text-cyan-300 font-medium">Snap to Grid:</span>
+          <button
+            onClick={() => setWallSnapEnabled(true)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${wallSnapEnabled ? 'bg-cyan-500 text-black' : 'text-cyan-300 hover:bg-cyan-500/20'}`}
+          >On</button>
+          <button
+            onClick={() => setWallSnapEnabled(false)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${!wallSnapEnabled ? 'bg-cyan-500 text-black' : 'text-cyan-300 hover:bg-cyan-500/20'}`}
+          >Off</button>
+        </div>
+      )}
 
       {/* Measure mode picker */}
       {activeTool === 'measure' && (
