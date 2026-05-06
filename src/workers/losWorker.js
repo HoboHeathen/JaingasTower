@@ -1,65 +1,58 @@
 // Web Worker for Line of Sight calculations — runs off the main thread
+// Walls are now line segments: {id, type, x1, y1, x2, y2, is_open}
 
 function cellDist(ax, ay, bx, by) {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
-function isCellBlockedByWall(col, row, wallSet) {
-  return wallSet.has(`${col},${row}`);
+// Segment intersection test (returns true if segments AB and CD intersect)
+function segmentsIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1x = bx - ax, d1y = by - ay;
+  const d2x = dx - cx, d2y = dy - cy;
+  const cross = d1x * d2y - d1y * d2x;
+  if (Math.abs(cross) < 1e-9) return false; // parallel
+  const dx2 = cx - ax, dy2 = cy - ay;
+  const t = (dx2 * d2y - dy2 * d2x) / cross;
+  const u = (dx2 * d1y - dy2 * d1x) / cross;
+  return t > 0 && t < 1 && u > 0 && u < 1;
 }
 
-function getLineOfSightCells(fromCol, fromRow, toCol, toRow) {
-  const cells = [];
-  let x0 = fromCol, y0 = fromRow;
-  const x1 = toCol, y1 = toRow;
-  const dx = Math.abs(x1 - x0);
-  const dy = Math.abs(y1 - y0);
-  const sx = x0 < x1 ? 1 : -1;
-  const sy = y0 < y1 ? 1 : -1;
-  let err = dx - dy;
-  let x = x0, y = y0;
-  while (true) {
-    cells.push({ col: x, row: y });
-    if (x === x1 && y === y1) break;
-    const e2 = 2 * err;
-    if (e2 > -dy) { err -= dy; x += sx; }
-    if (e2 < dx) { err += dx; y += sy; }
-  }
-  return cells;
+// Convert grid cell center to world pixels
+function cellCenter(col, row, gs, ox, oy) {
+  return { x: col * gs + ox + gs / 2, y: row * gs + oy + gs / 2 };
 }
 
-// Build a fast Set of blocking wall cells for O(1) lookup instead of O(walls*cells) per check
-function buildWallSet(walls) {
-  const set = new Set();
-  for (const wall of walls) {
-    if (!wall.cells) continue;
-    const isBlocking = wall.type === 'wall' || wall.type === 'obstacle' || (wall.type === 'door' && !wall.is_open);
-    if (!isBlocking) continue;
-    for (const c of wall.cells) {
-      set.add(`${c.col},${c.row}`);
+// Build list of blocking segments once per LOS calculation batch
+function buildBlockingSegments(walls) {
+  return walls.filter((w) => {
+    if (w.type === 'wall' || w.type === 'obstacle') return true;
+    if (w.type === 'door' && !w.is_open) return true;
+    return false;
+  });
+}
+
+function getLineOfSightCells(fromCol, fromRow, toCol, toRow, blockingSegs, gs, ox, oy) {
+  // Ray from center of from-cell to center of to-cell
+  const from = cellCenter(fromCol, fromRow, gs, ox, oy);
+  const to = cellCenter(toCol, toRow, gs, ox, oy);
+
+  for (const seg of blockingSegs) {
+    if (segmentsIntersect(from.x, from.y, to.x, to.y, seg.x1, seg.y1, seg.x2, seg.y2)) {
+      return false;
     }
   }
-  return set;
+  return true;
 }
 
-function calculateTokenVisibility(tokenCol, tokenRow, range, wallSet) {
+function calculateTokenVisibility(tokenCol, tokenRow, range, blockingSegs, gs, ox, oy) {
   const visible = new Set();
   visible.add(`${tokenCol},${tokenRow}`);
 
   for (let col = tokenCol - range; col <= tokenCol + range; col++) {
     for (let row = tokenRow - range; row <= tokenRow + range; row++) {
       const dist = cellDist(tokenCol, tokenRow, col, row);
-      if (dist <= range && dist > 0) {
-        const path = getLineOfSightCells(tokenCol, tokenRow, col, row);
-        let blocked = false;
-        // Check all but the last cell (the target itself can be seen even if it IS a wall)
-        for (let i = 1; i < path.length - 1; i++) {
-          if (isCellBlockedByWall(path[i].col, path[i].row, wallSet)) {
-            blocked = true;
-            break;
-          }
-        }
-        if (!blocked) {
+      if (dist > 0 && dist <= range) {
+        if (getLineOfSightCells(tokenCol, tokenRow, col, row, blockingSegs, gs, ox, oy)) {
           visible.add(`${col},${row}`);
         }
       }
@@ -69,15 +62,15 @@ function calculateTokenVisibility(tokenCol, tokenRow, range, wallSet) {
 }
 
 self.onmessage = function(e) {
-  const { tokens, range, walls, requestId } = e.data;
+  const { tokens, range, walls, requestId, gs = 60, ox = 0, oy = 0 } = e.data;
 
-  // Build wall set once for all tokens
-  const wallSet = buildWallSet(walls);
+  const blockingSegs = buildBlockingSegments(walls || []);
 
   const results = {};
   for (const token of tokens) {
-    // Convert Set to Array for postMessage transfer (Sets can't be structured-cloned directly in all envs)
-    results[token.id] = Array.from(calculateTokenVisibility(token.x, token.y, range, wallSet));
+    results[token.id] = Array.from(
+      calculateTokenVisibility(token.x, token.y, range, blockingSegs, gs, ox, oy)
+    );
   }
 
   self.postMessage({ results, requestId });

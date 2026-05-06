@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo, useImperativeHandle } from 'react';
 import TokenContextMenu from '@/components/vtt/TokenContextMenu';
-import WallCellContextMenu from '@/components/vtt/WallCellContextMenu';
 import EditHpModal from '@/components/vtt/EditHpModal';
 import RenameTokenModal from '@/components/vtt/RenameTokenModal';
 import LinkCharacterModal from '@/components/vtt/LinkCharacterModal';
@@ -19,6 +18,39 @@ const TOKEN_COLORS = {
 
 const SIZE_SCALE = { tiny: 0.3, small: 0.5, medium: 0.75, large: 2, huge: 3 };
 const WALL_FORT_TOOLS = new Set(['wall', 'door', 'window', 'obstacle', 'erase_wall', 'spawn_point']);
+
+// ── Line-segment wall helpers ──────────────────────────────────────────────
+function segmentsIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1x = bx - ax, d1y = by - ay;
+  const d2x = dx - cx, d2y = dy - cy;
+  const cross = d1x * d2y - d1y * d2x;
+  if (Math.abs(cross) < 1e-9) return false;
+  const ex = cx - ax, ey = cy - ay;
+  const t = (ex * d2y - ey * d2x) / cross;
+  const u = (ex * d1y - ey * d1x) / cross;
+  return t > 0 && t < 1 && u > 0 && u < 1;
+}
+
+function tokenCrossesWall(fromCol, fromRow, toCol, toRow, walls, gs, ox, oy) {
+  const fx = fromCol * gs + ox + gs / 2;
+  const fy = fromRow * gs + oy + gs / 2;
+  const tx = toCol * gs + ox + gs / 2;
+  const ty = toRow * gs + oy + gs / 2;
+  for (const w of walls) {
+    if (w.type === 'spawn_point') continue;
+    if (w.type === 'door' && w.is_open) continue;
+    if (segmentsIntersect(fx, fy, tx, ty, w.x1, w.y1, w.x2, w.y2)) return true;
+  }
+  return false;
+}
+
+function pointToSegmentDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
 const FEET_PER_CELL = 5;
 
 const WALL_COLORS = {
@@ -142,8 +174,7 @@ const VttCanvasInner = ({
   const [moveInfo, setMoveInfo] = useState(null);
   const [fogCells, setFogCells] = useState(() => new Set(map.fog_cells || []));
   const [walls, setWalls] = useState(() => map.walls || []);
-  const [wallCellMenu, setWallCellMenu] = useState(null);
-  const [editHpWallCell, setEditHpWallCell] = useState(null);
+
   const [pings, setPings] = useState([]);
   const [visibleCells, setVisibleCells] = useState(new Set());
   const [gmTokenLOS, setGmTokenLOS] = useState({});
@@ -154,6 +185,9 @@ const VttCanvasInner = ({
   const [showWaveGenerator, setShowWaveGenerator] = useState(false);
   const [measureStart, setMeasureStart] = useState(null);
   const [measureEnd, setMeasureEnd] = useState(null);
+  const [measureMode, setMeasureMode] = useState('line'); // 'line' | 'cone' | 'circle'
+  // For cone/circle: measureStart is origin, measureEnd is target world pos (not cell)
+  const [measureEndWorld, setMeasureEndWorld] = useState(null);
   const [gmSelectedTokenId, setGmSelectedTokenId] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [editHpToken, setEditHpToken] = useState(null);
@@ -170,6 +204,7 @@ const VttCanvasInner = ({
   const isPainting = useRef(false);
   const paintedCells = useRef(new Set());
   const pendingSave = useRef(false);
+  const currentWallStroke = useRef([]); // world points for in-progress wall segment
   const losRange = 30; // 30 cells = 150 feet
 
   // Expose centerOnToken via imperative handle
@@ -275,6 +310,9 @@ const VttCanvasInner = ({
       tokens: relevant.map((t) => ({ id: t.id, x: t.x, y: t.y })),
       range: losRange,
       walls,
+      gs,
+      ox,
+      oy,
       requestId: losRequestIdRef.current
     });
   }, [localTokens, walls, isGM, losEnabled]);
@@ -355,59 +393,68 @@ const VttCanvasInner = ({
     ctx.restore();
   }, [pan, zoom, map, gs, ox, oy]);
 
-  // ── Draw Walls Layer ─────────────────────────────────────────────────────
+  // ── Draw Walls Layer (line-segment model) ────────────────────────────────
   const drawWallsFort = useCallback(() => {
     const canvas = wallsCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw when a wall tool is active OR walls are toggled visible
     if (!wallsVisible && !WALL_FORT_TOOLS.has(activeTool)) return;
 
     ctx.save();
     ctx.scale(zoom, zoom);
     ctx.translate(pan.x, pan.y);
 
+    const lineWidth = Math.max(4, gs * 0.12);
+
     walls.forEach((wall) => {
-      if (!wall.cells?.length) return;
+      if (wall.x1 == null) return; // skip legacy cell-based entries
       const color = WALL_COLORS[wall.type] || WALL_COLORS.wall;
-      wall.cells.forEach((cell) => {
-        const { col, row } = cell;
-        const { x: wx, y: wy } = cellToWorld(col, row, gs, ox, oy);
-        ctx.fillStyle = color;
-        ctx.fillRect(wx - gs / 2, wy - gs / 2, gs, gs);
 
-        if (wall.type === 'door' && wall.is_open) {
-          ctx.strokeStyle = 'rgba(255,220,80,0.9)';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([3, 3]);
-          ctx.strokeRect(wx - gs / 2 + 2, wy - gs / 2 + 2, gs - 4, gs - 4);
-          ctx.setLineDash([]);
-        }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = 'round';
 
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.font = `bold ${Math.max(8, gs * 0.14)}px Inter, sans-serif`;
+      if (wall.type === 'door' && wall.is_open) {
+        ctx.setLineDash([lineWidth, lineWidth * 0.8]);
+      } else {
+        ctx.setLineDash([]);
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(wall.x1, wall.y1);
+      ctx.lineTo(wall.x2, wall.y2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Label at midpoint for doors/windows/obstacles/spawn
+      if (wall.type !== 'wall') {
+        const mx = (wall.x1 + wall.x2) / 2;
+        const my = (wall.y1 + wall.y2) / 2;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = `bold ${Math.max(9, gs * 0.16)}px Inter, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        if (wall.type === 'door') ctx.fillText(wall.is_open ? '🚪' : 'D', wx, wy);else
-        if (wall.type === 'window') ctx.fillText('W', wx, wy);else
-        if (wall.type === 'obstacle') ctx.fillText('O', wx, wy);else
-        if (wall.type === 'spawn_point' && isGM) ctx.fillText('☠', wx, wy);
-
-        // Per-cell health bar (wall / window / door)
-        if (cell.max_hp != null && (wall.type === 'wall' || wall.type === 'window' || wall.type === 'door')) {
-          const barW = gs * 0.8;
-          const barX = wx - barW / 2;
-          const barY = wy + gs / 2 - 7;
-          const pct = Math.max(0, Math.min(1, (cell.current_hp ?? cell.max_hp) / cell.max_hp));
-          ctx.fillStyle = 'rgba(0,0,0,0.6)';
-          ctx.fillRect(barX, barY, barW, 4);
-          ctx.fillStyle = pct > 0.5 ? '#4ade80' : pct > 0.25 ? '#facc15' : '#f87171';
-          ctx.fillRect(barX, barY, barW * pct, 4);
-        }
-      });
+        if (wall.type === 'door') ctx.fillText(wall.is_open ? '🚪' : 'D', mx, my - lineWidth);
+        else if (wall.type === 'window') ctx.fillText('W', mx, my - lineWidth);
+        else if (wall.type === 'obstacle') ctx.fillText('O', mx, my - lineWidth);
+        else if (wall.type === 'spawn_point' && isGM) ctx.fillText('☠', mx, my - lineWidth);
+      }
     });
+
+    // Draw in-progress wall stroke (currentWallStroke)
+    if (currentWallStroke.current.length >= 2) {
+      const pts = currentWallStroke.current;
+      ctx.strokeStyle = WALL_COLORS[activeTool] || WALL_COLORS.wall;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = 'round';
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+    }
 
     ctx.restore();
   }, [pan, zoom, walls, activeTool, gs, ox, oy, isGM, wallsVisible]);
@@ -613,30 +660,66 @@ const VttCanvasInner = ({
     }
 
     // Measurement overlay
-    if (measureStart && measureEnd) {
+    if (measureStart && measureEndWorld) {
       const { x: sx, y: sy } = cellToWorld(measureStart.col, measureStart.row, gs, ox, oy);
-      const { x: ex, y: ey } = cellToWorld(measureEnd.col, measureEnd.row, gs, ox, oy);
-      const dist = cellDist(measureStart.col, measureStart.row, measureEnd.col, measureEnd.row);
-      const feet = dist * FEET_PER_CELL;
+      const ex = measureEndWorld.x, ey = measureEndWorld.y;
+      const dx = ex - sx, dy = ey - sy;
+      const pixelDist = Math.hypot(dx, dy);
+      const feet = Math.round((pixelDist / gs) * FEET_PER_CELL);
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(250,204,21,0.15)';
       ctx.strokeStyle = 'rgba(250,204,21,0.9)';
       ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
-      ctx.beginPath();ctx.moveTo(sx, sy);ctx.lineTo(ex, ey);ctx.stroke();
-      ctx.setLineDash([]);
-      // Dots at endpoints
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath();ctx.arc(sx, sy, 5, 0, Math.PI * 2);ctx.fill();
-      ctx.beginPath();ctx.arc(ex, ey, 5, 0, Math.PI * 2);ctx.fill();
-      // Distance label
-      const mx2 = (sx + ex) / 2;
-      const my2 = (sy + ey) / 2;
-      ctx.fillStyle = 'rgba(0,0,0,0.75)';
-      ctx.beginPath();ctx.roundRect(mx2 - 28, my2 - 12, 56, 20, 4);ctx.fill();
-      ctx.fillStyle = '#facc15';
-      ctx.font = 'bold 12px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${feet}ft`, mx2, my2 - 2);
+
+      if (measureMode === 'line') {
+        ctx.setLineDash([6, 3]);
+        ctx.beginPath();ctx.moveTo(sx, sy);ctx.lineTo(ex, ey);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();ctx.arc(sx, sy, 5, 0, Math.PI * 2);ctx.fill();
+        ctx.beginPath();ctx.arc(ex, ey, 5, 0, Math.PI * 2);ctx.fill();
+        const lx = (sx + ex) / 2, ly = (sy + ey) / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.beginPath();ctx.roundRect(lx - 28, ly - 12, 56, 20, 4);ctx.fill();
+        ctx.fillStyle = '#facc15';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.textAlign = 'center';ctx.textBaseline = 'middle';
+        ctx.fillText(`${feet}ft`, lx, ly - 2);
+
+      } else if (measureMode === 'circle') {
+        // Circle with radius = distance; label shows diameter in feet
+        ctx.beginPath();ctx.arc(sx, sy, pixelDist, 0, Math.PI * 2);
+        ctx.fill();ctx.stroke();
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();ctx.arc(sx, sy, 5, 0, Math.PI * 2);ctx.fill();
+        const diameter = feet * 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.beginPath();ctx.roundRect(sx - 36, sy - 12, 72, 20, 4);ctx.fill();
+        ctx.fillStyle = '#facc15';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.textAlign = 'center';ctx.textBaseline = 'middle';
+        ctx.fillText(`r:${feet}ft (ø${diameter}ft)`, sx, sy - 2);
+
+      } else if (measureMode === 'cone') {
+        // 53-degree cone (standard D&D)
+        const angle = Math.atan2(dy, dx);
+        const halfAngle = (53 * Math.PI) / 180 / 2;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.arc(sx, sy, pixelDist, angle - halfAngle, angle + halfAngle);
+        ctx.closePath();
+        ctx.fill();ctx.stroke();
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();ctx.arc(sx, sy, 5, 0, Math.PI * 2);ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.beginPath();ctx.roundRect(ex - 28, ey - 12, 56, 20, 4);ctx.fill();
+        ctx.fillStyle = '#facc15';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.textAlign = 'center';ctx.textBaseline = 'middle';
+        ctx.fillText(`${feet}ft`, ex, ey - 2);
+      }
+      ctx.restore();
     }
 
     // Pings (stored as world coords)
@@ -654,7 +737,7 @@ const VttCanvasInner = ({
     });
 
     ctx.restore();
-  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, measureStart, measureEnd, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
+  }, [pan, zoom, localTokens, map, trails, activeTokenId, moveInfo, gs, ox, oy, fogCells, isGM, pings, measureStart, measureEndWorld, measureMode, groupCharacters, gmSelectedTokenId, gmTokenLOS, visibleCells, losEnabled]);
 
   useEffect(() => {
     drawBackground();
@@ -680,8 +763,8 @@ const VttCanvasInner = ({
     });
   };
 
-  const findWallCellAt = (col, row) => {
-    return walls.find((w) => w.cells?.some((c) => c.col === col && c.row === row));
+  const findWallSegmentAt = (worldX, worldY) => {
+    return walls.find((w) => w.x1 != null && pointToSegmentDist(worldX, worldY, w.x1, w.y1, w.x2, w.y2) < gs * 0.4);
   };
 
   const canMoveToken = (token) => {
@@ -696,29 +779,24 @@ const VttCanvasInner = ({
     const world = getWorldPos(e);
     const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
     const key = fogKey(col, row);
-    if (paintedCells.current.has(key)) return;
-    paintedCells.current.add(key);
 
     if (activeTool === 'fog_add') {
+      if (paintedCells.current.has(key)) return;
+      paintedCells.current.add(key);
       setFogCells((prev) => {const n = new Set(prev);n.add(key);return n;});
     } else if (activeTool === 'fog_erase') {
+      if (paintedCells.current.has(key)) return;
+      paintedCells.current.add(key);
       setFogCells((prev) => {const n = new Set(prev);n.delete(key);return n;});
     } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool)) {
-      setWalls((prev) => {
-        if (prev.some((w) => w.cells?.some((c) => c.col === col && c.row === row))) return prev;
-        const last = prev[prev.length - 1];
-        if (last && last.type === activeTool && last._stroke === 'current') {
-          return [...prev.slice(0, -1), { ...last, cells: [...last.cells, { col, row }] }];
-        }
-        return [...prev, { id: crypto.randomUUID(), type: activeTool, is_open: false, cells: [{ col, row }], _stroke: 'current' }];
-      });
+      // Collect freehand points for a smooth line segment
+      currentWallStroke.current = [...currentWallStroke.current, { x: world.x, y: world.y }];
     } else if (activeTool === 'erase_wall') {
-      setWalls((prev) => {
-        return prev.map((w) => ({
-          ...w,
-          cells: w.cells?.filter((c) => !(c.col === col && c.row === row))
-        })).filter((w) => w.cells?.length > 0);
-      });
+      // Erase walls whose segment passes near the clicked world point
+      setWalls((prev) => prev.filter((w) => {
+        if (w.x1 == null) return true; // keep legacy
+        return pointToSegmentDist(world.x, world.y, w.x1, w.y1, w.x2, w.y2) > gs * 0.6;
+      }));
     }
   };
 
@@ -732,14 +810,30 @@ const VttCanvasInner = ({
         onUpdateMap?.({ fog_cells: [...prev] });
         return prev;
       });
-    } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point', 'erase_wall'].includes(activeTool)) {
+    } else if (['wall', 'door', 'window', 'obstacle', 'spawn_point'].includes(activeTool)) {
+      const pts = currentWallStroke.current;
+      currentWallStroke.current = [];
+      if (pts.length < 2) return;
+      // Simplify: just use start and end point as the segment
+      const seg = {
+        id: crypto.randomUUID(),
+        type: activeTool,
+        is_open: false,
+        x1: pts[0].x, y1: pts[0].y,
+        x2: pts[pts.length - 1].x, y2: pts[pts.length - 1].y
+      };
       setWalls((prev) => {
-        const cleaned = prev.map(({ _stroke, ...w }) => w);
-        saveWalls(cleaned);
-        return cleaned;
+        const updated = [...prev, seg];
+        saveWalls(updated);
+        return updated;
+      });
+    } else if (activeTool === 'erase_wall') {
+      setWalls((prev) => {
+        saveWalls(prev);
+        return prev;
       });
     }
-  }, [activeTool, onUpdateMap]);
+  }, [activeTool, onUpdateMap, saveWalls]);
 
   // ── Spacebar shortcut: temporarily activates 'select' tool ──────────────
   const spacebarOverride = useRef(false);
@@ -807,7 +901,7 @@ const VttCanvasInner = ({
     if (activeTool === 'measure') {
       const cell = worldToCell(world.x, world.y, gs, ox, oy);
       setMeasureStart(cell);
-      setMeasureEnd(cell);
+      setMeasureEndWorld({ x: world.x, y: world.y });
       return;
     }
 
@@ -832,7 +926,7 @@ const VttCanvasInner = ({
   const onMouseMove = (e) => {
     if (activeTool === 'measure' && measureStart) {
       const world = getWorldPos(e);
-      setMeasureEnd(worldToCell(world.x, world.y, gs, ox, oy));
+      setMeasureEndWorld({ x: world.x, y: world.y });
       return;
     }
     if (isPainting.current && activeTool !== 'select' && isGM && (activeTool === 'fog_add' || activeTool === 'fog_erase' || activeTool === 'erase_wall' || isSurvivalMode && ['spawn_point'].includes(activeTool) || ['wall', 'door', 'window', 'obstacle'].includes(activeTool))) {
@@ -892,12 +986,18 @@ const VttCanvasInner = ({
       const movedToken = localTokens.find((t) => t.id === draggingId);
       if (movedToken && dragStart.current) {
         const { col: sc, row: sr } = dragStart.current;
+        // Wall collision: if movement crosses a blocking wall, snap back to start
         if (movedToken.x !== sc || movedToken.y !== sr) {
-          // Update trails for visual path display
-          setTrails((prev) => {
-            const existing = prev[draggingId] || [{ col: sc, row: sr }];
-            return { ...prev, [draggingId]: [...existing, { col: movedToken.x, row: movedToken.y }] };
-          });
+          if (tokenCrossesWall(sc, sr, movedToken.x, movedToken.y, walls, gs, ox, oy)) {
+            // Snap back
+            setLocalTokens((prev) => prev.map((t) => t.id === draggingId ? { ...t, x: sc, y: sr } : t));
+            tokenUpdateQueue.current[draggingId] = { x: sc, y: sr };
+          } else {
+            setTrails((prev) => {
+              const existing = prev[draggingId] || [{ col: sc, row: sr }];
+              return { ...prev, [draggingId]: [...existing, { col: movedToken.x, row: movedToken.y }] };
+            });
+          }
         }
       }
       clearTimeout(batchTimer.current);
@@ -917,16 +1017,16 @@ const VttCanvasInner = ({
       setContextMenu({ token, screenX: e.clientX, screenY: e.clientY });
       return;
     }
-    // Check wall cells — door toggling or wall/window health menu
+    // Check wall segments — door toggling
     if (isGM) {
-      const { col, row } = worldToCell(world.x, world.y, gs, ox, oy);
-      const wall = findWallCellAt(col, row);
-      if (wall) {
-        if (wall.type === 'wall' || wall.type === 'window' || wall.type === 'door') {
-          const cell = wall.cells.find((c) => c.col === col && c.row === row);
-          setWallCellMenu({ wall, cell: cell || { col, row }, screenX: e.clientX, screenY: e.clientY });
-          return;
-        }
+      const wall = findWallSegmentAt(world.x, world.y);
+      if (wall && wall.type === 'door') {
+        setWalls((prev) => {
+          const updated = prev.map((w) => w.id === wall.id ? { ...w, is_open: !w.is_open } : w);
+          saveWalls(updated);
+          return updated;
+        });
+        return;
       }
     }
     // Ping on empty right-click
@@ -968,51 +1068,7 @@ const VttCanvasInner = ({
     setLocalTokens(updated);onUpdateTokens(updated);setEditHpToken(null);
   };
 
-  const handleToggleWallCellHealth = () => {
-    if (!wallCellMenu) return;
-    const { wall, cell } = wallCellMenu;
-    const hasHealth = cell.max_hp != null;
-    const updated = walls.map((w) => {
-      if (w.id !== wall.id) return w;
-      return {
-        ...w,
-        cells: w.cells.map((c) => {
-          if (c.col !== cell.col || c.row !== cell.row) return c;
-          if (hasHealth) {
-            const { current_hp, max_hp, ...rest } = c;
-            return rest;
-          }
-          return { ...c, max_hp: 10, current_hp: 10 };
-        })
-      };
-    });
-    setWalls(updated);
-    saveWalls(updated);
-    setWallCellMenu(null);
-  };
-
-  const handleEditWallCellHealth = () => {
-    if (!wallCellMenu) return;
-    setEditHpWallCell({ wall: wallCellMenu.wall, cell: wallCellMenu.cell });
-    setWallCellMenu(null);
-  };
-
-  const handleSaveWallCellHP = ({ current_hp, max_hp }) => {
-    if (!editHpWallCell) return;
-    const { wall, cell } = editHpWallCell;
-    const updated = walls.map((w) => {
-      if (w.id !== wall.id) return w;
-      return {
-        ...w,
-        cells: w.cells.map((c) =>
-        c.col === cell.col && c.row === cell.row ? { ...c, current_hp, max_hp } : c
-        )
-      };
-    });
-    setWalls(updated);
-    saveWalls(updated);
-    setEditHpWallCell(null);
-  };
+  // Wall cell HP handlers removed (line-segment model; walls no longer have per-cell HP)
 
   const handleSaveName = (name) => {
     const updated = localTokens.map((t) => t.id === renameToken.id ? { ...t, name } : t);
@@ -1032,7 +1088,7 @@ const VttCanvasInner = ({
 
   const clearTrails = () => setTrails({});
 
-  const spawnPointCount = walls.filter((w) => w.type === 'spawn_point').reduce((sum, w) => sum + w.cells.length, 0);
+  const spawnPointCount = walls.filter((w) => w.type === 'spawn_point').length;
 
   const clearSpawnPoints = () => {
     const updated = walls.filter((w) => w.type !== 'spawn_point');
@@ -1147,7 +1203,7 @@ const VttCanvasInner = ({
 
   // Clear measure when tool changes away
   useEffect(() => {
-    if (activeTool !== 'measure') {setMeasureStart(null);setMeasureEnd(null);}
+    if (activeTool !== 'measure') {setMeasureStart(null);setMeasureEnd(null);setMeasureEndWorld(null);}
   }, [activeTool]);
 
   return (
@@ -1292,6 +1348,21 @@ const VttCanvasInner = ({
       {/* Encounter Sidebar — lives inside the canvas */}
       {encounterSidebar}
 
+      {/* Measure mode picker */}
+      {activeTool === 'measure' && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/80 rounded-xl px-2 py-1.5 z-20 border border-yellow-500/30">
+          {['line', 'cone', 'circle'].map((m) => (
+            <button
+              key={m}
+              onClick={() => setMeasureMode(m)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all capitalize ${measureMode === m ? 'bg-yellow-500 text-black' : 'text-yellow-300 hover:bg-yellow-500/20'}`}
+            >
+              {m === 'line' ? '↔ Line' : m === 'cone' ? '▷ Cone' : '◎ Circle'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Active turn badge (non-fullscreen) */}
       {!isFullscreen && initiativeStarted && activeTokenId &&
         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-yellow-500/90 text-black text-xs font-bold px-3 py-1 rounded-full pointer-events-none shadow-lg">
@@ -1321,37 +1392,8 @@ const VttCanvasInner = ({
       {editHpToken &&
         <EditHpModal token={editHpToken} onSave={handleSaveHP} onClose={() => setEditHpToken(null)} />
         }
-      {editHpWallCell &&
-        <EditHpModal
-          token={{
-            name: `${editHpWallCell.wall.type} (${editHpWallCell.cell.col},${editHpWallCell.cell.row})`,
-            max_hp: editHpWallCell.cell.max_hp ?? 10,
-            current_hp: editHpWallCell.cell.current_hp ?? editHpWallCell.cell.max_hp ?? 10
-          }}
-          onSave={handleSaveWallCellHP}
-          onClose={() => setEditHpWallCell(null)} />
 
-        }
-      {wallCellMenu &&
-        <WallCellContextMenu
-          cell={wallCellMenu.cell}
-          wall={wallCellMenu.wall}
-          x={wallCellMenu.screenX}
-          y={wallCellMenu.screenY}
-          onClose={() => setWallCellMenu(null)}
-          onToggleHealth={handleToggleWallCellHealth}
-          onEditHealth={handleEditWallCellHealth}
-          onToggleDoor={() => {
-            // Use current walls state (not stale wallCellMenu.wall) to preserve HP data
-            setWalls((prev) => {
-              const updated = prev.map((w) => w.id === wallCellMenu.wall.id ? { ...w, is_open: !w.is_open } : w);
-              saveWalls(updated);
-              return updated;
-            });
-            setWallCellMenu(null);
-          }} />
 
-        }
       {renameToken &&
         <RenameTokenModal token={renameToken} onSave={handleSaveName} onClose={() => setRenameToken(null)} />
         }

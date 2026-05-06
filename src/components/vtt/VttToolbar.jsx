@@ -156,7 +156,7 @@ export default function VttToolbar({
       {/* Active tool hint */}
       <div className="ml-auto text-[10px] text-muted-foreground italic hidden md:block">
         {activeTool === 'select' && 'Drag tokens to move • Right-click token for options • Right-click empty = ping'}
-        {activeTool === 'measure' && 'Click to set origin • drag to measure distance in feet'}
+        {activeTool === 'measure' && 'Click to set origin • drag to measure • choose Line / Cone / Circle below'}
         {activeTool === 'fog_add' && 'Click/drag to add fog cells'}
         {activeTool === 'fog_erase' && 'Click/drag to erase fog cells'}
         {activeTool === 'wall' && 'Click/drag cells to place walls'}
